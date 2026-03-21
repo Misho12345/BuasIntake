@@ -1,0 +1,150 @@
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(rgba32f, binding = 0) uniform readonly image2D uField;
+
+layout(std430, binding = 1) readonly buffer BoundaryVertices { vec2 data[]; } uBoundaryVertices;
+layout(std430, binding = 2) readonly buffer HorizontalEdgeIds { int data[]; } uHorizontalEdgeIds;
+layout(std430, binding = 3) readonly buffer VerticalEdgeIds   { int data[]; } uVerticalEdgeIds;
+
+layout(std430, binding = 4) buffer MeshVertices { vec2 data[]; } uMeshVertices;
+layout(std430, binding = 5) buffer MeshIndices  { uint data[]; } uMeshIndices;
+
+struct BoundaryEdge { uint a; uint b; };
+layout(std430, binding = 6) buffer BoundaryEdges { BoundaryEdge data[]; } uBoundaryEdges;
+
+layout(std430, binding = 7) buffer Counters
+{
+    uint vertexCount;
+    uint indexCount;
+    uint edgeCount;
+} uCounters;
+
+uniform float uIso;
+uniform vec2  uOrigin;
+uniform vec2  uCellSize;
+
+float sample_field(ivec2 p)
+{
+    return imageLoad(uField, p).r;
+}
+
+vec2 grid_to_world(vec2 g)
+{
+    return uOrigin + g * uCellSize;
+}
+
+uint push_vertex(vec2 p)
+{
+    uint i = atomicAdd(uCounters.vertexCount, 1);
+    uMeshVertices.data[i] = p;
+    return i;
+}
+
+void push_triangle(vec2 a, vec2 b, vec2 c)
+{
+    uint base = atomicAdd(uCounters.indexCount, 3);
+    uMeshIndices.data[base + 0] = push_vertex(a);
+    uMeshIndices.data[base + 1] = push_vertex(b);
+    uMeshIndices.data[base + 2] = push_vertex(c);
+}
+
+void push_edge(uint a, uint b)
+{
+    uint i = atomicAdd(uCounters.edgeCount, 1);
+    uBoundaryEdges.data[i] = BoundaryEdge(a, b);
+}
+
+void main()
+{
+    ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(uField);
+
+    if (id.x >= size.x - 1 || id.y >= size.y - 1) return;
+
+    float v0 = sample_field(id);
+    float v1 = sample_field(id + ivec2(1, 0));
+    float v2 = sample_field(id + ivec2(1, 1));
+    float v3 = sample_field(id + ivec2(0, 1));
+
+    bool i0 = v0 >= uIso;
+    bool i1 = v1 >= uIso;
+    bool i2 = v2 >= uIso;
+    bool i3 = v3 >= uIso;
+
+    int mask =
+        (i0 ? 1 : 0) |
+        (i1 ? 2 : 0) |
+        (i2 ? 4 : 0) |
+        (i3 ? 8 : 0);
+
+    if (mask == 0)
+        return;
+
+    vec2 p0 = grid_to_world(vec2(id) + vec2(0, 0));
+    vec2 p1 = grid_to_world(vec2(id) + vec2(1, 0));
+    vec2 p2 = grid_to_world(vec2(id) + vec2(1, 1));
+    vec2 p3 = grid_to_world(vec2(id) + vec2(0, 1));
+
+    int e0i = uHorizontalEdgeIds.data[id.y * (size.x - 1) + id.x];
+    int e1i = uVerticalEdgeIds.data[id.y * size.x + (id.x + 1)];
+    int e2i = uHorizontalEdgeIds.data[(id.y + 1) * (size.x - 1) + id.x];
+    int e3i = uVerticalEdgeIds.data[id.y * size.x + id.x];
+
+    vec2 e0 = (e0i >= 0) ? uBoundaryVertices.data[e0i] : vec2(0);
+    vec2 e1 = (e1i >= 0) ? uBoundaryVertices.data[e1i] : vec2(0);
+    vec2 e2 = (e2i >= 0) ? uBoundaryVertices.data[e2i] : vec2(0);
+    vec2 e3 = (e3i >= 0) ? uBoundaryVertices.data[e3i] : vec2(0);
+
+    float center = 0.25 * (v0 + v1 + v2 + v3);
+    bool inside_center = center >= uIso;
+
+    switch (mask)
+    {
+        case 1:  push_edge(e0i, e3i); break;
+        case 2:  push_edge(e1i, e0i); break;
+        case 3:  push_edge(e1i, e3i); break;
+        case 4:  push_edge(e2i, e1i); break;
+
+        case 5:
+            if (inside_center) { push_edge(e0i, e1i); push_edge(e2i, e3i); }
+            else               { push_edge(e0i, e3i); push_edge(e2i, e1i); }
+            break;
+
+        case 6:  push_edge(e2i, e0i); break;
+        case 7:  push_edge(e2i, e3i); break;
+        case 8:  push_edge(e3i, e2i); break;
+        case 9:  push_edge(e0i, e2i); break;
+
+        case 10:
+            if (inside_center) { push_edge(e3i, e0i); push_edge(e1i, e2i); }
+            else               { push_edge(e3i, e2i); push_edge(e1i, e0i); }
+            break;
+
+        case 11: push_edge(e1i, e2i); break;
+        case 12: push_edge(e3i, e1i); break;
+        case 13: push_edge(e0i, e1i); break;
+        case 14: push_edge(e3i, e0i); break;
+    }
+
+    if (mask == 15)
+    {
+        push_triangle(p0, p1, p2);
+        push_triangle(p0, p2, p3);
+        return;
+    }
+
+    vec2 poly[8];
+    int count = 0;
+
+    if (e0i >= 0) poly[count++] = e0; if (i1) poly[count++] = p1;
+    if (e1i >= 0) poly[count++] = e1; if (i2) poly[count++] = p2;
+    if (e2i >= 0) poly[count++] = e2; if (i3) poly[count++] = p3;
+    if (e3i >= 0) poly[count++] = e3; if (i0) poly[count++] = p0;
+
+    if (count < 3) return;
+
+    for (int i = 1; i < count - 1; ++i)
+        push_triangle(poly[0], poly[i], poly[i + 1]);
+}
