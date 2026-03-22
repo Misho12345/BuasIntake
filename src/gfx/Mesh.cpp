@@ -9,18 +9,23 @@ namespace game::gfx
 		glCreateBuffers(1, &vbo_);
 		glCreateBuffers(1, &ebo_);
 
-		glVertexArrayVertexBuffer(vao_, 0, vbo_, 0, sizeof(Vertex));
+		glVertexArrayVertexBuffer(vao_, 0, vbo_, 0, sizeof(sf::Vertex));
 		glVertexArrayElementBuffer(vao_, ebo_);
 
-		static constexpr GLint pos_size = sizeof(Vertex::position) / sizeof(float);
+		static constexpr GLint pos_size = 2;
 		glEnableVertexArrayAttrib(vao_, 0);
-		glVertexArrayAttribFormat(vao_, 0, pos_size, GL_FLOAT, GL_FALSE, offsetof(Vertex, position));
+		glVertexArrayAttribFormat(vao_, 0, pos_size, GL_FLOAT, GL_FALSE, offsetof(sf::Vertex, position));
 		glVertexArrayAttribBinding(vao_, 0, 0);
 
-		static constexpr GLint color_size = sizeof(Vertex::color) / sizeof(float);
+		static constexpr GLint color_size = 4;
 		glEnableVertexArrayAttrib(vao_, 1);
-		glVertexArrayAttribFormat(vao_, 1, color_size, GL_FLOAT, GL_FALSE, offsetof(Vertex, color));
+		glVertexArrayAttribFormat(vao_, 1, color_size, GL_UNSIGNED_BYTE, GL_TRUE, offsetof(sf::Vertex, color));
 		glVertexArrayAttribBinding(vao_, 1, 0);
+
+		static constexpr GLint tex_coords_size = 2;
+		glEnableVertexArrayAttrib(vao_, 2);
+		glVertexArrayAttribFormat(vao_, 2, tex_coords_size, GL_FLOAT, GL_FALSE, offsetof(sf::Vertex, texCoords));
+		glVertexArrayAttribBinding(vao_, 2, 0);
 	}
 
 	Mesh::~Mesh()
@@ -51,8 +56,8 @@ namespace game::gfx
 		return *this;
 	}
 
-	void Mesh::set_data(const std::span<const Vertex>   vertices,
-	                           const std::span<const std::uint32_t> indices)
+	void Mesh::set_data(const std::span<const sf::Vertex> vertices,
+		const std::span<const std::uint32_t> indices)
 	{
 		index_count_ = static_cast<GLsizei>(indices.size());
 
@@ -78,8 +83,5 @@ namespace game::gfx
 		glBindVertexArray(0);
 	}
 
-	bool Mesh::empty() const
-	{
-		return index_count_ == 0;
-	}
+	bool Mesh::empty() const { return index_count_ == 0; }
 }

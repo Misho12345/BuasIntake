@@ -1,8 +1,8 @@
 #pragma once
 #include "pch.hpp"
 
-#include "gfx/ColorMeshRenderer.hpp"
-#include "terrain/TerrainChunk.hpp"
+#include "GameObject.hpp"
+#include "terrain/PlanetTerrain.hpp"
 
 namespace game
 {
@@ -34,8 +34,10 @@ namespace game
 		void render_sfml();
 		void create_world();
 		void create_player();
-		void apply_player_input();
+		void apply_player_input() const;
+		void configure_input();
 		void step_physics(float dt);
+		void sync_camera_to_player();
 		void update_world_view(uvec2 size);
 
 		GameSettings settings_{};
@@ -45,14 +47,15 @@ namespace game
 		sf::View         world_view_{};
 
 		b2WorldId world_{ b2_nullWorldId };
-		b2BodyId  player_body_{ b2_nullBodyId };
-		std::optional<gfx::ColorMeshRenderer> terrain_renderer_{ std::nullopt };
-		std::optional<terrain::TerrainChunk> terrain_{ std::nullopt };
-
-		sf::CircleShape player_shape_{};
+		std::optional<terrain::PlanetTerrain> terrain_{ std::nullopt };
+		GameObject player_{};
 
 		float player_radius_{ 0.35f };
 		float physics_accumulator_{ 0.0f };
+		vec2 camera_world_span_{ 36.0f, 27.0f };
+		float camera_zoom_{ 1.0f };
+		float min_camera_zoom_{ 0.35f };
+		float max_camera_zoom_{ 3.5f };
 		bool  gl_loaded_{ false };
 
 		bool failed_{ false };

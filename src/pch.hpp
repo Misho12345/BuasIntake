@@ -24,6 +24,7 @@ namespace fs = std::filesystem;
 #include <memory>
 #include <utility>
 #include <optional>
+#include <variant>
 #include <functional>
 #include <stdexcept>
 

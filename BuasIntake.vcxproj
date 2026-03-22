@@ -177,9 +177,9 @@
   <ItemGroup>
     <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\Game.cpp" />
-    <ClCompile Include="src\gfx\ColorMeshRenderer.cpp" />
     <ClCompile Include="src\gfx\Mesh.cpp" />
     <ClCompile Include="src\gfx\Shader.cpp" />
+    <ClCompile Include="src\gfx\Texture2D.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -187,7 +187,13 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="src\terrain\TerrainCollider.cpp" />
     <ClCompile Include="src\terrain\TerrainChunk.cpp" />
+    <ClCompile Include="src\terrain\TerrainContour.cpp" />
+    <ClCompile Include="src\terrain\TerrainGenerator.cpp" />
+    <ClCompile Include="src\terrain\PlanetTerrain.cpp" />
+    <ClCompile Include="src\terrain\TerrainRenderable.cpp" />
+    <ClCompile Include="src\water\WaterRenderable.cpp" />
     <ClCompile Include="third_party\src\gl.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
@@ -198,13 +204,22 @@
   <ItemGroup>
     <ClInclude Include="src\Input.hpp" />
     <ClInclude Include="src\Game.hpp" />
-    <ClInclude Include="src\gfx\ColorMeshRenderer.hpp" />
+    <ClInclude Include="src\GameObject.hpp" />
     <ClInclude Include="src\gfx\ComputeDispatcher.hpp" />
     <ClInclude Include="src\gfx\Mesh.hpp" />
+    <ClInclude Include="src\gfx\Projection.hpp" />
     <ClInclude Include="src\gfx\Shader.hpp" />
     <ClInclude Include="src\gfx\SSBO.hpp" />
+    <ClInclude Include="src\gfx\Texture2D.hpp" />
     <ClInclude Include="src\pch.hpp" />
+    <ClInclude Include="src\terrain\ChunkSettings.hpp" />
+    <ClInclude Include="src\terrain\TerrainCollider.hpp" />
     <ClInclude Include="src\terrain\TerrainChunk.hpp" />
+    <ClInclude Include="src\terrain\TerrainContour.hpp" />
+    <ClInclude Include="src\terrain\TerrainGenerator.hpp" />
+    <ClInclude Include="src\terrain\PlanetTerrain.hpp" />
+    <ClInclude Include="src\terrain\TerrainRenderable.hpp" />
+    <ClInclude Include="src\water\WaterRenderable.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\shaders\chunk_edges_gen.comp" />
@@ -212,6 +227,8 @@
     <None Include="assets\shaders\terrain_mesh.frag" />
     <None Include="assets\shaders\terrain_mesh.vert" />
     <None Include="assets\shaders\terrain_gen.comp" />
+    <None Include="assets\shaders\water_mesh.frag" />
+    <None Include="assets\shaders\water_mesh.vert" />
     <None Include=".gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

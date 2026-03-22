@@ -10,8 +10,18 @@ layout(std430, binding = 3) buffer VerticalEdgeIds   { int data[]; } uVerticalEd
 layout(std430, binding = 4) buffer VertexCounter     { uint count; } uVertexCounter;
 
 uniform float uIso;
-uniform vec2  uOrigin;
+uniform ivec2 uChunkCoord;
+uniform ivec2 uChunkGridSize;
+uniform vec2  uChunkSize;
+uniform vec2  uWorldCenter;
 uniform vec2  uCellSize;
+
+vec2 chunk_origin()
+{
+	return uWorldCenter +
+		(vec2(float(uChunkCoord.x), float(uChunkCoord.y)) - 0.5 * vec2(float(uChunkGridSize.x), float(uChunkGridSize.y))) *
+		uChunkSize;
+}
 
 float sample_field(ivec2 p)
 {
@@ -20,7 +30,7 @@ float sample_field(ivec2 p)
 
 vec2 grid_to_world(vec2 g)
 {
-    return uOrigin + g * uCellSize;
+	return chunk_origin() + g * uCellSize;
 }
 
 void main()

@@ -4,12 +4,6 @@
 
 namespace game::gfx
 {
-	struct Vertex final
-	{
-		vec2 position{};
-		std::array<float, 4> color{ 1.0f, 1.0f, 1.0f, 1.0f };
-	};
-
 	class Mesh final
 	{
 	public:
@@ -21,7 +15,7 @@ namespace game::gfx
 		Mesh(Mesh&& other) noexcept;
 		Mesh& operator=(Mesh&& other) noexcept;
 
-		void set_data(std::span<const Vertex> vertices, std::span<const std::uint32_t> indices);
+		void set_data(std::span<const sf::Vertex> vertices, std::span<const std::uint32_t> indices);
 		void draw() const;
 
 		[[nodiscard]] bool empty() const;

@@ -4,20 +4,22 @@
 
 namespace game::gfx
 {
+	struct ShaderProgram;
+
 	class Shader final
 	{
 	public:
 		Shader() = default;
-		explicit Shader(GLuint program);
-		~Shader();
+		~Shader() = default;
 
 		Shader(const Shader&)            = delete;
 		Shader& operator=(const Shader&) = delete;
-		Shader(Shader&& other) noexcept;
-		Shader& operator=(Shader&& other) noexcept;
+		Shader(Shader&& other) noexcept = default;
+		Shader& operator=(Shader&& other) noexcept = default;
 
 		[[nodiscard]] static Shader from_compute_file(const fs::path& path);
 		[[nodiscard]] static Shader from_graphics_files(const fs::path& vertex_path, const fs::path& fragment_path);
+		static void clear_cache();
 
 		void use() const;
 
@@ -52,12 +54,13 @@ namespace game::gfx
 		}
 
 	private:
+		explicit Shader(std::shared_ptr<ShaderProgram> program);
+
 		static GLuint compile_stage(GLenum stage, const std::string& source, const fs::path& path);
 		static GLuint link_program(std::span<const GLuint> shaders, std::string_view label);
 
 		GLint uniform_location(std::string_view name) const;
 
-		GLuint program_{ 0 };
-		mutable std::unordered_map<std::string, GLint> uniform_locations_{};
+		std::shared_ptr<ShaderProgram> program_{};
 	};
 }

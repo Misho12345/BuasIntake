@@ -14,8 +14,7 @@ namespace game::gfx
 
 		~SSBO()
 		{
-			if (id_ != 0)
-				glDeleteBuffers(1, &id_);
+			if (id_ != 0) glDeleteBuffers(1, &id_);
 		}
 
 		SSBO(const SSBO&)            = delete;
@@ -29,11 +28,7 @@ namespace game::gfx
 		SSBO& operator=(SSBO&& other) noexcept
 		{
 			if (this == &other) return *this;
-
-			if (id_ != 0)
-			{
-				glDeleteBuffers(1, &id_);
-			}
+			if (id_ != 0) glDeleteBuffers(1, &id_);
 
 			id_         = std::exchange(other.id_, 0);
 			usage_      = other.usage_;
@@ -41,56 +36,40 @@ namespace game::gfx
 			return *this;
 		}
 
-		void resize_bytes(const std::size_t byte_count, const void* data = nullptr)
-		{
-			size_bytes_ = byte_count;
-			glNamedBufferData(id_, static_cast<GLsizeiptr>(byte_count), data, usage_);
-		}
+		template <typename T> requires std::is_trivially_copyable_v<T>
+		void resize(const std::size_t count) { resize_bytes(sizeof(T) * count); }
 
-		template <typename T>
-		void resize(const std::size_t count)
-		{
-			static_assert(std::is_trivially_copyable_v<T>);
-			resize_bytes(sizeof(T) * count);
-		}
-
-		template <typename T>
+		template <typename T> requires std::is_trivially_copyable_v<T>
 		void set_data(const std::span<const T> data)
 		{
-			static_assert(std::is_trivially_copyable_v<T>);
 			resize_bytes(data.size_bytes(), data.empty() ? nullptr : data.data());
 		}
 
-		template <typename T>
+		template <typename T> requires std::is_trivially_copyable_v<T>
 		void write(const std::span<const T> data, const std::size_t offset_elements = 0)
 		{
-			static_assert(std::is_trivially_copyable_v<T>);
 			const auto offset = offset_elements * sizeof(T);
 			assert(offset + data.size_bytes() <= size_bytes_ && "Write exceeds buffer size");
-			glNamedBufferSubData(id_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(data.size_bytes()),
-			                     data.data());
+			glNamedBufferSubData(id_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(data.size_bytes()), data.data());
 		}
 
-		template <typename T>
-		[[nodiscard]] std::vector<T> read(const std::size_t count, const std::size_t offset_elements = 0) const
+		template <typename T> requires std::is_trivially_copyable_v<T>
+		[[nodiscard]]
+		std::vector<T> read(const std::size_t count, const std::size_t offset_elements = 0) const
 		{
-			static_assert(std::is_trivially_copyable_v<T>);
-
 			std::vector<T> output(count);
 			if (count == 0) return output;
 
 			const auto offset = offset_elements * sizeof(T);
 			assert(offset + sizeof(T) * count <= size_bytes_ && "Read exceeds buffer size");
-			glGetNamedBufferSubData(id_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(sizeof(T) * count),
-			                        output.data());
+			glGetNamedBufferSubData(id_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(sizeof(T) * count), output.data());
 			return output;
 		}
 
-		template <typename T>
-		[[nodiscard]] T read_one(const std::size_t offset_elements = 0) const
+		template <typename T> requires std::is_trivially_copyable_v<T>
+		[[nodiscard]]
+		T read_one(const std::size_t offset_elements = 0) const
 		{
-			static_assert(std::is_trivially_copyable_v<T>);
-
 			T          output{};
 			const auto offset = offset_elements * sizeof(T);
 			assert(offset + sizeof(T) <= size_bytes_ && "Read exceeds buffer size");
@@ -103,12 +82,15 @@ namespace game::gfx
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, binding, id_);
 		}
 
-		[[nodiscard]] GLuint id() const
-		{
-			return id_;
-		}
+		[[nodiscard]] GLuint id() const { return id_; }
 
 	private:
+		void resize_bytes(const std::size_t byte_count, const void* data = nullptr)
+		{
+			size_bytes_ = byte_count;
+			glNamedBufferData(id_, static_cast<GLsizeiptr>(byte_count), data, usage_);
+		}
+
 		GLuint      id_{ 0 };
 		GLenum      usage_{ GL_DYNAMIC_COPY };
 		std::size_t size_bytes_{ 0 };

@@ -8,30 +8,6 @@ namespace game
 	namespace
 	{
 		Game* instance{ nullptr };
-
-		mat4 make_projection(const sf::View& view)
-		{
-			const auto center = view.getCenter();
-			const auto size   = view.getSize();
-
-			const float left   = center.x - size.x * 0.5f;
-			const float right  = center.x + size.x * 0.5f;
-			const float bottom = center.y + size.y * 0.5f;
-			const float top    = center.y - size.y * 0.5f;
-
-			const float inv_width  = 1.0f / std::max(right - left, 0.001f);
-			const float inv_height = 1.0f / std::max(top - bottom, 0.001f);
-
-			const std::array proj
-			{
-				2.0f * inv_width, 0.0f, 0.0f, 0.0f,
-				0.0f, 2.0f * inv_height, 0.0f, 0.0f,
-				0.0f, 0.0f, -1.0f, 0.0f,
-				-(right + left) * inv_width, -(top + bottom) * inv_height, 0.0f, 1.0f
-			};
-
-			return mat4{ proj.data() };
-		}
 	}
 
 
@@ -74,12 +50,16 @@ namespace game
 		gl_loaded_ = true;
 		glViewport(0, 0, static_cast<std::int32_t>(settings_.win_size.x),
 		           static_cast<std::int32_t>(settings_.win_size.y));
+		configure_input();
 
 		try
 		{
-			terrain_renderer_.emplace();
 			create_world();
 			terrain_.emplace(world_);
+			camera_world_span_ = {
+				terrain_->chunk_size().x * 1.75f,
+				terrain_->chunk_size().y * 1.75f
+			};
 			create_player();
 			update_world_view(settings_.win_size);
 		}
@@ -93,12 +73,11 @@ namespace game
 	Game::~Game()
 	{
 		terrain_.reset();
-		terrain_renderer_.reset();
 
-		if (b2Body_IsValid(player_body_))
+		if (b2Body_IsValid(player_.body))
 		{
-			b2DestroyBody(player_body_);
-			player_body_ = b2_nullBodyId;
+			b2DestroyBody(player_.body);
+			player_.body = b2_nullBodyId;
 		}
 
 		if (b2World_IsValid(world_))
@@ -111,6 +90,7 @@ namespace game
 
 		if (gl_loaded_)
 		{
+			gfx::Shader::clear_cache();
 			gladLoaderUnloadGL();
 			gl_loaded_ = false;
 		}
@@ -165,13 +145,13 @@ namespace game
 	void Game::update(const float dt)
 	{
 		step_physics(dt);
+		sync_camera_to_player();
 	}
 
 	void Game::render_opengl() const
 	{
-		if (!terrain_ || !terrain_renderer_) return;
-
-		terrain_renderer_->draw(terrain_->mesh(), make_projection(world_view_));
+		if (terrain_) terrain_->draw_gl(world_view_);
+		player_.draw_gl(world_view_);
 	}
 
 	void Game::render_sfml()
@@ -179,13 +159,13 @@ namespace game
 		window_.setView(world_view_);
 
 		if (terrain_) terrain_->render_debug(window_);
-		if (b2Body_IsValid(player_body_)) window_.draw(player_shape_);
+		player_.draw_sf(window_);
 	}
 
 	void Game::create_world()
 	{
 		b2WorldDef world_def = b2DefaultWorldDef();
-		world_def.gravity    = { 0.0f, -18.0f };
+		world_def.gravity    = { .x = 0.0f, .y = 0.0f };
 		world_               = b2CreateWorld(&world_def);
 	}
 
@@ -193,17 +173,18 @@ namespace game
 	{
 		assert(terrain_ && "Terrain must exist before creating the player");
 
-		const auto spawn = terrain_->player_spawn();
+		const auto spawn = terrain_->spawn_point_from_top_center(10.0f);
 
 		b2BodyDef body_def         = b2DefaultBodyDef();
 		body_def.type              = b2_dynamicBody;
-		body_def.position          = { spawn.x, spawn.y };
+		body_def.position          = { .x = spawn.x, .y = spawn.y };
 		body_def.linearDamping     = 2.5f;
 		body_def.angularDamping    = 0.8f;
 		body_def.allowFastRotation = true;
 		body_def.name              = "player_ball";
 
-		player_body_ = b2CreateBody(world_, &body_def);
+		player_      = GameObject::make_sf<sf::CircleShape>(player_radius_, 40);
+		player_.body = b2CreateBody(world_, &body_def);
 
 		b2ShapeDef shape_def           = b2DefaultShapeDef();
 		shape_def.density              = 1.1f;
@@ -211,19 +192,21 @@ namespace game
 		shape_def.material.restitution = 0.1f;
 
 		const b2Circle circle{ { 0.0f, 0.0f }, player_radius_ };
-		b2CreateCircleShape(player_body_, &shape_def, &circle);
+		b2CreateCircleShape(player_.body, &shape_def, &circle);
 
-		player_shape_ = sf::CircleShape{ player_radius_, 40 };
-		player_shape_.setOrigin({ player_radius_, player_radius_ });
-		player_shape_.setFillColor(0xF29E4C_rgb);
-		player_shape_.setOutlineColor(0xFFF3D9_rgb);
-		player_shape_.setOutlineThickness(0.08f);
-		player_shape_.setPosition(spawn);
+		auto& circle_shape = dynamic_cast<sf::CircleShape&>(*std::get<GameObject::SfDrawable>(player_.renderable));
+		circle_shape.setOrigin({ player_radius_, player_radius_ });
+		circle_shape.setFillColor(0xF29E4C_rgb);
+		circle_shape.setOutlineColor(0xFFF3D9_rgb);
+		circle_shape.setOutlineThickness(0.08f);
+
+		player_.sync_from_physics();
+		terrain_->update_active_colliders(player_.transformable.getPosition());
 	}
 
-	void Game::apply_player_input()
+	void Game::apply_player_input() const
 	{
-		if (!b2Body_IsValid(player_body_)) return;
+		if (!b2Body_IsValid(player_.body)) return;
 
 		b2Vec2          force{ 0.0f, 0.0f };
 		constexpr float force_strength = 35.0f;
@@ -235,8 +218,23 @@ namespace game
 
 		if (force.x != 0.0f || force.y != 0.0f)
 		{
-			b2Body_ApplyForceToCenter(player_body_, force, true);
+			b2Body_ApplyForceToCenter(player_.body, force, true);
 		}
+	}
+
+	void Game::configure_input()
+	{
+		Input::on([](const Event::MouseWheelScrolled& scroll)
+		{
+			if (!instance) return;
+
+			constexpr float zoom_step = 0.12f;
+			instance->camera_zoom_ = std::clamp(
+				instance->camera_zoom_ * (1.0f - scroll.delta * zoom_step),
+				instance->min_camera_zoom_,
+				instance->max_camera_zoom_);
+			instance->update_world_view(instance->window_.getSize());
+		});
 	}
 
 	void Game::step_physics(const float dt)
@@ -245,54 +243,42 @@ namespace game
 
 		physics_accumulator_ = std::min(physics_accumulator_ + dt, 0.25f);
 
-		constexpr float fixed_step = 1.0f / 60.0f;
-		constexpr int   sub_steps  = 4;
+		static constexpr float fixed_step = 1.0f / 60.0f;
+		static constexpr int   sub_steps  = 4;
 
 		while (physics_accumulator_ >= fixed_step)
 		{
 			apply_player_input();
+			terrain_->update_active_colliders(player_.transformable.getPosition());
 			b2World_Step(world_, fixed_step, sub_steps);
 			physics_accumulator_ -= fixed_step;
 		}
 
-		if (b2Body_IsValid(player_body_))
-		{
-			const auto position = b2Body_GetPosition(player_body_);
-			player_shape_.setPosition({ position.x, position.y });
-		}
+		player_.sync_from_physics();
+		terrain_->update_active_colliders(player_.transformable.getPosition());
+	}
+
+	void Game::sync_camera_to_player()
+	{
+		if (!b2Body_IsValid(player_.body)) return;
+
+		world_view_.setCenter(player_.transformable.getPosition());
+		window_.setView(world_view_);
 	}
 
 	void Game::update_world_view(const uvec2 size)
 	{
-		if (!terrain_ || size.x == 0 || size.y == 0) return;
+		if (size.x == 0 || size.y == 0) return;
 
-		auto       min   = terrain_->display_min();
-		auto       max   = terrain_->display_max();
-		const auto spawn = terrain_->player_spawn();
-
-		min.x -= 1.5f;
-		min.y -= 1.5f;
-		max.x += 1.5f;
-		max.y = std::max(max.y + 1.5f, spawn.y + 2.0f);
-
-		const float world_width   = std::max(max.x - min.x, 0.001f);
-		const float world_height  = std::max(max.y - min.y, 0.001f);
 		const float window_aspect = static_cast<float>(size.x) / static_cast<float>(size.y);
 
-		float view_width  = world_width;
-		float view_height = world_height;
+		float view_width  = std::max(camera_world_span_.x * camera_zoom_, 0.001f);
+		float view_height = std::max(camera_world_span_.y * camera_zoom_, 0.001f);
 
-		if (view_width / view_height > window_aspect)
-		{
-			view_height = view_width / window_aspect;
-		}
-		else
-		{
-			view_width = view_height * window_aspect;
-		}
+		if (view_width / view_height > window_aspect) view_height = view_width / window_aspect;
+		else view_width = view_height * window_aspect;
 
-		world_view_.setCenter({ (min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f });
 		world_view_.setSize({ view_width, -view_height });
-		window_.setView(world_view_);
+		sync_camera_to_player();
 	}
 }

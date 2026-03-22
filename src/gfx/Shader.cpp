@@ -3,6 +3,17 @@
 
 namespace game::gfx
 {
+	struct ShaderProgram final
+	{
+		GLuint id{ 0 };
+		mutable std::unordered_map<std::string, GLint> uniform_locations{};
+
+		~ShaderProgram()
+		{
+			if (id != 0) glDeleteProgram(id);
+		}
+	};
+
 	namespace
 	{
 		std::string trim_log(std::string log)
@@ -52,73 +63,103 @@ namespace game::gfx
 			stream << file.rdbuf();
 			return stream.str();
 		}
+
+		std::unordered_map<std::string, std::shared_ptr<ShaderProgram>>& shader_cache()
+		{
+			static std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> cache;
+			return cache;
+		}
+
+		std::string normalized_key(const fs::path& path)
+		{
+			return path.lexically_normal().generic_string();
+		}
+
+		template <typename Builder>
+		std::shared_ptr<ShaderProgram> get_or_create_cached_program(const std::string& key, Builder&& builder)
+		{
+			auto& cache = shader_cache();
+			if (const auto it = cache.find(key); it != cache.end())
+			{
+				return it->second;
+			}
+
+			const auto program_id = builder();
+			if (program_id == 0) return {};
+
+			auto program = std::make_shared<ShaderProgram>();
+			program->id = program_id;
+			cache.emplace(key, program);
+			return program;
+		}
 	}
 
-	Shader::Shader(const GLuint program) : program_{ program } {}
-
-	Shader::~Shader()
-	{
-		if (program_ != 0) glDeleteProgram(program_);
-	}
-
-
-	Shader::Shader(Shader&& other) noexcept
-		: program_{ std::exchange(other.program_, 0) },
-		  uniform_locations_{ std::move(other.uniform_locations_) } {}
-
-	Shader& Shader::operator=(Shader&& other) noexcept
-	{
-		if (this == &other) return *this;
-		if (program_ != 0) glDeleteProgram(program_);
-
-		program_           = std::exchange(other.program_, 0);
-		uniform_locations_ = std::move(other.uniform_locations_);
-		return *this;
-	}
+	Shader::Shader(std::shared_ptr<ShaderProgram> program) : program_{ std::move(program) } {}
 
 
 	Shader Shader::from_compute_file(const fs::path& path)
 	{
-		const auto       source = read_text_file(path);
-		const auto       stage  = compile_stage(GL_COMPUTE_SHADER, source, path);
-		const std::array stages{ stage };
-		const auto       program = link_program(stages, path.string());
-		glDeleteShader(stage);
+		const auto program = get_or_create_cached_program(
+			std::format("compute:{}", normalized_key(path)),
+			[&]()
+			{
+				const auto source = read_text_file(path);
+				const auto stage = compile_stage(GL_COMPUTE_SHADER, source, path);
+				if (stage == 0) return GLuint{ 0 };
+
+				const std::array stages{ stage };
+				const auto linked_program = link_program(stages, path.string());
+				glDeleteShader(stage);
+				return linked_program;
+			});
+
 		return Shader{ program };
 	}
 
 	Shader Shader::from_graphics_files(const fs::path& vertex_path, const fs::path& fragment_path)
 	{
-		const auto vertex_source   = read_text_file(vertex_path);
-		const auto fragment_source = read_text_file(fragment_path);
+		const auto program = get_or_create_cached_program(
+			std::format("graphics:{}|{}", normalized_key(vertex_path), normalized_key(fragment_path)),
+			[&]()
+			{
+				const auto vertex_source = read_text_file(vertex_path);
+				const auto fragment_source = read_text_file(fragment_path);
 
-		const auto vertex_stage   = compile_stage(GL_VERTEX_SHADER, vertex_source, vertex_path);
-		const auto fragment_stage = compile_stage(GL_FRAGMENT_SHADER, fragment_source, fragment_path);
+				const auto vertex_stage = compile_stage(GL_VERTEX_SHADER, vertex_source, vertex_path);
+				if (vertex_stage == 0) return GLuint{ 0 };
 
-		const std::array stages{ vertex_stage, fragment_stage };
-		const auto program = link_program(stages, std::format("{} + {}", vertex_path.string(), fragment_path.string()));
+				const auto fragment_stage = compile_stage(GL_FRAGMENT_SHADER, fragment_source, fragment_path);
+				if (fragment_stage == 0)
+				{
+					glDeleteShader(vertex_stage);
+					return GLuint{ 0 };
+				}
 
-		glDeleteShader(vertex_stage);
-		glDeleteShader(fragment_stage);
+				const std::array stages{ vertex_stage, fragment_stage };
+				const auto linked_program = link_program(stages, std::format("{} + {}", vertex_path.string(), fragment_path.string()));
+
+				glDeleteShader(vertex_stage);
+				glDeleteShader(fragment_stage);
+				return linked_program;
+			});
+
 		return Shader{ program };
+	}
+
+	void Shader::clear_cache()
+	{
+		shader_cache().clear();
 	}
 
 
 	void Shader::use() const
 	{
-		assert(program_ != 0 && "Shader program is not initialized");
-		glUseProgram(program_);
+		assert(program_ && program_->id != 0 && "Shader program is not initialized");
+		glUseProgram(program_->id);
 	}
 
-	GLuint Shader::id() const
-	{
-		return program_;
-	}
-
-	bool Shader::valid() const
-	{
-		return program_ != 0;
-	}
+	GLuint Shader::id() const { return program_ ? program_->id : 0; }
+	bool   Shader::valid() const { return program_ && program_->id != 0; }
 
 
 	GLuint Shader::compile_stage(const GLenum stage, const std::string& source, const fs::path& path)
@@ -136,9 +177,9 @@ namespace game::gfx
 			const auto log = shader_log(shader);
 			glDeleteShader(shader);
 			std::println(std::cerr,
-				"Failed to compile shader '{}':\n{}",
-				path.string(),
-				log.empty() ? "No additional info" : log);
+			             "Failed to compile shader '{}':\n{}",
+			             path.string(),
+			             log.empty() ? "No additional info" : log);
 			return 0;
 		}
 
@@ -169,9 +210,9 @@ namespace game::gfx
 			const auto log = program_log(program);
 			glDeleteProgram(program);
 			std::println(std::cerr,
-				"Failed to link shader program '{}':\n{}",
-				label,
-				log.empty() ? "No additional info" : log);
+			             "Failed to link shader program '{}':\n{}",
+			             label,
+			             log.empty() ? "No additional info" : log);
 			return 0;
 		}
 
@@ -180,16 +221,16 @@ namespace game::gfx
 
 	GLint Shader::uniform_location(const std::string_view name) const
 	{
-		assert(program_ != 0 && "Shader program is not initialized");
+		assert(program_ && program_->id != 0 && "Shader program is not initialized");
 
 		const std::string key{ name };
-		if (const auto it = uniform_locations_.find(key); it != uniform_locations_.end())
+		if (const auto it = program_->uniform_locations.find(key); it != program_->uniform_locations.end())
 		{
 			return it->second;
 		}
 
-		const auto location = glGetUniformLocation(program_, key.c_str());
-		uniform_locations_.emplace(key, location);
+		const auto location = glGetUniformLocation(program_->id, key.c_str());
+		program_->uniform_locations.emplace(key, location);
 		return location;
 	}
 }
