@@ -1,0 +1,69 @@
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(r32f, binding = 0) uniform image2D uField;
+
+struct TerrainEdit
+{
+    vec4 positionRadiusStrength;
+    vec4 shape;
+};
+
+layout(std430, binding = 1) readonly buffer TerrainEdits
+{
+    TerrainEdit data[];
+} uTerrainEdits;
+
+uniform uint  uEditCount;
+uniform ivec2 uDispatchOrigin;
+uniform ivec2 uDispatchSize;
+uniform ivec2 uChunkCoord;
+uniform ivec2 uChunkGridSize;
+uniform vec2  uChunkSize;
+uniform vec2  uWorldCenter;
+uniform vec2  uCellSize;
+
+vec2 chunk_origin()
+{
+    return uWorldCenter +
+        (vec2(float(uChunkCoord.x), float(uChunkCoord.y)) - 0.5 * vec2(float(uChunkGridSize.x), float(uChunkGridSize.y))) *
+        uChunkSize;
+}
+
+vec2 grid_to_world(vec2 g)
+{
+    return chunk_origin() + g * uCellSize;
+}
+
+void main()
+{
+    ivec2 dispatch_id = ivec2(gl_GlobalInvocationID.xy);
+    if (dispatch_id.x >= uDispatchSize.x || dispatch_id.y >= uDispatchSize.y) return;
+
+    ivec2 pixel = uDispatchOrigin + dispatch_id;
+    ivec2 size = imageSize(uField);
+
+    if (pixel.x >= size.x || pixel.y >= size.y) return;
+
+    float density = imageLoad(uField, pixel).r;
+    vec2 world = grid_to_world(vec2(pixel));
+
+    for (uint i = 0; i < uEditCount; ++i)
+    {
+        TerrainEdit edit = uTerrainEdits.data[i];
+        vec2 delta = world - edit.positionRadiusStrength.xy;
+        float radius = max(edit.positionRadiusStrength.z, 1e-4);
+        float distance_to_center = length(delta);
+
+        if (distance_to_center >= radius) continue;
+
+        float normalized = 1.0 - distance_to_center / radius;
+        float falloff_exponent = max(edit.shape.x, 0.001);
+        float falloff = pow(normalized, falloff_exponent);
+
+        density += edit.positionRadiusStrength.w * falloff;
+    }
+
+    imageStore(uField, pixel, vec4(density, 0.0, 0.0, 0.0));
+}

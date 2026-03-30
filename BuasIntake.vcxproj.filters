@@ -138,6 +138,7 @@
   <ItemGroup>
     <None Include=".gitignore" />
     <None Include="assets\shaders\terrain_gen.comp" />
+    <None Include="assets\shaders\terrain_edit.comp" />
     <None Include="assets\shaders\chunk_mesh_gen.comp" />
     <None Include="assets\shaders\chunk_edges_gen.comp" />
     <None Include="assets\shaders\terrain_mesh.vert" />

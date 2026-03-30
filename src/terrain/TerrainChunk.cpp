@@ -105,6 +105,34 @@ namespace game::terrain
 		generation_finalized_ = true;
 	}
 
+	void TerrainChunk::queue_edits(const std::span<const TerrainEdit> edits)
+	{
+		if (edits.empty()) return;
+		queued_edits_.insert(queued_edits_.end(), edits.begin(), edits.end());
+	}
+
+	void TerrainChunk::update_pending_work()
+	{
+		if (generation_dispatched_)
+		{
+			TerrainGenerator::RawPipelineResult raw_result{};
+			if (generator_.try_readback(raw_result))
+			{
+				build_chunk(TerrainContour::score_and_filter(std::move(raw_result), settings_));
+				generation_dispatched_ = false;
+				generation_finalized_ = true;
+			}
+		}
+
+		if (!generation_dispatched_ && !queued_edits_.empty())
+		{
+			generator_.dispatch_edits(queued_edits_);
+			queued_edits_.clear();
+			generation_dispatched_ = true;
+			generation_finalized_ = false;
+		}
+	}
+
 	const gfx::Mesh& TerrainChunk::mesh() const { return mesh_; }
 	ivec2 TerrainChunk::chunk_coord() const { return settings_.chunk_coord; }
 
@@ -114,7 +142,11 @@ namespace game::terrain
 	vec2 TerrainChunk::display_min() const { return display_min_; }
 	vec2 TerrainChunk::display_max() const { return display_max_; }
 	bool TerrainChunk::has_collider() const { return collider_.has_body(); }
-	void TerrainChunk::set_collision_enabled(const bool enabled) const { collider_.set_enabled(enabled); }
+	void TerrainChunk::set_collision_enabled(const bool enabled)
+	{
+		collision_enabled_ = enabled;
+		collider_.set_enabled(enabled);
+	}
 
 	TerrainContour::ScoredResult TerrainChunk::generate_chunk()
 	{
@@ -135,6 +167,7 @@ namespace game::terrain
 		build_mesh(result.mesh_vertices, result.mesh_indices);
 		build_debug_lines(result.loops, result.open_paths, result.collider_loops, result.collider_paths);
 		collider_.build(result.collider_loops, result.collider_paths);
+		collider_.set_enabled(collision_enabled_);
 
 		if (!result.primary_contour.empty())
 		{

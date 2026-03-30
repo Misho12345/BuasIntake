@@ -21,6 +21,7 @@ namespace game::terrain
 		};
 
 		constexpr GLuint image_binding = 0;
+		constexpr GLuint terrain_edits_binding = 1;
 		constexpr GLuint boundary_vertices_binding = 1;
 		constexpr GLuint horizontal_edge_ids_binding = 2;
 		constexpr GLuint vertical_edge_ids_binding = 3;
@@ -30,12 +31,21 @@ namespace game::terrain
 		constexpr GLuint boundary_edges_binding = 6;
 		constexpr GLuint counters_binding = 7;
 
-
 		vec2 cell_size(const ChunkSettings& settings)
 		{
 			return {
 				settings.chunk_size.x / static_cast<float>(std::max(settings.field_size.x - 1u, 1u)),
 				settings.chunk_size.y / static_cast<float>(std::max(settings.field_size.y - 1u, 1u))
+			};
+		}
+
+		vec2 chunk_origin(const ChunkSettings& settings)
+		{
+			return {
+				settings.world_center.x +
+					(static_cast<float>(settings.chunk_coord.x) - 0.5f * static_cast<float>(settings.chunk_grid_size.x)) * settings.chunk_size.x,
+				settings.world_center.y +
+					(static_cast<float>(settings.chunk_coord.y) - 0.5f * static_cast<float>(settings.chunk_grid_size.y)) * settings.chunk_size.y
 			};
 		}
 
@@ -52,35 +62,84 @@ namespace game::terrain
 		}
 
 		constexpr float terrain_iso = 0.0f;
+		constexpr GLuint64 wait_timeout_ns = 1000000000ull;
 	}
 
 	TerrainGenerator::TerrainGenerator(const ChunkSettings& settings) :
 		settings_{ settings },
 		terrain_shader_{ gfx::Shader::from_compute_file("assets/shaders/terrain_gen.comp") },
+		terrain_edit_shader_{ gfx::Shader::from_compute_file("assets/shaders/terrain_edit.comp") },
 		edge_shader_{ gfx::Shader::from_compute_file("assets/shaders/chunk_edges_gen.comp") },
 		mesh_shader_{ gfx::Shader::from_compute_file("assets/shaders/chunk_mesh_gen.comp") },
-		field_texture_{ settings.field_size, gfx::TextureFormat::RGBA32F }
+		field_texture_{ settings.field_size, gfx::TextureFormat::R32F }
 	{
-		boundary_vertices_buffer_.resize<vec2>(max_boundary_vertex_count(settings_));
+		boundary_vertices_buffer_.allocate_persistent_read<vec2>(max_boundary_vertex_count(settings_));
 		horizontal_edge_ids_buffer_.resize<std::int32_t>(settings_.field_size.y * (settings_.field_size.x - 1u));
 		vertical_edge_ids_buffer_.resize<std::int32_t>(settings_.field_size.y * settings_.field_size.x);
-		boundary_vertex_counter_buffer_.resize<std::uint32_t>(1);
-		mesh_vertices_buffer_.resize<vec2>(chunk_cell_count(settings_) * 12u);
-		mesh_indices_buffer_.resize<std::uint32_t>(chunk_cell_count(settings_) * 12u);
-		boundary_edges_buffer_.resize<GpuBoundaryEdge>(chunk_cell_count(settings_) * 2u);
-		counters_buffer_.resize<GpuCounters>(1);
+		boundary_vertex_counter_buffer_.allocate_persistent_read<std::uint32_t>(1);
+		mesh_vertices_buffer_.allocate_persistent_read<vec2>(chunk_cell_count(settings_) * 12u);
+		mesh_indices_buffer_.allocate_persistent_read<std::uint32_t>(chunk_cell_count(settings_) * 12u);
+		boundary_edges_buffer_.allocate_persistent_read<GpuBoundaryEdge>(chunk_cell_count(settings_) * 2u);
+		counters_buffer_.allocate_persistent_read<GpuCounters>(1);
+	}
+
+	TerrainGenerator::~TerrainGenerator()
+	{
+		clear_completion_fence();
+	}
+
+	TerrainGenerator::TerrainGenerator(TerrainGenerator&& other) noexcept :
+		settings_{ other.settings_ },
+		terrain_shader_{ std::move(other.terrain_shader_) },
+		terrain_edit_shader_{ std::move(other.terrain_edit_shader_) },
+		edge_shader_{ std::move(other.edge_shader_) },
+		mesh_shader_{ std::move(other.mesh_shader_) },
+		field_texture_{ std::move(other.field_texture_) },
+		terrain_edit_buffer_{ std::move(other.terrain_edit_buffer_) },
+		boundary_vertices_buffer_{ std::move(other.boundary_vertices_buffer_) },
+		horizontal_edge_ids_buffer_{ std::move(other.horizontal_edge_ids_buffer_) },
+		vertical_edge_ids_buffer_{ std::move(other.vertical_edge_ids_buffer_) },
+		boundary_vertex_counter_buffer_{ std::move(other.boundary_vertex_counter_buffer_) },
+		mesh_vertices_buffer_{ std::move(other.mesh_vertices_buffer_) },
+		mesh_indices_buffer_{ std::move(other.mesh_indices_buffer_) },
+		boundary_edges_buffer_{ std::move(other.boundary_edges_buffer_) },
+		counters_buffer_{ std::move(other.counters_buffer_) },
+		completion_fence_{ std::exchange(other.completion_fence_, nullptr) },
+		pending_readback_{ std::exchange(other.pending_readback_, false) } {}
+
+	TerrainGenerator& TerrainGenerator::operator=(TerrainGenerator&& other) noexcept
+	{
+		if (this == &other) return *this;
+
+		clear_completion_fence();
+
+		settings_ = other.settings_;
+		terrain_shader_ = std::move(other.terrain_shader_);
+		terrain_edit_shader_ = std::move(other.terrain_edit_shader_);
+		edge_shader_ = std::move(other.edge_shader_);
+		mesh_shader_ = std::move(other.mesh_shader_);
+		field_texture_ = std::move(other.field_texture_);
+		terrain_edit_buffer_ = std::move(other.terrain_edit_buffer_);
+		boundary_vertices_buffer_ = std::move(other.boundary_vertices_buffer_);
+		horizontal_edge_ids_buffer_ = std::move(other.horizontal_edge_ids_buffer_);
+		vertical_edge_ids_buffer_ = std::move(other.vertical_edge_ids_buffer_);
+		boundary_vertex_counter_buffer_ = std::move(other.boundary_vertex_counter_buffer_);
+		mesh_vertices_buffer_ = std::move(other.mesh_vertices_buffer_);
+		mesh_indices_buffer_ = std::move(other.mesh_indices_buffer_);
+		boundary_edges_buffer_ = std::move(other.boundary_edges_buffer_);
+		counters_buffer_ = std::move(other.counters_buffer_);
+		completion_fence_ = std::exchange(other.completion_fence_, nullptr);
+		pending_readback_ = std::exchange(other.pending_readback_, false);
+		return *this;
 	}
 
 	void TerrainGenerator::dispatch()
 	{
 		assert(!pending_readback_ && "TerrainGenerator dispatch called before previous readback");
 
-		reset_buffers();
-
 		const auto groups = gfx::ComputeDispatcher::groups_for(settings_.field_size, 16, 16);
-		const auto terrain_cell_size = cell_size(settings_);
 
-		const std::array passes
+		const std::array generation_passes
 		{
 			gfx::ComputeDispatcher::Pass{
 				.shader = &terrain_shader_,
@@ -96,7 +155,126 @@ namespace game::terrain
 					shader.set_uniform("uPlanetRadius", settings_.planet_radius);
 				},
 				.barrier_after = GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
-			},
+			}
+		};
+
+		gfx::ComputeDispatcher::run(generation_passes);
+		dispatch_surface_rebuild();
+	}
+
+	void TerrainGenerator::dispatch_edits(const std::span<const TerrainEdit> edits)
+	{
+		assert(!pending_readback_ && "TerrainGenerator edit dispatch called before previous readback");
+		if (edits.empty()) return;
+
+		terrain_edit_buffer_.set_data(edits);
+
+		const auto terrain_cell_size = cell_size(settings_);
+		const auto origin = chunk_origin(settings_);
+
+		ivec2 dispatch_min{
+			static_cast<std::int32_t>(settings_.field_size.x),
+			static_cast<std::int32_t>(settings_.field_size.y)
+		};
+		ivec2 dispatch_max{ -1, -1 };
+
+		for (const auto& edit : edits)
+		{
+			const float radius = std::max(edit.position_radius_strength.z, 0.0f);
+			if (radius <= 0.0f) continue;
+
+			const float min_world_x = edit.position_radius_strength.x - radius;
+			const float min_world_y = edit.position_radius_strength.y - radius;
+			const float max_world_x = edit.position_radius_strength.x + radius;
+			const float max_world_y = edit.position_radius_strength.y + radius;
+
+			dispatch_min.x = std::min(dispatch_min.x, static_cast<std::int32_t>(std::floor((min_world_x - origin.x) / terrain_cell_size.x)));
+			dispatch_min.y = std::min(dispatch_min.y, static_cast<std::int32_t>(std::floor((min_world_y - origin.y) / terrain_cell_size.y)));
+			dispatch_max.x = std::max(dispatch_max.x, static_cast<std::int32_t>(std::ceil((max_world_x - origin.x) / terrain_cell_size.x)));
+			dispatch_max.y = std::max(dispatch_max.y, static_cast<std::int32_t>(std::ceil((max_world_y - origin.y) / terrain_cell_size.y)));
+		}
+
+		dispatch_min.x = std::clamp(dispatch_min.x, 0, static_cast<std::int32_t>(settings_.field_size.x) - 1);
+		dispatch_min.y = std::clamp(dispatch_min.y, 0, static_cast<std::int32_t>(settings_.field_size.y) - 1);
+		dispatch_max.x = std::clamp(dispatch_max.x, 0, static_cast<std::int32_t>(settings_.field_size.x) - 1);
+		dispatch_max.y = std::clamp(dispatch_max.y, 0, static_cast<std::int32_t>(settings_.field_size.y) - 1);
+
+		if (dispatch_max.x < dispatch_min.x || dispatch_max.y < dispatch_min.y) return;
+
+		const uvec2 dispatch_extent{
+			static_cast<std::uint32_t>(dispatch_max.x - dispatch_min.x + 1),
+			static_cast<std::uint32_t>(dispatch_max.y - dispatch_min.y + 1)
+		};
+		const auto groups = gfx::ComputeDispatcher::groups_for(dispatch_extent, 16, 16);
+
+		const std::array edit_passes
+		{
+			gfx::ComputeDispatcher::Pass{
+				.shader = &terrain_edit_shader_,
+				.groups = groups,
+				.configure = [this, terrain_cell_size, edit_count = static_cast<std::uint32_t>(edits.size()), dispatch_min, dispatch_extent](const gfx::Shader& shader)
+				{
+					field_texture_.bind_image(image_binding, GL_READ_WRITE);
+					terrain_edit_buffer_.bind_base(terrain_edits_binding);
+					shader.set_uniform("uEditCount", edit_count);
+					shader.set_uniform("uDispatchOrigin", dispatch_min);
+					shader.set_uniform("uDispatchSize", ivec2{ static_cast<std::int32_t>(dispatch_extent.x), static_cast<std::int32_t>(dispatch_extent.y) });
+					shader.set_uniform("uChunkCoord", settings_.chunk_coord);
+					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
+					shader.set_uniform("uChunkSize", settings_.chunk_size);
+					shader.set_uniform("uWorldCenter", settings_.world_center);
+					shader.set_uniform("uCellSize", terrain_cell_size);
+				},
+				.barrier_after = GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT
+			}
+		};
+
+		gfx::ComputeDispatcher::run(edit_passes);
+		dispatch_surface_rebuild();
+	}
+
+	bool TerrainGenerator::try_readback(RawPipelineResult& result)
+	{
+		if (!pending_readback_ || !is_readback_ready()) return false;
+
+		result = consume_readback();
+		return true;
+	}
+
+	TerrainGenerator::RawPipelineResult TerrainGenerator::readback()
+	{
+		if (!pending_readback_) return {};
+
+		wait_for_completion();
+		return consume_readback();
+	}
+
+	TerrainGenerator::RawPipelineResult TerrainGenerator::run()
+	{
+		dispatch();
+		return readback();
+	}
+
+	void TerrainGenerator::reset_surface_buffers()
+	{
+		static constexpr std::int32_t minus_one = -1;
+		static constexpr std::uint32_t zero = 0;
+
+		glClearNamedBufferData(horizontal_edge_ids_buffer_.id(), GL_R32I, GL_RED_INTEGER, GL_INT, &minus_one);
+		glClearNamedBufferData(vertical_edge_ids_buffer_.id(), GL_R32I, GL_RED_INTEGER, GL_INT, &minus_one);
+		glClearNamedBufferData(boundary_vertex_counter_buffer_.id(), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+		glClearNamedBufferData(counters_buffer_.id(), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+	}
+
+	void TerrainGenerator::dispatch_surface_rebuild()
+	{
+		reset_surface_buffers();
+
+		const auto groups = gfx::ComputeDispatcher::groups_for(settings_.field_size, 16, 16);
+		const auto terrain_cell_size = cell_size(settings_);
+
+		const std::array rebuild_passes
+		{
 			gfx::ComputeDispatcher::Pass{
 				.shader = &edge_shader_,
 				.groups = groups,
@@ -140,17 +318,67 @@ namespace game::terrain
 			}
 		};
 
-		gfx::ComputeDispatcher::run(passes);
+		gfx::ComputeDispatcher::run(rebuild_passes);
+		replace_completion_fence();
+	}
+
+	void TerrainGenerator::replace_completion_fence()
+	{
+		clear_completion_fence();
+		completion_fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+		assert(completion_fence_ != nullptr && "Failed to create terrain generator fence");
 		pending_readback_ = true;
 	}
 
-	TerrainGenerator::RawPipelineResult TerrainGenerator::readback()
+	void TerrainGenerator::clear_completion_fence()
+	{
+		if (completion_fence_ != nullptr)
+		{
+			glDeleteSync(completion_fence_);
+			completion_fence_ = nullptr;
+		}
+	}
+
+	void TerrainGenerator::wait_for_completion()
+	{
+		if (!pending_readback_ || completion_fence_ == nullptr) return;
+
+		for (;;)
+		{
+			const auto wait_result = glClientWaitSync(completion_fence_, GL_SYNC_FLUSH_COMMANDS_BIT, wait_timeout_ns);
+			if (wait_result == GL_ALREADY_SIGNALED || wait_result == GL_CONDITION_SATISFIED)
+			{
+				return;
+			}
+
+			if (wait_result == GL_WAIT_FAILED)
+			{
+				throw std::runtime_error("TerrainGenerator failed while waiting for GPU completion");
+			}
+		}
+	}
+
+	bool TerrainGenerator::is_readback_ready() const
+	{
+		if (!pending_readback_) return false;
+		if (completion_fence_ == nullptr) return true;
+
+		const auto wait_result = glClientWaitSync(completion_fence_, 0, 0);
+		if (wait_result == GL_TIMEOUT_EXPIRED) return false;
+		if (wait_result == GL_WAIT_FAILED)
+		{
+			throw std::runtime_error("TerrainGenerator failed while polling GPU completion");
+		}
+
+		return true;
+	}
+
+	TerrainGenerator::RawPipelineResult TerrainGenerator::consume_readback()
 	{
 		RawPipelineResult result{};
 		if (!pending_readback_) return result;
 
-		glMemoryBarrier(GL_ALL_BARRIER_BITS);
-
+		glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
 		const auto boundary_vertex_count = boundary_vertex_counter_buffer_.read_one<std::uint32_t>();
 		const auto [
@@ -158,13 +386,9 @@ namespace game::terrain
 			index_count,
 			edge_count
 		] = counters_buffer_.read_one<GpuCounters>();
+
+		clear_completion_fence();
 		pending_readback_ = false;
-
-		if (vertex_count == 0 || index_count == 0)
-			return result;
-
-		const auto gpu_mesh_vertices = mesh_vertices_buffer_.read<vec2>(vertex_count);
-		const auto mesh_indices = mesh_indices_buffer_.read<std::uint32_t>(index_count);
 
 		if (boundary_vertex_count > 0)
 		{
@@ -176,13 +400,20 @@ namespace game::terrain
 			}
 		}
 
-		result.mesh_vertices.reserve(gpu_mesh_vertices.size());
-		for (const auto& vertex : gpu_mesh_vertices)
+		if (vertex_count > 0)
 		{
-			result.mesh_vertices.push_back(vertex);
+			const auto gpu_mesh_vertices = mesh_vertices_buffer_.read<vec2>(vertex_count);
+			result.mesh_vertices.reserve(gpu_mesh_vertices.size());
+			for (const auto& vertex : gpu_mesh_vertices)
+			{
+				result.mesh_vertices.push_back(vertex);
+			}
 		}
 
-		result.mesh_indices = mesh_indices;
+		if (index_count > 0)
+		{
+			result.mesh_indices = mesh_indices_buffer_.read<std::uint32_t>(index_count);
+		}
 
 		if (edge_count > 0)
 		{
@@ -195,26 +426,5 @@ namespace game::terrain
 		}
 
 		return result;
-	}
-
-	TerrainGenerator::RawPipelineResult TerrainGenerator::run()
-	{
-		dispatch();
-		return readback();
-	}
-
-	void TerrainGenerator::reset_buffers()
-	{
-		const std::vector horizontal_ids(settings_.field_size.y * (settings_.field_size.x - 1u), -1);
-		const std::vector vertical_ids(settings_.field_size.y * settings_.field_size.x, -1);
-
-		horizontal_edge_ids_buffer_.write(std::span{ horizontal_ids.data(), horizontal_ids.size() });
-		vertical_edge_ids_buffer_.write(std::span{ vertical_ids.data(), vertical_ids.size() });
-
-		static constexpr std::uint32_t zero_counter{ 0 };
-		boundary_vertex_counter_buffer_.write(std::span{ &zero_counter, 1u });
-
-		static constexpr GpuCounters zero_counters{};
-		counters_buffer_.write(std::span{ &zero_counters, 1u });
 	}
 }

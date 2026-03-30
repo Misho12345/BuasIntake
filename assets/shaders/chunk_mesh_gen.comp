@@ -2,7 +2,7 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(rgba32f, binding = 0) uniform readonly image2D uField;
+layout(r32f, binding = 0) uniform readonly image2D uField;
 
 layout(std430, binding = 1) readonly buffer BoundaryVertices { vec2 data[]; } uBoundaryVertices;
 layout(std430, binding = 2) readonly buffer HorizontalEdgeIds { int data[]; } uHorizontalEdgeIds;
@@ -45,19 +45,24 @@ vec2 grid_to_world(vec2 g)
 	return chunk_origin() + g * uCellSize;
 }
 
-uint push_vertex(vec2 p)
+void emit_polygon(vec2 poly[8], int count)
 {
-    uint i = atomicAdd(uCounters.vertexCount, 1);
-    uMeshVertices.data[i] = p;
-    return i;
-}
+    if (count < 3) return;
 
-void push_triangle(vec2 a, vec2 b, vec2 c)
-{
-    uint base = atomicAdd(uCounters.indexCount, 3);
-    uMeshIndices.data[base + 0] = push_vertex(a);
-    uMeshIndices.data[base + 1] = push_vertex(b);
-    uMeshIndices.data[base + 2] = push_vertex(c);
+    uint base_vertex = atomicAdd(uCounters.vertexCount, uint(count));
+    uint triangle_count = uint(count - 2);
+    uint base_index = atomicAdd(uCounters.indexCount, triangle_count * 3u);
+
+    for (int i = 0; i < count; ++i)
+        uMeshVertices.data[base_vertex + uint(i)] = poly[i];
+
+    for (int i = 0; i < count - 2; ++i)
+    {
+        uint index_base = base_index + uint(i) * 3u;
+        uMeshIndices.data[index_base + 0] = base_vertex;
+        uMeshIndices.data[index_base + 1] = base_vertex + uint(i + 1);
+        uMeshIndices.data[index_base + 2] = base_vertex + uint(i + 2);
+    }
 }
 
 void push_edge(uint a, uint b)
@@ -140,8 +145,12 @@ void main()
 
     if (mask == 15)
     {
-        push_triangle(p0, p1, p2);
-        push_triangle(p0, p2, p3);
+        vec2 quad[8];
+        quad[0] = p0;
+        quad[1] = p1;
+        quad[2] = p2;
+        quad[3] = p3;
+        emit_polygon(quad, 4);
         return;
     }
 
@@ -153,8 +162,5 @@ void main()
     if (e2i >= 0) poly[count++] = e2; if (i3) poly[count++] = p3;
     if (e3i >= 0) poly[count++] = e3; if (i0) poly[count++] = p0;
 
-    if (count < 3) return;
-
-    for (int i = 1; i < count - 1; ++i)
-        push_triangle(poly[0], poly[i], poly[i + 1]);
+    emit_polygon(poly, count);
 }

@@ -8,6 +8,38 @@ namespace game
 	namespace
 	{
 		Game* instance{ nullptr };
+
+		struct TerrainRayCastContext final
+		{
+			b2BodyId ignored_body{ b2_nullBodyId };
+			std::optional<vec2> hit_point{ std::nullopt };
+		};
+
+		float length_vec2(const vec2& value)
+		{
+			return std::sqrt(value.x * value.x + value.y * value.y);
+		}
+
+		vec2 lerp_vec2(const vec2& a, const vec2& b, const float t)
+		{
+			return {
+				std::lerp(a.x, b.x, t),
+				std::lerp(a.y, b.y, t)
+			};
+		}
+
+		float terrain_ray_cast_callback(const b2ShapeId shape_id, const b2Vec2 point, [[maybe_unused]] const b2Vec2 normal,
+			const float fraction, void* context)
+		{
+			auto& ray_context = *static_cast<TerrainRayCastContext*>(context);
+			if (B2_ID_EQUALS(b2Shape_GetBody(shape_id), ray_context.ignored_body))
+			{
+				return -1.0f;
+			}
+
+			ray_context.hit_point = vec2{ point.x, point.y };
+			return fraction;
+		}
 	}
 
 
@@ -146,6 +178,7 @@ namespace game
 	{
 		step_physics(dt);
 		sync_camera_to_player();
+		update_terrain_editing(dt);
 	}
 
 	void Game::render_opengl() const
@@ -264,6 +297,130 @@ namespace game
 
 		world_view_.setCenter(player_.transformable.getPosition());
 		window_.setView(world_view_);
+	}
+
+	void Game::update_terrain_editing(const float dt)
+	{
+		if (!terrain_) return;
+
+		emit_terrain_tool_stamps(MouseButton::Left, dig_tool_, dig_tool_state_, dt);
+		emit_terrain_tool_stamps(MouseButton::Right, place_tool_, place_tool_state_, dt);
+		terrain_->apply_pending_edits();
+	}
+
+	void Game::emit_terrain_tool_stamps(const MouseButton button, const TerrainToolConfig& config, TerrainToolState& state, const float dt)
+	{
+		if (!terrain_) return;
+
+		if (!Input::is_pressed(button))
+		{
+			state.emission_accumulator = 0.0f;
+			state.last_stamp_world.reset();
+			return;
+		}
+
+		const auto world_position = terrain_tool_hit_world_position();
+		if (!world_position.has_value())
+		{
+			state.emission_accumulator = 0.0f;
+			state.last_stamp_world.reset();
+			return;
+		}
+
+		const auto emit_stamp = [&](const vec2 position)
+		{
+			terrain_->queue_edit(terrain::TerrainGenerator::TerrainEdit::make(
+				position,
+				config.radius,
+				config.signed_strength_per_stamp,
+				config.falloff_exponent));
+		};
+
+		const float stamps_per_second = std::max(config.stamps_per_second, 1.0f);
+		const float interval = 1.0f / stamps_per_second;
+		state.emission_accumulator += dt;
+
+		if (!state.last_stamp_world.has_value())
+		{
+			emit_stamp(*world_position);
+			state.last_stamp_world = *world_position;
+			state.emission_accumulator = std::fmod(state.emission_accumulator, interval);
+			return;
+		}
+
+		const auto previous_position = *state.last_stamp_world;
+		const vec2 delta{
+			world_position->x - previous_position.x,
+			world_position->y - previous_position.y
+		};
+		const float distance = length_vec2(delta);
+		const float spacing = std::max(config.radius * config.spacing_factor, 0.05f);
+		const int time_stamp_count = static_cast<int>(std::floor(state.emission_accumulator / interval));
+		const int movement_stamp_count = static_cast<int>(std::floor(distance / spacing));
+		const int stamp_count = std::max(time_stamp_count, movement_stamp_count);
+
+		if (stamp_count <= 0) return;
+
+		if (distance <= std::numeric_limits<float>::epsilon())
+		{
+			for (int i = 0; i < stamp_count; ++i)
+			{
+				emit_stamp(*world_position);
+			}
+		}
+		else
+		{
+			for (int i = 1; i <= stamp_count; ++i)
+			{
+				const float t = static_cast<float>(i) / static_cast<float>(stamp_count);
+				emit_stamp(lerp_vec2(previous_position, *world_position, t));
+			}
+		}
+
+		state.last_stamp_world = *world_position;
+		state.emission_accumulator = std::fmod(state.emission_accumulator, interval);
+	}
+
+	std::optional<vec2> Game::terrain_tool_hit_world_position() const
+	{
+		if (!terrain_ || !b2World_IsValid(world_) || !b2Body_IsValid(player_.body)) return std::nullopt;
+
+		const auto player_world = player_.transformable.getPosition();
+		const auto cursor_world = mouse_world_position();
+		const vec2 ray_delta{
+			cursor_world.x - player_world.x,
+			cursor_world.y - player_world.y
+		};
+		const float ray_distance = length_vec2(ray_delta);
+		if (ray_distance <= std::numeric_limits<float>::epsilon()) return std::nullopt;
+
+		const auto chunk_size = terrain_->chunk_size();
+		const float max_reach = 0.5f * std::min(chunk_size.x, chunk_size.y);
+		const float clamped_distance = std::min(ray_distance, max_reach);
+		const float scale = clamped_distance / ray_distance;
+		const vec2 translation{
+			ray_delta.x * scale,
+			ray_delta.y * scale
+		};
+
+		TerrainRayCastContext context{ .ignored_body = player_.body };
+		const b2QueryFilter filter = b2DefaultQueryFilter();
+		b2World_CastRay(
+			world_,
+			{ player_world.x, player_world.y },
+			{ translation.x, translation.y },
+			filter,
+			terrain_ray_cast_callback,
+			&context);
+
+		return context.hit_point;
+	}
+
+	vec2 Game::mouse_world_position() const
+	{
+		const auto pixel_position = sf::Mouse::getPosition(window_);
+		const auto world_position = window_.mapPixelToCoords(pixel_position, world_view_);
+		return { world_position.x, world_position.y };
 	}
 
 	void Game::update_world_view(const uvec2 size)

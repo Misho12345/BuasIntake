@@ -14,6 +14,8 @@ namespace game::terrain
 	class TerrainChunk final
 	{
 	public:
+		using TerrainEdit = TerrainGenerator::TerrainEdit;
+
 		explicit TerrainChunk(b2WorldId world_id, const ChunkSettings& settings = {});
 		~TerrainChunk() = default;
 
@@ -26,6 +28,8 @@ namespace game::terrain
 		void render_debug(sf::RenderTarget& target) const;
 		void dispatch_generation();
 		void finalize_generation();
+		void queue_edits(std::span<const TerrainEdit> edits);
+		void update_pending_work();
 
 		[[nodiscard]] const gfx::Mesh& mesh() const;
 		[[nodiscard]] ivec2 chunk_coord() const;
@@ -35,7 +39,7 @@ namespace game::terrain
 		[[nodiscard]] vec2 display_min() const;
 		[[nodiscard]] vec2 display_max() const;
 		[[nodiscard]] bool has_collider() const;
-		void set_collision_enabled(bool enabled) const;
+		void set_collision_enabled(bool enabled);
 
 	private:
 		[[nodiscard]] TerrainContour::ScoredResult generate_chunk();
@@ -61,6 +65,8 @@ namespace game::terrain
 		vec2 display_min_{};
 		vec2 display_max_{};
 		vec2 player_spawn_{};
+		std::vector<TerrainEdit> queued_edits_{};
+		bool collision_enabled_{ true };
 		bool generation_dispatched_{ false };
 		bool generation_finalized_{ false };
 	};

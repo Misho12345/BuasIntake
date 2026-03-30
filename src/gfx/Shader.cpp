@@ -64,7 +64,7 @@ namespace game::gfx
 			return stream.str();
 		}
 
-		std::unordered_map<std::string, std::shared_ptr<ShaderProgram>>& shader_cache()
+		auto& shader_cache()
 		{
 			static std::unordered_map<std::string, std::shared_ptr<ShaderProgram>> cache;
 			return cache;
@@ -75,8 +75,7 @@ namespace game::gfx
 			return path.lexically_normal().generic_string();
 		}
 
-		template <typename Builder>
-		std::shared_ptr<ShaderProgram> get_or_create_cached_program(const std::string& key, Builder&& builder)
+		std::shared_ptr<ShaderProgram> get_or_create_cached_program(const std::string& key, auto&& builder)
 		{
 			auto& cache = shader_cache();
 			if (const auto it = cache.find(key); it != cache.end())

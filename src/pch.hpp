@@ -43,6 +43,7 @@ namespace fs = std::filesystem;
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 
 
 // ----- Box2D -----

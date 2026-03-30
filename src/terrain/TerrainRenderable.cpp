@@ -20,9 +20,13 @@ namespace game::terrain
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 		shader_.use();
 		shader_.set_uniform("uProjection", gfx::make_projection(view));
 		mesh.draw();
+
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 		glUseProgram(0);
 	}

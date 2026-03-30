@@ -9,6 +9,8 @@ namespace game::terrain
 	class PlanetTerrain final
 	{
 	public:
+		using TerrainEdit = TerrainGenerator::TerrainEdit;
+
 		explicit PlanetTerrain(b2WorldId world_id);
 		~PlanetTerrain() = default;
 
@@ -19,6 +21,8 @@ namespace game::terrain
 
 		void draw_gl(const sf::View& view) const;
 		void render_debug(sf::RenderTarget& target) const;
+		void queue_edit(const TerrainEdit& edit);
+		void apply_pending_edits();
 		void update_active_colliders(vec2 world_position);
 
 		[[nodiscard]] vec2 display_min() const;
@@ -40,8 +44,9 @@ namespace game::terrain
 		vec2 grid_max_{};
 		vec2 display_min_{};
 		vec2 display_max_{};
+		std::vector<TerrainEdit> pending_edits_{};
 
 		bool active_chunk_initialized_{ false };
-		ivec2 active_chunk_index_{ 0, 0 };
+		vec2 active_collider_center_{ 0.0f, 0.0f };
 	};
 }

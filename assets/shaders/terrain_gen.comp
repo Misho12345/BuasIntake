@@ -2,7 +2,7 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(rgba32f, binding = 0) uniform writeonly image2D outImage;
+layout(r32f, binding = 0) uniform writeonly image2D outImage;
 
 uniform ivec2 uChunkCoord;
 uniform ivec2 uChunkGridSize;
@@ -114,7 +114,5 @@ void main()
 	density += (medium_detail - 0.5) * 1.85 * shell_mask;
 	density += (micro_detail - 0.5) * 0.75 * shell_mask;
 
-	vec4 outValue = vec4(density, uv.x, uv.y, 1.0);
-
-	imageStore(outImage, pixel, outValue);
+	imageStore(outImage, pixel, vec4(density, 0.0, 0.0, 0.0));
 }

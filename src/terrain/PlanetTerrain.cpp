@@ -19,6 +19,15 @@ namespace game::terrain
 		{
 			return { a.x - b.x, a.y - b.y };
 		}
+
+		bool circle_overlaps_rect(const vec2 center, const float radius, const vec2 rect_min, const vec2 rect_max)
+		{
+			const float closest_x = std::clamp(center.x, rect_min.x, rect_max.x);
+			const float closest_y = std::clamp(center.y, rect_min.y, rect_max.y);
+			const float dx = center.x - closest_x;
+			const float dy = center.y - closest_y;
+			return dx * dx + dy * dy <= radius * radius;
+		}
 	}
 
 	PlanetTerrain::PlanetTerrain(const b2WorldId world_id) :
@@ -94,30 +103,92 @@ namespace game::terrain
 		}
 	}
 
+	void PlanetTerrain::queue_edit(const TerrainEdit& edit)
+	{
+		pending_edits_.push_back(edit);
+	}
+
+	void PlanetTerrain::apply_pending_edits()
+	{
+		if (!pending_edits_.empty())
+		{
+			const auto total_chunk_count = chunk_count();
+			std::vector<std::vector<TerrainEdit>> edits_per_chunk(chunks_.size());
+
+			for (const auto& edit : pending_edits_)
+			{
+				const vec2 center{
+					edit.position_radius_strength.x,
+					edit.position_radius_strength.y
+				};
+				const float radius = std::max(edit.position_radius_strength.z, 0.0f);
+
+				if (radius <= 0.0f) continue;
+				if (!circle_overlaps_rect(center, radius, grid_min_, grid_max_)) continue;
+
+				const vec2 min_bounds{ center.x - radius, center.y - radius };
+				const vec2 max_bounds{ center.x + radius, center.y + radius };
+				const auto min_chunk = chunk_index_from_world(min_bounds);
+				const auto max_chunk = chunk_index_from_world(max_bounds);
+
+				for (int y = min_chunk.y; y <= max_chunk.y; ++y)
+				{
+					for (int x = min_chunk.x; x <= max_chunk.x; ++x)
+					{
+						auto& chunk = chunks_[flat_index({ x, y }, total_chunk_count)];
+						if (!circle_overlaps_rect(center, radius, chunk.chunk_min(), chunk.chunk_max())) continue;
+						edits_per_chunk[flat_index({ x, y }, total_chunk_count)].push_back(edit);
+					}
+				}
+			}
+
+			pending_edits_.clear();
+
+			for (std::size_t i = 0; i < chunks_.size(); ++i)
+			{
+				if (edits_per_chunk[i].empty()) continue;
+				chunks_[i].queue_edits(edits_per_chunk[i]);
+			}
+		}
+
+		for (auto& chunk : chunks_)
+		{
+			chunk.update_pending_work();
+		}
+	}
+
 	void PlanetTerrain::update_active_colliders(const vec2 world_position)
 	{
-		const auto total_chunk_count = chunk_count();
-		const auto chunk_index = chunk_index_from_world(world_position);
-
-		if (active_chunk_initialized_ &&
-			chunk_index.x == active_chunk_index_.x &&
-			chunk_index.y == active_chunk_index_.y)
+		const float movement_threshold = 0.5f * std::min(base_chunk_settings_.chunk_size.x, base_chunk_settings_.chunk_size.y);
+		if (active_chunk_initialized_)
 		{
-			return;
+			const float dx = world_position.x - active_collider_center_.x;
+			const float dy = world_position.y - active_collider_center_.y;
+			if (dx * dx + dy * dy < movement_threshold * movement_threshold)
+			{
+				return;
+			}
 		}
 
 		active_chunk_initialized_ = true;
-		active_chunk_index_ = chunk_index;
+		active_collider_center_ = world_position;
+
+		const auto total_chunk_count = chunk_count();
+		const auto terrain_chunk_size = base_chunk_settings_.chunk_size;
+		const float active_radius = std::max(terrain_chunk_size.x, terrain_chunk_size.y);
 
 		for (int y = 0; y < total_chunk_count.y; ++y)
 		{
 			for (int x = 0; x < total_chunk_count.x; ++x)
 			{
-				const auto is_active =
-					std::abs(x - chunk_index.x) <= 1 &&
-					std::abs(y - chunk_index.y) <= 1;
+				auto& chunk = chunks_[flat_index({ x, y }, total_chunk_count)];
+				const auto is_active = circle_overlaps_rect(
+					world_position,
+					active_radius,
+					chunk.display_min(),
+					chunk.display_max());
 
-				chunks_[flat_index({ x, y }, total_chunk_count)].set_collision_enabled(is_active);
+				chunk.set_collision_enabled(is_active);
 			}
 		}
 	}
