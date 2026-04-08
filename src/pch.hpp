@@ -14,6 +14,7 @@ namespace fs = std::filesystem;
 #include <vector>
 #include <array>
 #include <span>
+#include <queue>
 
 #include <unordered_map>
 #include <unordered_set>

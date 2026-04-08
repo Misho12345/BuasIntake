@@ -12,17 +12,17 @@ namespace game
 
 		struct TerrainRayCastContext final
 		{
-			b2BodyId ignored_body{ b2_nullBodyId };
+			b2BodyId            ignored_body{ b2_nullBodyId };
 			std::optional<vec2> hit_point{ std::nullopt };
 		};
 
 		struct GroundRayCastContext final
 		{
 			b2BodyId ignored_body{ b2_nullBodyId };
-			bool hit{ false };
-			float fraction{ 1.0f };
-			vec2 point{ 0.0f, 0.0f };
-			vec2 normal{ 0.0f, 1.0f };
+			bool     hit{ false };
+			float    fraction{ 1.0f };
+			vec2     point{ 0.0f, 0.0f };
+			vec2     normal{ 0.0f, 1.0f };
 		};
 
 		b2Vec2 to_b2(const vec2& value)
@@ -76,41 +76,46 @@ namespace game
 			return std::remainder(to - from, tau);
 		}
 
-		std::unique_ptr<sf::ConvexShape> make_capsule_drawable(const float radius, const float half_height,
-			const std::size_t arc_segments = 12)
+		std::unique_ptr<sf::ConvexShape> make_capsule_drawable(const float       radius, const float half_height,
+		                                                       const std::size_t arc_segments = 12)
 		{
 			const auto top_arc_count = arc_segments + 1;
-			auto shape = std::make_unique<sf::ConvexShape>(top_arc_count * 2);
+			auto       shape         = std::make_unique<sf::ConvexShape>(top_arc_count * 2);
 
-			const float top_center_y = half_height - radius;
+			const float top_center_y    = half_height - radius;
 			const float bottom_center_y = -half_height + radius;
 
 			for (std::size_t i = 0; i <= arc_segments; ++i)
 			{
-				const float t = static_cast<float>(i) / static_cast<float>(arc_segments);
+				const float t     = static_cast<float>(i) / static_cast<float>(arc_segments);
 				const float angle = std::numbers::pi_v<float> * (1.0f - t);
 				shape->setPoint(i, {
-					std::cos(angle) * radius,
-					top_center_y + std::sin(angle) * radius
-				});
+					                std::cos(angle) * radius,
+					                top_center_y + std::sin(angle) * radius
+				                });
 			}
 
 			for (std::size_t i = 0; i <= arc_segments; ++i)
 			{
-				const float t = static_cast<float>(i) / static_cast<float>(arc_segments);
+				const float t     = static_cast<float>(i) / static_cast<float>(arc_segments);
 				const float angle = -std::numbers::pi_v<float> * t;
 				shape->setPoint(top_arc_count + i, {
-					std::cos(angle) * radius,
-					bottom_center_y + std::sin(angle) * radius
-				});
+					                std::cos(angle) * radius,
+					                bottom_center_y + std::sin(angle) * radius
+				                });
 			}
 
 			shape->setOrigin(shape->getLocalBounds().getCenter());
 			return shape;
 		}
 
-		float terrain_ray_cast_callback(const b2ShapeId shape_id, const b2Vec2 point, [[maybe_unused]] const b2Vec2 normal,
-			const float fraction, void* context)
+		float terrain_ray_cast_callback(
+			const b2ShapeId               shape_id, 
+			const b2Vec2 point,
+		                               
+		const b2Vec2 /*normal*/,
+		                                const float                   fraction, 
+			void* context)
 		{
 			auto& ray_context = *static_cast<TerrainRayCastContext*>(context);
 			if (B2_ID_EQUALS(b2Shape_GetBody(shape_id), ray_context.ignored_body))
@@ -122,8 +127,12 @@ namespace game
 			return fraction;
 		}
 
-		float ground_ray_cast_callback(const b2ShapeId shape_id, const b2Vec2 point, const b2Vec2 normal,
-			const float fraction, void* context)
+		float ground_ray_cast_callback(
+			const b2ShapeId shape_id, 
+			const b2Vec2 point, 
+			const b2Vec2 normal,
+		                               const float     fraction, 
+			void*        context)
 		{
 			auto& ray_context = *static_cast<GroundRayCastContext*>(context);
 			if (B2_ID_EQUALS(b2Shape_GetBody(shape_id), ray_context.ignored_body))
@@ -136,10 +145,10 @@ namespace game
 				return -1.0f;
 			}
 
-			ray_context.hit = true;
+			ray_context.hit      = true;
 			ray_context.fraction = fraction;
-			ray_context.point = { point.x, point.y };
-			ray_context.normal = { normal.x, normal.y };
+			ray_context.point    = { point.x, point.y };
+			ray_context.normal   = { normal.x, normal.y };
 			return fraction;
 		}
 	}
@@ -206,13 +215,14 @@ namespace game
 
 	Game::~Game()
 	{
+		instance = nullptr;
 		terrain_.reset();
 
 		if (b2Body_IsValid(player_.body))
 		{
 			b2DestroyBody(player_.body);
-			player_.body = b2_nullBodyId;
-			player_shape_ = b2_nullShapeId;
+			player_.body                = b2_nullBodyId;
+			player_shape_               = b2_nullShapeId;
 			player_ground_sensor_shape_ = b2_nullShapeId;
 		}
 
@@ -221,8 +231,6 @@ namespace game
 			b2DestroyWorld(world_);
 			world_ = b2_nullWorldId;
 		}
-
-		instance = nullptr;
 
 		if (gl_loaded_)
 		{
@@ -288,6 +296,7 @@ namespace game
 	void Game::render_opengl() const
 	{
 		if (terrain_) terrain_->draw_gl(world_view_);
+		if (terrain_) terrain_->draw_water_gl(world_view_);
 		player_.draw_gl(world_view_);
 	}
 
@@ -310,8 +319,9 @@ namespace game
 	{
 		assert(terrain_ && "Terrain must exist before creating the player");
 
-		const auto spawn = terrain_->spawn_point_from_top_center(player_capsule_half_height_ + player_spawn_air_clearance_);
-		const auto spawn_up = normalize_vec2(subtract_vec2(spawn, terrain_->planet_center()));
+		const auto spawn = terrain_->spawn_point_from_top_center(
+			player_capsule_half_height_ + player_spawn_air_clearance_);
+		const auto  spawn_up    = normalize_vec2(subtract_vec2(spawn, terrain_->planet_center()));
 		const float spawn_angle = angle_from_up_direction(spawn_up);
 
 		b2BodyDef body_def         = b2DefaultBodyDef();
@@ -324,10 +334,10 @@ namespace game
 		body_def.allowFastRotation = false;
 		body_def.name              = "player_capsule";
 
-		player_      = GameObject{};
-		player_.renderable = make_capsule_drawable(player_capsule_radius_, player_capsule_half_height_);
-		player_.body = b2CreateBody(world_, &body_def);
-		player_shape_ = b2_nullShapeId;
+		player_                     = GameObject{};
+		player_.renderable          = make_capsule_drawable(player_capsule_radius_, player_capsule_half_height_);
+		player_.body                = b2CreateBody(world_, &body_def);
+		player_shape_               = b2_nullShapeId;
 		player_ground_sensor_shape_ = b2_nullShapeId;
 
 		b2ShapeDef shape_def           = b2DefaultShapeDef();
@@ -335,7 +345,7 @@ namespace game
 		shape_def.material.friction    = 0.95f;
 		shape_def.material.restitution = 0.0f;
 
-		const float capsule_center_offset = std::max(player_capsule_half_height_ - player_capsule_radius_, 0.01f);
+		const float     capsule_center_offset = std::max(player_capsule_half_height_ - player_capsule_radius_, 0.01f);
 		const b2Capsule capsule{
 			{ 0.0f, -capsule_center_offset },
 			{ 0.0f, capsule_center_offset },
@@ -343,16 +353,16 @@ namespace game
 		};
 		player_shape_ = b2CreateCapsuleShape(player_.body, &shape_def, &capsule);
 
-		b2ShapeDef sensor_shape_def = b2DefaultShapeDef();
-		sensor_shape_def.isSensor = true;
+		b2ShapeDef sensor_shape_def         = b2DefaultShapeDef();
+		sensor_shape_def.isSensor           = true;
 		sensor_shape_def.enableSensorEvents = true;
-		sensor_shape_def.updateBodyMass = false;
-		sensor_shape_def.density = 0.0f;
+		sensor_shape_def.updateBodyMass     = false;
+		sensor_shape_def.density            = 0.0f;
 
-		const float sensor_half_width = player_capsule_radius_ * 0.42f;
-		const float sensor_half_height = 0.08f;
-		const float sensor_offset_y = -player_capsule_half_height_ - sensor_half_height * 0.35f;
-		const b2Polygon ground_sensor = b2MakeOffsetBox(
+		const float     sensor_half_width  = player_capsule_radius_ * 0.42f;
+		const float     sensor_half_height = 0.08f;
+		const float     sensor_offset_y    = -player_capsule_half_height_ - sensor_half_height * 0.35f;
+		const b2Polygon ground_sensor      = b2MakeOffsetBox(
 			sensor_half_width,
 			sensor_half_height,
 			{ 0.0f, sensor_offset_y },
@@ -364,9 +374,9 @@ namespace game
 		capsule_shape.setOutlineColor(0xFFF3D9_rgb);
 		capsule_shape.setOutlineThickness(0.08f);
 
-		jump_cooldown_timer_ = 0.0f;
+		jump_cooldown_timer_  = 0.0f;
 		player_ground_normal_ = spawn_up;
-		camera_initialized_ = false;
+		camera_initialized_   = false;
 		align_player_to_planet();
 		player_.sync_from_physics();
 		update_player_grounded_state();
@@ -380,8 +390,8 @@ namespace game
 
 		const vec2 up_direction = player_up_direction();
 		const vec2 right_direction{ up_direction.y, -up_direction.x };
-		vec2 movement_direction = right_direction;
-		const bool jump_held = Input::is_pressed(Key::W) || Input::is_pressed(Key::Space);
+		vec2       movement_direction = right_direction;
+		const bool jump_held          = Input::is_pressed(Key::W) || Input::is_pressed(Key::Space);
 
 		if (player_grounded_)
 		{
@@ -398,18 +408,18 @@ namespace game
 			}
 		}
 
-		const vec2 current_velocity = from_b2(b2Body_GetLinearVelocity(player_.body));
+		const vec2  current_velocity      = from_b2(b2Body_GetLinearVelocity(player_.body));
 		const float current_tangent_speed = current_velocity.dot(movement_direction);
-		const float movement_axis =
-			(Input::is_pressed(Key::D) ? 1.0f : 0.0f) -
-			(Input::is_pressed(Key::A) ? 1.0f : 0.0f);
+		const float movement_axis         =
+				(Input::is_pressed(Key::D) ? 1.0f : 0.0f) -
+				(Input::is_pressed(Key::A) ? 1.0f : 0.0f);
 		const float player_mass = b2Body_GetMass(player_.body);
 
 		if (movement_axis != 0.0f)
 		{
 			const float desired_tangent_speed = movement_axis * player_move_speed_;
-			const float max_speed_change = player_move_acceleration_ * fixed_step;
-			const float speed_change = std::clamp(
+			const float max_speed_change      = player_move_acceleration_ * fixed_step;
+			const float speed_change          = std::clamp(
 				desired_tangent_speed - current_tangent_speed,
 				-max_speed_change,
 				max_speed_change);
@@ -425,8 +435,8 @@ namespace game
 			const float brake_speed = std::min(std::abs(current_tangent_speed), player_ground_brake_ * fixed_step);
 			if (brake_speed > 1e-4f)
 			{
-				const float direction = current_tangent_speed > 0.0f ? -1.0f : 1.0f;
-				const vec2 brake_impulse = scale_vec2(movement_direction, player_mass * brake_speed * direction);
+				const float direction     = current_tangent_speed > 0.0f ? -1.0f : 1.0f;
+				const vec2  brake_impulse = scale_vec2(movement_direction, player_mass * brake_speed * direction);
 				b2Body_ApplyLinearImpulseToCenter(player_.body, to_b2(brake_impulse), true);
 			}
 		}
@@ -435,9 +445,9 @@ namespace game
 		{
 			const vec2 jump_impulse = scale_vec2(up_direction, player_mass * player_jump_speed_);
 			b2Body_ApplyLinearImpulseToCenter(player_.body, to_b2(jump_impulse), true);
-			player_grounded_ = false;
+			player_grounded_      = false;
 			player_ground_normal_ = up_direction;
-			jump_cooldown_timer_ = player_jump_cooldown_;
+			jump_cooldown_timer_  = player_jump_cooldown_;
 		}
 	}
 
@@ -453,7 +463,7 @@ namespace game
 
 	void Game::update_player_grounded_state()
 	{
-		player_grounded_ = false;
+		player_grounded_      = false;
 		player_ground_normal_ = player_up_direction();
 
 		bool sensor_grounded = false;
@@ -463,7 +473,8 @@ namespace game
 			if (capacity > 0)
 			{
 				std::vector<b2ShapeId> overlaps(static_cast<std::size_t>(capacity));
-				const int overlap_count = b2Shape_GetSensorOverlaps(player_ground_sensor_shape_, overlaps.data(), capacity);
+				const int overlap_count = b2Shape_GetSensorOverlaps(player_ground_sensor_shape_, overlaps.data(),
+				                                                    capacity);
 
 				for (int i = 0; i < overlap_count; ++i)
 				{
@@ -479,8 +490,8 @@ namespace game
 		}
 
 		GroundRayCastContext ray_context{ .ignored_body = player_.body };
-		const vec2 up_direction = player_up_direction();
-		const vec2 ray_origin = subtract_vec2(
+		const vec2           up_direction = player_up_direction();
+		const vec2           ray_origin   = subtract_vec2(
 			player_world_position(),
 			scale_vec2(up_direction, player_capsule_half_height_ - player_capsule_radius_ * 0.35f));
 		const vec2 ray_translation = scale_vec2(
@@ -497,7 +508,7 @@ namespace game
 			&ray_context);
 
 		const bool ray_grounded = ray_context.hit &&
-			normalize_vec2(ray_context.normal, up_direction).dot(up_direction) >= player_ground_min_normal_dot_;
+				normalize_vec2(ray_context.normal, up_direction).dot(up_direction) >= player_ground_min_normal_dot_;
 
 		player_grounded_ = sensor_grounded || ray_grounded;
 		if (ray_grounded)
@@ -510,8 +521,8 @@ namespace game
 	{
 		if (!b2Body_IsValid(player_.body)) return;
 
-		const auto position = player_world_position();
-		const float target_angle = angle_from_up_direction(player_up_direction());
+		const auto  position      = player_world_position();
+		const float target_angle  = angle_from_up_direction(player_up_direction());
 		const float current_angle = b2Rot_GetAngle(b2Body_GetRotation(player_.body));
 
 		b2Body_SetAngularVelocity(player_.body, 0.0f);
@@ -522,16 +533,29 @@ namespace game
 
 	void Game::configure_input()
 	{
-		Input::on([](const Event::MouseWheelScrolled& scroll)
+		Input::on([this](const Event::MouseWheelScrolled& scroll)
 		{
-			if (!instance) return;
-
 			constexpr float zoom_step = 0.12f;
-			instance->camera_zoom_ = std::clamp(
-				instance->camera_zoom_ * (1.0f - scroll.delta * zoom_step),
-				instance->min_camera_zoom_,
-				instance->max_camera_zoom_);
-			instance->update_world_view(instance->window_.getSize());
+			camera_zoom_    = std::clamp(
+				camera_zoom_ * (1.0f - scroll.delta * zoom_step),
+				min_camera_zoom_,
+				max_camera_zoom_);
+			update_world_view(window_.getSize());
+		});
+
+		Input::on<Event::KeyPressed>(Key::P, [this]
+		{
+			export_current_chunk_field();
+		});
+
+		Input::on<Event::MouseButtonPressed>(MouseButton::Left, [this]
+		{
+			handle_water_input(MouseButton::Left);
+		});
+
+		Input::on<Event::MouseButtonPressed>(MouseButton::Right, [this]
+		{
+			handle_water_input(MouseButton::Right);
 		});
 	}
 
@@ -570,15 +594,15 @@ namespace game
 		const vec2 player_position = player_world_position();
 		if (!camera_initialized_)
 		{
-			camera_focus_world_ = player_position;
+			camera_focus_world_      = player_position;
 			camera_rotation_radians_ = angle_from_up_direction(player_up_direction());
-			camera_initialized_ = true;
+			camera_initialized_      = true;
 		}
 
-		vec2 desired_focus = camera_focus_world_;
-		const vec2 player_delta = subtract_vec2(player_position, camera_focus_world_);
+		vec2        desired_focus       = camera_focus_world_;
+		const vec2  player_delta        = subtract_vec2(player_position, camera_focus_world_);
 		const float follow_threshold_sq = camera_follow_threshold_ * camera_follow_threshold_;
-		const bool move_input_active = is_player_move_input_active();
+		const bool  move_input_active   = is_player_move_input_active();
 
 		if (move_input_active)
 		{
@@ -600,13 +624,13 @@ namespace game
 			dt);
 		camera_focus_world_ = lerp_vec2(camera_focus_world_, desired_focus, position_alpha);
 
-		const vec2 planet_center = terrain_ ? terrain_->planet_center() : vec2{ 0.0f, 0.0f };
+		const vec2 planet_center       = terrain_ ? terrain_->planet_center() : vec2{ 0.0f, 0.0f };
 		const vec2 camera_up_direction = normalize_vec2(
 			subtract_vec2(camera_focus_world_, planet_center),
 			player_up_direction());
 		const float target_rotation = angle_from_up_direction(camera_up_direction);
-		camera_rotation_radians_ += shortest_angle_delta(camera_rotation_radians_, target_rotation) *
-			smooth_factor(camera_rotation_smoothing_, dt);
+		camera_rotation_radians_    += shortest_angle_delta(camera_rotation_radians_, target_rotation) *
+				smooth_factor(camera_rotation_smoothing_, dt);
 
 		world_view_.setCenter(camera_focus_world_);
 		world_view_.setRotation(sf::radians(camera_rotation_radians_));
@@ -616,13 +640,58 @@ namespace game
 	void Game::update_terrain_editing(const float dt)
 	{
 		if (!terrain_) return;
+		if (is_water_modifier_active())
+		{
+			reset_terrain_tool_state(dig_tool_state_);
+			reset_terrain_tool_state(place_tool_state_);
+			return;
+		}
 
 		emit_terrain_tool_stamps(MouseButton::Left, dig_tool_, dig_tool_state_, dt);
 		emit_terrain_tool_stamps(MouseButton::Right, place_tool_, place_tool_state_, dt);
 		terrain_->apply_pending_edits();
 	}
 
-	void Game::emit_terrain_tool_stamps(const MouseButton button, const TerrainToolConfig& config, TerrainToolState& state, const float dt)
+	void Game::export_current_chunk_field() const
+	{
+		if (!terrain_) return;
+
+		const auto output_path = terrain_->save_chunk_field_image(player_world_position());
+		if (output_path.has_value())
+		{
+			std::println("Saved chunk field image to {}", output_path->string());
+		}
+		else
+		{
+			std::println(std::cerr, "Failed to save chunk field image");
+		}
+	}
+
+	void Game::handle_water_input(const MouseButton button)
+	{
+		if (!terrain_ || !is_water_modifier_active()) return;
+
+		const auto world_position = water_tool_target_world_position();
+		if (!world_position.has_value()) return;
+
+		if (button == MouseButton::Right)
+		{
+			terrain_->place_water(*world_position, water_volume_cap_);
+		}
+		else if (button == MouseButton::Left)
+		{
+			terrain_->pickup_water(*world_position, water_volume_cap_);
+		}
+	}
+
+	void Game::reset_terrain_tool_state(TerrainToolState& state)
+	{
+		state.emission_accumulator = 0.0f;
+		state.last_stamp_world.reset();
+	}
+
+	void Game::emit_terrain_tool_stamps(const MouseButton button, const TerrainToolConfig& config,
+	                                    TerrainToolState& state, const float               dt)
 	{
 		if (!terrain_) return;
 
@@ -651,13 +720,13 @@ namespace game
 		};
 
 		const float stamps_per_second = std::max(config.stamps_per_second, 1.0f);
-		const float interval = 1.0f / stamps_per_second;
-		state.emission_accumulator += dt;
+		const float interval          = 1.0f / stamps_per_second;
+		state.emission_accumulator    += dt;
 
 		if (!state.last_stamp_world.has_value())
 		{
 			emit_stamp(*world_position);
-			state.last_stamp_world = *world_position;
+			state.last_stamp_world     = *world_position;
 			state.emission_accumulator = std::fmod(state.emission_accumulator, interval);
 			return;
 		}
@@ -667,11 +736,11 @@ namespace game
 			world_position->x - previous_position.x,
 			world_position->y - previous_position.y
 		};
-		const float distance = delta.length();
-		const float spacing = std::max(config.radius * config.spacing_factor, 0.05f);
-		const int time_stamp_count = static_cast<int>(std::floor(state.emission_accumulator / interval));
-		const int movement_stamp_count = static_cast<int>(std::floor(distance / spacing));
-		const int stamp_count = std::max(time_stamp_count, movement_stamp_count);
+		const float distance             = delta.length();
+		const float spacing              = std::max(config.radius * config.spacing_factor, 0.05f);
+		const int   time_stamp_count     = static_cast<int>(std::floor(state.emission_accumulator / interval));
+		const int   movement_stamp_count = static_cast<int>(std::floor(distance / spacing));
+		const int   stamp_count          = std::max(time_stamp_count, movement_stamp_count);
 
 		if (stamp_count <= 0) return;
 
@@ -691,7 +760,7 @@ namespace game
 			}
 		}
 
-		state.last_stamp_world = *world_position;
+		state.last_stamp_world     = *world_position;
 		state.emission_accumulator = std::fmod(state.emission_accumulator, interval);
 	}
 
@@ -708,17 +777,17 @@ namespace game
 		const float ray_distance = ray_delta.length();
 		if (ray_distance <= std::numeric_limits<float>::epsilon()) return std::nullopt;
 
-		const auto chunk_size = terrain_->chunk_size();
-		const float max_reach = 0.5f * std::min(chunk_size.x, chunk_size.y);
+		const auto  chunk_size       = terrain_->chunk_size();
+		const float max_reach        = 0.5f * std::min(chunk_size.x, chunk_size.y);
 		const float clamped_distance = std::min(ray_distance, max_reach);
-		const float scale = clamped_distance / ray_distance;
-		const vec2 translation{
+		const float scale            = clamped_distance / ray_distance;
+		const vec2  translation{
 			ray_delta.x * scale,
 			ray_delta.y * scale
 		};
 
 		TerrainRayCastContext context{ .ignored_body = player_.body };
-		const b2QueryFilter filter = b2DefaultQueryFilter();
+		const b2QueryFilter   filter = b2DefaultQueryFilter();
 		b2World_CastRay(
 			world_,
 			{ player_world.x, player_world.y },
@@ -728,6 +797,36 @@ namespace game
 			&context);
 
 		return context.hit_point;
+	}
+
+	std::optional<vec2> Game::clamped_tool_world_position() const
+	{
+		if (!terrain_ || !b2Body_IsValid(player_.body)) return std::nullopt;
+
+		const auto player_world = player_world_position();
+		const auto cursor_world = mouse_world_position();
+		const vec2 ray_delta{
+			cursor_world.x - player_world.x,
+			cursor_world.y - player_world.y
+		};
+		const float ray_distance = ray_delta.length();
+		if (ray_distance <= std::numeric_limits<float>::epsilon()) return std::nullopt;
+
+		const auto  chunk_size       = terrain_->chunk_size();
+		const float max_reach        = 0.5f * std::min(chunk_size.x, chunk_size.y);
+		const float clamped_distance = std::min(ray_distance, max_reach);
+		const float scale            = clamped_distance / ray_distance;
+
+		return vec2{
+			player_world.x + ray_delta.x * scale,
+			player_world.y + ray_delta.y * scale
+		};
+	}
+
+	std::optional<vec2> Game::water_tool_target_world_position() const
+	{
+		if (const auto hit = terrain_tool_hit_world_position(); hit.has_value()) return hit;
+		return clamped_tool_world_position();
 	}
 
 	vec2 Game::mouse_world_position() const
@@ -749,6 +848,11 @@ namespace game
 		return normalize_vec2(subtract_vec2(player_world_position(), planet_center));
 	}
 
+	bool Game::is_water_modifier_active() const
+	{
+		return Input::is_pressed(Key::LControl) || Input::is_pressed(Key::RControl);
+	}
+
 	bool Game::is_player_move_input_active() const
 	{
 		return Input::is_pressed(Key::A) || Input::is_pressed(Key::D);
@@ -764,7 +868,7 @@ namespace game
 		float view_height = std::max(camera_world_span_.y * camera_zoom_, 0.001f);
 
 		if (view_width / view_height > window_aspect) view_height = view_width / window_aspect;
-		else view_width = view_height * window_aspect;
+		else view_width                                           = view_height * window_aspect;
 
 		world_view_.setSize({ view_width, -view_height });
 		sync_camera_to_player(0.0f);

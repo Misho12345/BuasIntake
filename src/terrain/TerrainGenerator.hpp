@@ -12,6 +12,15 @@ namespace game::terrain
 	class TerrainGenerator final
 	{
 	public:
+		struct FieldSample final
+		{
+			float terrain{};
+			float water{};
+		};
+
+		static constexpr std::uint32_t terrain_channel_index = 0u;
+		static constexpr std::uint32_t water_channel_index = 1u;
+
 		struct TerrainEdit final
 		{
 			vec4 position_radius_strength{};
@@ -63,13 +72,15 @@ namespace game::terrain
 
 		void dispatch();
 		void dispatch_edits(std::span<const TerrainEdit> edits);
+		void dispatch_surface_rebuild(std::uint32_t channel_index, float iso);
+		void upload_field(std::span<const FieldSample> field_samples);
+		[[nodiscard]] std::vector<FieldSample> read_field() const;
 		[[nodiscard]] bool try_readback(RawPipelineResult& result);
 		[[nodiscard]] RawPipelineResult readback();
 		[[nodiscard]] RawPipelineResult run();
 
 	private:
 		void reset_surface_buffers();
-		void dispatch_surface_rebuild();
 		void replace_completion_fence();
 		void clear_completion_fence();
 		void wait_for_completion();

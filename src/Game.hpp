@@ -46,6 +46,7 @@ namespace game
 
 		void update(float dt);
 		void render_opengl() const;
+		void render_water_opengl() const;
 		void render_sfml();
 		void create_world();
 		void create_player();
@@ -57,12 +58,18 @@ namespace game
 		void step_physics(float dt);
 		void sync_camera_to_player(float dt);
 		void update_terrain_editing(float dt);
+		void export_current_chunk_field() const;
+		void handle_water_input(MouseButton button);
+		void reset_terrain_tool_state(TerrainToolState& state);
 		void emit_terrain_tool_stamps(MouseButton button, const TerrainToolConfig& config, TerrainToolState& state, float dt);
 		void update_world_view(uvec2 size);
+		[[nodiscard]] std::optional<vec2> clamped_tool_world_position() const;
 		[[nodiscard]] std::optional<vec2> terrain_tool_hit_world_position() const;
+		[[nodiscard]] std::optional<vec2> water_tool_target_world_position() const;
 		[[nodiscard]] vec2 mouse_world_position() const;
 		[[nodiscard]] vec2 player_world_position() const;
 		[[nodiscard]] vec2 player_up_direction() const;
+		[[nodiscard]] bool is_water_modifier_active() const;
 		[[nodiscard]] bool is_player_move_input_active() const;
 
 		GameSettings settings_{};
@@ -107,6 +114,7 @@ namespace game
 		TerrainToolConfig place_tool_{ 1.05f, 0.8f, 60.0f, 1.45f, 1.5f };
 		TerrainToolState dig_tool_state_{};
 		TerrainToolState place_tool_state_{};
+		std::uint32_t water_volume_cap_{ 500u };
 		bool  gl_loaded_{ false };
 
 		bool failed_{ false };

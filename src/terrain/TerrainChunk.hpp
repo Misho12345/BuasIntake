@@ -8,6 +8,7 @@
 #include "TerrainGenerator.hpp"
 #include "TerrainRenderable.hpp"
 #include "gfx/Mesh.hpp"
+#include "water/WaterRenderable.hpp"
 
 namespace game::terrain
 {
@@ -15,6 +16,7 @@ namespace game::terrain
 	{
 	public:
 		using TerrainEdit = TerrainGenerator::TerrainEdit;
+		using FieldSample = TerrainGenerator::FieldSample;
 
 		explicit TerrainChunk(b2WorldId world_id, const ChunkSettings& settings = {});
 		~TerrainChunk() = default;
@@ -25,11 +27,12 @@ namespace game::terrain
 		TerrainChunk& operator=(TerrainChunk&&) noexcept = default;
 
 		void draw_gl(const sf::View& view) const;
+		void draw_water_gl(const sf::View& view) const;
 		void render_debug(sf::RenderTarget& target) const;
 		void dispatch_generation();
 		void finalize_generation();
-		void queue_edits(std::span<const TerrainEdit> edits);
-		void update_pending_work();
+		void rebuild_from_field(std::span<const FieldSample> field_samples);
+		[[nodiscard]] std::vector<FieldSample> readback_field() const;
 
 		[[nodiscard]] const gfx::Mesh& mesh() const;
 		[[nodiscard]] ivec2 chunk_coord() const;
@@ -45,8 +48,9 @@ namespace game::terrain
 		[[nodiscard]] TerrainContour::ScoredResult generate_chunk();
 
 		void build_chunk_border();
-		void build_chunk(const TerrainContour::ScoredResult& result);
-		void build_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices);
+		void build_chunk(const TerrainContour::ScoredResult& terrain_result, const TerrainContour::ScoredResult& water_result);
+		void build_terrain_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices);
+		void build_water_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices);
 		void build_debug_lines(const std::vector<std::vector<vec2>>& loops, const std::vector<std::vector<vec2>>& open_paths, const std::vector<std::vector<vec2>>& collider_loops, const std::vector<std::vector<vec2>>& collider_paths);
 
 		ChunkSettings settings_{};
@@ -54,8 +58,10 @@ namespace game::terrain
 		TerrainGenerator generator_;
 		TerrainCollider collider_;
 		TerrainRenderable renderable_{};
+		water::WaterRenderable water_renderable_{};
 
 		gfx::Mesh mesh_{};
+		gfx::Mesh water_mesh_{};
 		sf::RectangleShape chunk_border_{};
 		std::vector<sf::VertexArray> edge_debug_lines_{};
 		std::vector<sf::VertexArray> collider_debug_lines_{};
@@ -65,7 +71,6 @@ namespace game::terrain
 		vec2 display_min_{};
 		vec2 display_max_{};
 		vec2 player_spawn_{};
-		std::vector<TerrainEdit> queued_edits_{};
 		bool collision_enabled_{ true };
 		bool generation_dispatched_{ false };
 		bool generation_finalized_{ false };

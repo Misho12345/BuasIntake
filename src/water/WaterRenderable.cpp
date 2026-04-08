@@ -11,13 +11,23 @@ namespace game::water
 			"assets/shaders/water_mesh.frag")
 	} {}
 
-	void WaterRenderable::draw([[maybe_unused]] const gfx::Mesh& mesh, [[maybe_unused]] const sf::View& view) const
+	void WaterRenderable::draw(const gfx::Mesh& mesh, const sf::View& view) const
 	{
-		[[maybe_unused]]
-		const auto projection = gfx::make_projection(view);
+		if (mesh.empty() || !shader_.valid()) return;
 
-		if (!shader_.valid()) return;
+		glDisable(GL_DEPTH_TEST);
+		glDisable(GL_CULL_FACE);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		// TODO: implement water mesh rendering.
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+		shader_.use();
+		shader_.set_uniform("uProjection", gfx::make_projection(view));
+		mesh.draw();
+
+		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		glUseProgram(0);
 	}
 }

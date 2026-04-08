@@ -59,6 +59,7 @@ namespace game::gfx
 		switch (format)
 		{
 			case TextureFormat::R32F: return GL_R32F;
+			case TextureFormat::RG32F: return GL_RG32F;
 			case TextureFormat::RGBA8: return GL_RGBA8;
 			case TextureFormat::RGBA32F: return GL_RGBA32F;
 		}

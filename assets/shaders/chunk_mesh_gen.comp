@@ -2,7 +2,7 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(r32f, binding = 0) uniform readonly image2D uField;
+layout(rg32f, binding = 0) uniform readonly image2D uField;
 
 layout(std430, binding = 1) readonly buffer BoundaryVertices { vec2 data[]; } uBoundaryVertices;
 layout(std430, binding = 2) readonly buffer HorizontalEdgeIds { int data[]; } uHorizontalEdgeIds;
@@ -22,6 +22,7 @@ layout(std430, binding = 7) buffer Counters
 } uCounters;
 
 uniform float uIso;
+uniform int   uChannelIndex;
 uniform ivec2 uChunkCoord;
 uniform ivec2 uChunkGridSize;
 uniform vec2  uChunkSize;
@@ -40,7 +41,14 @@ vec2 chunk_origin()
 
 float sample_field(ivec2 p)
 {
-    return imageLoad(uField, p).r;
+    vec4 field = imageLoad(uField, p);
+
+    if (uChannelIndex == 0)
+    {
+        return field.r;
+    }
+
+    return min(-field.r, field.g);
 }
 
 vec2 grid_to_world(vec2 g)

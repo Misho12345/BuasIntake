@@ -104,8 +104,10 @@ namespace game::terrain
 		terrain_edit_shader_{ gfx::Shader::from_compute_file("assets/shaders/terrain_edit.comp") },
 		edge_shader_{ gfx::Shader::from_compute_file("assets/shaders/chunk_edges_gen.comp") },
 		mesh_shader_{ gfx::Shader::from_compute_file("assets/shaders/chunk_mesh_gen.comp") },
-		field_texture_{ padded_field_size(settings), gfx::TextureFormat::R32F }
+		field_texture_{ padded_field_size(settings), gfx::TextureFormat::RG32F }
 	{
+		static_assert(sizeof(FieldSample) == sizeof(float) * 2);
+
 		const auto padded_size = padded_field_size(settings_);
 		boundary_vertices_buffer_.allocate_persistent_read<vec2>(max_boundary_vertex_count(settings_));
 		horizontal_edge_ids_buffer_.resize<std::int32_t>(padded_size.y * (padded_size.x - 1u));
@@ -197,7 +199,7 @@ namespace game::terrain
 		};
 
 		gfx::ComputeDispatcher::run(generation_passes);
-		dispatch_surface_rebuild();
+		dispatch_surface_rebuild(terrain_channel_index, terrain_iso);
 	}
 
 	void TerrainGenerator::dispatch_edits(const std::span<const TerrainEdit> edits)
@@ -270,7 +272,109 @@ namespace game::terrain
 		};
 
 		gfx::ComputeDispatcher::run(edit_passes);
-		dispatch_surface_rebuild();
+		dispatch_surface_rebuild(terrain_channel_index, terrain_iso);
+	}
+
+	void TerrainGenerator::dispatch_surface_rebuild(const std::uint32_t channel_index, const float iso)
+	{
+		reset_surface_buffers();
+
+		const auto groups = gfx::ComputeDispatcher::groups_for(padded_field_size(settings_), 16, 16);
+		const auto terrain_cell_size = cell_size(settings_);
+		const auto sample_origin = field_origin(settings_);
+		const auto padding = field_padding(settings_);
+
+		const std::array rebuild_passes
+		{
+			gfx::ComputeDispatcher::Pass{
+				.shader = &edge_shader_,
+				.groups = groups,
+				.configure = [this, channel_index, iso, terrain_cell_size, sample_origin](const gfx::Shader& shader)
+				{
+					field_texture_.bind_image(image_binding, GL_READ_ONLY);
+					boundary_vertices_buffer_.bind_base(boundary_vertices_binding);
+					horizontal_edge_ids_buffer_.bind_base(horizontal_edge_ids_binding);
+					vertical_edge_ids_buffer_.bind_base(vertical_edge_ids_binding);
+					boundary_vertex_counter_buffer_.bind_base(boundary_vertex_counter_binding);
+					shader.set_uniform("uIso", iso);
+					shader.set_uniform("uChannelIndex", static_cast<std::int32_t>(channel_index));
+					shader.set_uniform("uChunkCoord", settings_.chunk_coord);
+					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
+					shader.set_uniform("uChunkSize", settings_.chunk_size);
+					shader.set_uniform("uWorldCenter", settings_.world_center);
+					shader.set_uniform("uFieldOrigin", sample_origin);
+					shader.set_uniform("uCellSize", terrain_cell_size);
+				},
+				.barrier_after = GL_SHADER_STORAGE_BARRIER_BIT
+			},
+			gfx::ComputeDispatcher::Pass{
+				.shader = &mesh_shader_,
+				.groups = groups,
+				.configure = [this, channel_index, iso, terrain_cell_size, sample_origin, padding](const gfx::Shader& shader)
+				{
+					field_texture_.bind_image(image_binding, GL_READ_ONLY);
+					boundary_vertices_buffer_.bind_base(boundary_vertices_binding);
+					horizontal_edge_ids_buffer_.bind_base(horizontal_edge_ids_binding);
+					vertical_edge_ids_buffer_.bind_base(vertical_edge_ids_binding);
+					mesh_vertices_buffer_.bind_base(mesh_vertices_binding);
+					mesh_indices_buffer_.bind_base(mesh_indices_binding);
+					boundary_edges_buffer_.bind_base(boundary_edges_binding);
+					counters_buffer_.bind_base(counters_binding);
+					shader.set_uniform("uIso", iso);
+					shader.set_uniform("uChannelIndex", static_cast<std::int32_t>(channel_index));
+					shader.set_uniform("uChunkCoord", settings_.chunk_coord);
+					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
+					shader.set_uniform("uChunkSize", settings_.chunk_size);
+					shader.set_uniform("uWorldCenter", settings_.world_center);
+					shader.set_uniform("uFieldOrigin", sample_origin);
+					shader.set_uniform("uFieldPadding", padding);
+					shader.set_uniform("uFieldSize", ivec2{
+						static_cast<std::int32_t>(settings_.field_size.x),
+						static_cast<std::int32_t>(settings_.field_size.y)
+					});
+					shader.set_uniform("uCellSize", terrain_cell_size);
+				},
+				.barrier_after = GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT
+			}
+		};
+
+		gfx::ComputeDispatcher::run(rebuild_passes);
+		replace_completion_fence();
+	}
+
+	void TerrainGenerator::upload_field(const std::span<const FieldSample> field_samples)
+	{
+		const auto size = field_texture_.size();
+		const auto expected_count = static_cast<std::size_t>(size.x) * static_cast<std::size_t>(size.y);
+		assert(field_samples.size() == expected_count && "Uploaded field data size must match the texture extent");
+
+		glTextureSubImage2D(
+			field_texture_.native_handle(),
+			0,
+			0,
+			0,
+			static_cast<GLsizei>(size.x),
+			static_cast<GLsizei>(size.y),
+			GL_RG,
+			GL_FLOAT,
+			field_samples.empty() ? nullptr : field_samples.data());
+	}
+
+	std::vector<TerrainGenerator::FieldSample> TerrainGenerator::read_field() const
+	{
+		const auto size = field_texture_.size();
+		std::vector<FieldSample> field_samples(static_cast<std::size_t>(size.x) * static_cast<std::size_t>(size.y));
+		if (field_samples.empty()) return field_samples;
+
+		glGetTextureImage(
+			field_texture_.native_handle(),
+			0,
+			GL_RG,
+			GL_FLOAT,
+			static_cast<GLsizei>(field_samples.size() * sizeof(FieldSample)),
+			field_samples.data());
+
+		return field_samples;
 	}
 
 	bool TerrainGenerator::try_readback(RawPipelineResult& result)
@@ -304,71 +408,6 @@ namespace game::terrain
 		glClearNamedBufferData(vertical_edge_ids_buffer_.id(), GL_R32I, GL_RED_INTEGER, GL_INT, &minus_one);
 		glClearNamedBufferData(boundary_vertex_counter_buffer_.id(), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
 		glClearNamedBufferData(counters_buffer_.id(), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
-	}
-
-	void TerrainGenerator::dispatch_surface_rebuild()
-	{
-		reset_surface_buffers();
-
-		const auto groups = gfx::ComputeDispatcher::groups_for(padded_field_size(settings_), 16, 16);
-		const auto terrain_cell_size = cell_size(settings_);
-		const auto sample_origin = field_origin(settings_);
-		const auto padding = field_padding(settings_);
-
-		const std::array rebuild_passes
-		{
-			gfx::ComputeDispatcher::Pass{
-				.shader = &edge_shader_,
-				.groups = groups,
-				.configure = [this, terrain_cell_size, sample_origin](const gfx::Shader& shader)
-				{
-					field_texture_.bind_image(image_binding, GL_READ_ONLY);
-					boundary_vertices_buffer_.bind_base(boundary_vertices_binding);
-					horizontal_edge_ids_buffer_.bind_base(horizontal_edge_ids_binding);
-					vertical_edge_ids_buffer_.bind_base(vertical_edge_ids_binding);
-					boundary_vertex_counter_buffer_.bind_base(boundary_vertex_counter_binding);
-					shader.set_uniform("uIso", terrain_iso);
-					shader.set_uniform("uChunkCoord", settings_.chunk_coord);
-					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
-					shader.set_uniform("uChunkSize", settings_.chunk_size);
-					shader.set_uniform("uWorldCenter", settings_.world_center);
-					shader.set_uniform("uFieldOrigin", sample_origin);
-					shader.set_uniform("uCellSize", terrain_cell_size);
-				},
-				.barrier_after = GL_SHADER_STORAGE_BARRIER_BIT
-			},
-			gfx::ComputeDispatcher::Pass{
-				.shader = &mesh_shader_,
-				.groups = groups,
-				.configure = [this, terrain_cell_size, sample_origin, padding](const gfx::Shader& shader)
-				{
-					field_texture_.bind_image(image_binding, GL_READ_ONLY);
-					boundary_vertices_buffer_.bind_base(boundary_vertices_binding);
-					horizontal_edge_ids_buffer_.bind_base(horizontal_edge_ids_binding);
-					vertical_edge_ids_buffer_.bind_base(vertical_edge_ids_binding);
-					mesh_vertices_buffer_.bind_base(mesh_vertices_binding);
-					mesh_indices_buffer_.bind_base(mesh_indices_binding);
-					boundary_edges_buffer_.bind_base(boundary_edges_binding);
-					counters_buffer_.bind_base(counters_binding);
-					shader.set_uniform("uIso", terrain_iso);
-					shader.set_uniform("uChunkCoord", settings_.chunk_coord);
-					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
-					shader.set_uniform("uChunkSize", settings_.chunk_size);
-					shader.set_uniform("uWorldCenter", settings_.world_center);
-					shader.set_uniform("uFieldOrigin", sample_origin);
-					shader.set_uniform("uFieldPadding", padding);
-					shader.set_uniform("uFieldSize", ivec2{
-						static_cast<std::int32_t>(settings_.field_size.x),
-						static_cast<std::int32_t>(settings_.field_size.y)
-					});
-					shader.set_uniform("uCellSize", terrain_cell_size);
-				},
-				.barrier_after = GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT
-			}
-		};
-
-		gfx::ComputeDispatcher::run(rebuild_passes);
-		replace_completion_fence();
 	}
 
 	void TerrainGenerator::replace_completion_fence()

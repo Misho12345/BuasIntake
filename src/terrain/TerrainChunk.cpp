@@ -77,6 +77,11 @@ namespace game::terrain
 		renderable_.draw(mesh_, view);
 	}
 
+	void TerrainChunk::draw_water_gl(const sf::View& view) const
+	{
+		water_renderable_.draw(water_mesh_, view);
+	}
+
 	void TerrainChunk::render_debug(sf::RenderTarget& target) const
 	{
 		target.draw(chunk_border_);
@@ -104,37 +109,26 @@ namespace game::terrain
 		if (generation_finalized_) return;
 		if (!generation_dispatched_) dispatch_generation();
 
-		build_chunk(generate_chunk());
+		build_chunk(generate_chunk(), {});
 		generation_dispatched_ = false;
 		generation_finalized_ = true;
 	}
 
-	void TerrainChunk::queue_edits(const std::span<const TerrainEdit> edits)
+	void TerrainChunk::rebuild_from_field(const std::span<const FieldSample> field_samples)
 	{
-		if (edits.empty()) return;
-		queued_edits_.insert(queued_edits_.end(), edits.begin(), edits.end());
+		generator_.upload_field(field_samples);
+		generator_.dispatch_surface_rebuild(TerrainGenerator::terrain_channel_index, 0.0f);
+		const auto terrain_result = TerrainContour::score_and_filter(generator_.readback(), settings_);
+
+		generator_.dispatch_surface_rebuild(TerrainGenerator::water_channel_index, 0.0f);
+		const auto water_result = TerrainContour::score_and_filter(generator_.readback(), settings_);
+
+		build_chunk(terrain_result, water_result);
 	}
 
-	void TerrainChunk::update_pending_work()
+	std::vector<TerrainChunk::FieldSample> TerrainChunk::readback_field() const
 	{
-		if (generation_dispatched_)
-		{
-			TerrainGenerator::RawPipelineResult raw_result{};
-			if (generator_.try_readback(raw_result))
-			{
-				build_chunk(TerrainContour::score_and_filter(std::move(raw_result), settings_));
-				generation_dispatched_ = false;
-				generation_finalized_ = true;
-			}
-		}
-
-		if (!generation_dispatched_ && !queued_edits_.empty())
-		{
-			generator_.dispatch_edits(queued_edits_);
-			queued_edits_.clear();
-			generation_dispatched_ = true;
-			generation_finalized_ = false;
-		}
+		return generator_.read_field();
 	}
 
 	const gfx::Mesh& TerrainChunk::mesh() const { return mesh_; }
@@ -166,16 +160,17 @@ namespace game::terrain
 		chunk_border_.setOutlineThickness(0.07f);
 	}
 
-	void TerrainChunk::build_chunk(const TerrainContour::ScoredResult& result)
+	void TerrainChunk::build_chunk(const TerrainContour::ScoredResult& terrain_result, const TerrainContour::ScoredResult& water_result)
 	{
-		build_mesh(result.mesh_vertices, result.mesh_indices);
-		build_debug_lines(result.loops, result.open_paths, result.collider_loops, result.collider_paths);
-		collider_.build(result.collider_loops, result.collider_paths);
+		build_terrain_mesh(terrain_result.mesh_vertices, terrain_result.mesh_indices);
+		build_water_mesh(water_result.mesh_vertices, water_result.mesh_indices);
+		build_debug_lines(terrain_result.loops, terrain_result.open_paths, terrain_result.collider_loops, terrain_result.collider_paths);
+		collider_.build(terrain_result.collider_loops, terrain_result.collider_paths);
 		collider_.set_enabled(collision_enabled_);
 
-		if (!result.primary_contour.empty())
+		if (!terrain_result.primary_contour.empty())
 		{
-			player_spawn_ = TerrainContour::calculate_spawn(result.primary_contour, settings_);
+			player_spawn_ = TerrainContour::calculate_spawn(terrain_result.primary_contour, settings_);
 		}
 		else
 		{
@@ -186,7 +181,7 @@ namespace game::terrain
 		}
 	}
 
-	void TerrainChunk::build_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices)
+	void TerrainChunk::build_terrain_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices)
 	{
 		std::vector<sf::Vertex> mesh_vertices;
 		mesh_vertices.reserve(vertices.size());
@@ -211,6 +206,53 @@ namespace game::terrain
 		}
 
 		mesh_.set_data(mesh_vertices, indices);
+	}
+
+	void TerrainChunk::build_water_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices)
+	{
+		if (vertices.empty() || indices.empty())
+		{
+			const std::vector<sf::Vertex> empty_vertices;
+			const std::vector<std::uint32_t> empty_indices;
+			water_mesh_.set_data(empty_vertices, empty_indices);
+			return;
+		}
+
+		float min_radius = std::numeric_limits<float>::infinity();
+		float max_radius = 0.0f;
+		for (const auto& point : vertices)
+		{
+			const vec2 offset{
+				point.x - settings_.world_center.x,
+				point.y - settings_.world_center.y
+			};
+			const float radius = std::sqrt(offset.x * offset.x + offset.y * offset.y);
+			min_radius = std::min(min_radius, radius);
+			max_radius = std::max(max_radius, radius);
+		}
+
+		const float radius_span = std::max(max_radius - min_radius, 1e-4f);
+
+		std::vector<sf::Vertex> mesh_vertices;
+		mesh_vertices.reserve(vertices.size());
+
+		for (const auto& point : vertices)
+		{
+			const vec2 offset{
+				point.x - settings_.world_center.x,
+				point.y - settings_.world_center.y
+			};
+			const float radius = std::sqrt(offset.x * offset.x + offset.y * offset.y);
+			const float depth = std::clamp((max_radius - radius) / radius_span, 0.0f, 1.0f);
+
+			sf::Vertex vertex{};
+			vertex.position = { point.x, point.y };
+			vertex.color = { 232, 248, 255, 196 };
+			vertex.texCoords = { depth, depth };
+			mesh_vertices.push_back(vertex);
+		}
+
+		water_mesh_.set_data(mesh_vertices, indices);
 	}
 
 	void TerrainChunk::build_debug_lines(const std::vector<std::vector<vec2>>& loops, const std::vector<std::vector<vec2>>& open_paths, const std::vector<std::vector<vec2>>& collider_loops, const std::vector<std::vector<vec2>>& collider_paths)

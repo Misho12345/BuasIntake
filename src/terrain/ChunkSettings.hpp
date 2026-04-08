@@ -6,7 +6,7 @@ namespace game::terrain
 {
 	struct ChunkSettings final
 	{
-		uvec2 field_size{ 100, 100 };
+		uvec2 field_size{ 160, 160 };
 		uvec2 field_padding{ 1, 1 };
 		ivec2 chunk_coord{ 0, 0 };
 		ivec2 chunk_grid_size{ 10, 10 };

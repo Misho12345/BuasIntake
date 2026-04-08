@@ -7,6 +7,7 @@ namespace game::gfx
 	enum class TextureFormat
 	{
 		R32F,
+		RG32F,
 		RGBA8,
 		RGBA32F,
 	};
