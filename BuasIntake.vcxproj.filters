@@ -14,6 +14,12 @@
     <Filter Include="Source Files\water">
       <UniqueIdentifier>{E88E4A56-7A8F-49F6-8A5E-5D39C83CB95E}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\player">
+      <UniqueIdentifier>{4A8C5593-5CD0-46F5-824B-66A1F5EC8F92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\tools">
+      <UniqueIdentifier>{E8ED9605-D86E-42F7-B447-B80E9009F4E4}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
@@ -26,6 +32,12 @@
     </Filter>
     <Filter Include="Header Files\water">
       <UniqueIdentifier>{61220F9B-8F27-4914-9BC2-25720386C9B8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\player">
+      <UniqueIdentifier>{06B3E7A6-817E-420F-B968-E7E9A588F376}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\tools">
+      <UniqueIdentifier>{0C936AD6-BF98-4A3F-BBA6-E2DC6D91883A}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
@@ -77,6 +89,21 @@
     </ClCompile>
     <ClCompile Include="src\water\WaterRenderable.cpp">
       <Filter>Source Files\water</Filter>
+    </ClCompile>
+    <ClCompile Include="src\player\Player.cpp">
+      <Filter>Source Files\player</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tools\TerrainSculptTool.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tools\TerrainTargetResolver.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tools\TerrainToolController.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tools\WaterTool.cpp">
+      <Filter>Source Files\tools</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -133,6 +160,24 @@
     </ClInclude>
     <ClInclude Include="src\water\WaterRenderable.hpp">
       <Filter>Header Files\water</Filter>
+    </ClInclude>
+    <ClInclude Include="src\player\Player.hpp">
+      <Filter>Header Files\player</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\TerrainSculptTool.hpp">
+      <Filter>Header Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\TerrainTargetResolver.hpp">
+      <Filter>Header Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\TerrainToolController.hpp">
+      <Filter>Header Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\ToolStrategy.hpp">
+      <Filter>Header Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\WaterTool.hpp">
+      <Filter>Header Files\tools</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

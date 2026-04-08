@@ -3,11 +3,6 @@
 
 namespace game::terrain
 {
-	namespace
-	{
-		b2Vec2 to_b2(const vec2& value) { return { value.x, value.y }; }
-	}
-
 	TerrainCollider::TerrainCollider(const b2WorldId world_id) : world_id_{ world_id } {}
 
 	TerrainCollider::~TerrainCollider()

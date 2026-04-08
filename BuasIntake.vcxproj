@@ -177,6 +177,11 @@
   <ItemGroup>
     <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\Game.cpp" />
+    <ClCompile Include="src\player\Player.cpp" />
+    <ClCompile Include="src\tools\TerrainSculptTool.cpp" />
+    <ClCompile Include="src\tools\TerrainTargetResolver.cpp" />
+    <ClCompile Include="src\tools\TerrainToolController.cpp" />
+    <ClCompile Include="src\tools\WaterTool.cpp" />
     <ClCompile Include="src\gfx\Mesh.cpp" />
     <ClCompile Include="src\gfx\Shader.cpp" />
     <ClCompile Include="src\gfx\Texture2D.cpp" />
@@ -205,6 +210,12 @@
     <ClInclude Include="src\Input.hpp" />
     <ClInclude Include="src\Game.hpp" />
     <ClInclude Include="src\GameObject.hpp" />
+    <ClInclude Include="src\player\Player.hpp" />
+    <ClInclude Include="src\tools\TerrainSculptTool.hpp" />
+    <ClInclude Include="src\tools\TerrainTargetResolver.hpp" />
+    <ClInclude Include="src\tools\TerrainToolController.hpp" />
+    <ClInclude Include="src\tools\ToolStrategy.hpp" />
+    <ClInclude Include="src\tools\WaterTool.hpp" />
     <ClInclude Include="src\gfx\ComputeDispatcher.hpp" />
     <ClInclude Include="src\gfx\Mesh.hpp" />
     <ClInclude Include="src\gfx\Projection.hpp" />
@@ -226,10 +237,9 @@
     <None Include="assets\shaders\chunk_mesh_gen.comp" />
     <None Include="assets\shaders\terrain_edit.comp" />
     <None Include="assets\shaders\terrain_mesh.frag" />
-    <None Include="assets\shaders\terrain_mesh.vert" />
     <None Include="assets\shaders\terrain_gen.comp" />
     <None Include="assets\shaders\water_mesh.frag" />
-    <None Include="assets\shaders\water_mesh.vert" />
+    <None Include="assets\shaders\default.vert" />
     <None Include=".gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

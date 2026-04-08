@@ -21,5 +21,6 @@ namespace game::terrain
 
 	private:
 		gfx::Shader shader_{};
+		sf::Texture dirt_texture_{};
 	};
 }

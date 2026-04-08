@@ -24,5 +24,6 @@ namespace game::water
 
 	private:
 		gfx::Shader shader_{};
+		mutable sf::Clock animation_clock_{};
 	};
 }

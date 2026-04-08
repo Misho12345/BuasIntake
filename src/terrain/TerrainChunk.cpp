@@ -5,11 +5,6 @@ namespace game::terrain
 {
 	namespace
 	{
-		vec2 scale_vec2(const vec2& value, const float scalar)
-		{
-			return { value.x * scalar, value.y * scalar };
-		}
-
 		vec2 compute_chunk_min(const ChunkSettings& settings)
 		{
 			return {

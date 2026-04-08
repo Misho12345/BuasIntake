@@ -5,30 +5,6 @@ namespace game::terrain
 {
 	namespace
 	{
-		vec2 scale_vec2(const vec2& value, const float scalar)
-		{
-			return { value.x * scalar, value.y * scalar };
-		}
-
-		vec2 normalize_vec2(const vec2& value, const vec2 fallback = { 0.0f, 1.0f })
-		{
-			const float length_sq = value.x * value.x + value.y * value.y;
-			if (length_sq <= 1e-8f) return fallback;
-
-			const float inverse_length = 1.0f / std::sqrt(length_sq);
-			return { value.x * inverse_length, value.y * inverse_length };
-		}
-
-		vec2 add_vec2(const vec2& a, const vec2& b)
-		{
-			return { a.x + b.x, a.y + b.y };
-		}
-
-		vec2 subtract_vec2(const vec2& a, const vec2& b)
-		{
-			return { a.x - b.x, a.y - b.y };
-		}
-
 		float radial_distance(const vec2& point, const vec2& center)
 		{
 			const vec2 offset = subtract_vec2(point, center);

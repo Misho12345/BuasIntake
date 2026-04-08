@@ -7,7 +7,7 @@ namespace game::water
 {
 	WaterRenderable::WaterRenderable() : shader_{
 		gfx::Shader::from_graphics_files(
-			"assets/shaders/water_mesh.vert",
+			"assets/shaders/default.vert",
 			"assets/shaders/water_mesh.frag")
 	} {}
 
@@ -24,6 +24,7 @@ namespace game::water
 
 		shader_.use();
 		shader_.set_uniform("uProjection", gfx::make_projection(view));
+		shader_.set_uniform("uTime", animation_clock_.getElapsedTime().asSeconds());
 		mesh.draw();
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
