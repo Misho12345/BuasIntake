@@ -49,15 +49,48 @@ namespace game::terrain
 			};
 		}
 
+		uvec2 padded_field_size(const ChunkSettings& settings)
+		{
+			return {
+				settings.field_size.x + settings.field_padding.x * 2u,
+				settings.field_size.y + settings.field_padding.y * 2u
+			};
+		}
+
+		ivec2 field_padding(const ChunkSettings& settings)
+		{
+			return {
+				static_cast<std::int32_t>(settings.field_padding.x),
+				static_cast<std::int32_t>(settings.field_padding.y)
+			};
+		}
+
+		vec2 field_origin(const ChunkSettings& settings)
+		{
+			const auto origin = chunk_origin(settings);
+			const auto terrain_cell_size = cell_size(settings);
+			return {
+				origin.x - terrain_cell_size.x * static_cast<float>(settings.field_padding.x),
+				origin.y - terrain_cell_size.y * static_cast<float>(settings.field_padding.y)
+			};
+		}
+
 		std::uint32_t chunk_cell_count(const ChunkSettings& settings)
 		{
 			return (settings.field_size.x - 1u) * (settings.field_size.y - 1u);
 		}
 
+		std::uint32_t generated_cell_count(const ChunkSettings& settings)
+		{
+			return (settings.field_size.x - 1u + settings.field_padding.x) *
+				(settings.field_size.y - 1u + settings.field_padding.y);
+		}
+
 		std::uint32_t max_boundary_vertex_count(const ChunkSettings& settings)
 		{
-			const auto width = settings.field_size.x;
-			const auto height = settings.field_size.y;
+			const auto padded_size = padded_field_size(settings);
+			const auto width = padded_size.x;
+			const auto height = padded_size.y;
 			return height * (width - 1u) + width * (height - 1u);
 		}
 
@@ -71,15 +104,16 @@ namespace game::terrain
 		terrain_edit_shader_{ gfx::Shader::from_compute_file("assets/shaders/terrain_edit.comp") },
 		edge_shader_{ gfx::Shader::from_compute_file("assets/shaders/chunk_edges_gen.comp") },
 		mesh_shader_{ gfx::Shader::from_compute_file("assets/shaders/chunk_mesh_gen.comp") },
-		field_texture_{ settings.field_size, gfx::TextureFormat::R32F }
+		field_texture_{ padded_field_size(settings), gfx::TextureFormat::R32F }
 	{
+		const auto padded_size = padded_field_size(settings_);
 		boundary_vertices_buffer_.allocate_persistent_read<vec2>(max_boundary_vertex_count(settings_));
-		horizontal_edge_ids_buffer_.resize<std::int32_t>(settings_.field_size.y * (settings_.field_size.x - 1u));
-		vertical_edge_ids_buffer_.resize<std::int32_t>(settings_.field_size.y * settings_.field_size.x);
+		horizontal_edge_ids_buffer_.resize<std::int32_t>(padded_size.y * (padded_size.x - 1u));
+		vertical_edge_ids_buffer_.resize<std::int32_t>(padded_size.y * padded_size.x);
 		boundary_vertex_counter_buffer_.allocate_persistent_read<std::uint32_t>(1);
-		mesh_vertices_buffer_.allocate_persistent_read<vec2>(chunk_cell_count(settings_) * 12u);
-		mesh_indices_buffer_.allocate_persistent_read<std::uint32_t>(chunk_cell_count(settings_) * 12u);
-		boundary_edges_buffer_.allocate_persistent_read<GpuBoundaryEdge>(chunk_cell_count(settings_) * 2u);
+		mesh_vertices_buffer_.allocate_persistent_read<vec2>(generated_cell_count(settings_) * 12u);
+		mesh_indices_buffer_.allocate_persistent_read<std::uint32_t>(generated_cell_count(settings_) * 12u);
+		boundary_edges_buffer_.allocate_persistent_read<GpuBoundaryEdge>(generated_cell_count(settings_) * 2u);
 		counters_buffer_.allocate_persistent_read<GpuCounters>(1);
 	}
 
@@ -137,7 +171,7 @@ namespace game::terrain
 	{
 		assert(!pending_readback_ && "TerrainGenerator dispatch called before previous readback");
 
-		const auto groups = gfx::ComputeDispatcher::groups_for(settings_.field_size, 16, 16);
+		const auto groups = gfx::ComputeDispatcher::groups_for(padded_field_size(settings_), 16, 16);
 
 		const std::array generation_passes
 		{
@@ -146,11 +180,15 @@ namespace game::terrain
 				.groups = groups,
 				.configure = [this](const gfx::Shader& shader)
 				{
+					const auto terrain_cell_size = cell_size(settings_);
+					const auto sample_origin = field_origin(settings_);
 					field_texture_.bind_image(image_binding, GL_WRITE_ONLY);
 					shader.set_uniform("uChunkCoord", settings_.chunk_coord);
 					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
 					shader.set_uniform("uChunkSize", settings_.chunk_size);
 					shader.set_uniform("uWorldCenter", settings_.world_center);
+					shader.set_uniform("uFieldOrigin", sample_origin);
+					shader.set_uniform("uCellSize", terrain_cell_size);
 					shader.set_uniform("uSeed", settings_.seed);
 					shader.set_uniform("uPlanetRadius", settings_.planet_radius);
 				},
@@ -170,11 +208,12 @@ namespace game::terrain
 		terrain_edit_buffer_.set_data(edits);
 
 		const auto terrain_cell_size = cell_size(settings_);
-		const auto origin = chunk_origin(settings_);
+		const auto origin = field_origin(settings_);
+		const auto padded_size = padded_field_size(settings_);
 
 		ivec2 dispatch_min{
-			static_cast<std::int32_t>(settings_.field_size.x),
-			static_cast<std::int32_t>(settings_.field_size.y)
+			static_cast<std::int32_t>(padded_size.x),
+			static_cast<std::int32_t>(padded_size.y)
 		};
 		ivec2 dispatch_max{ -1, -1 };
 
@@ -194,10 +233,10 @@ namespace game::terrain
 			dispatch_max.y = std::max(dispatch_max.y, static_cast<std::int32_t>(std::ceil((max_world_y - origin.y) / terrain_cell_size.y)));
 		}
 
-		dispatch_min.x = std::clamp(dispatch_min.x, 0, static_cast<std::int32_t>(settings_.field_size.x) - 1);
-		dispatch_min.y = std::clamp(dispatch_min.y, 0, static_cast<std::int32_t>(settings_.field_size.y) - 1);
-		dispatch_max.x = std::clamp(dispatch_max.x, 0, static_cast<std::int32_t>(settings_.field_size.x) - 1);
-		dispatch_max.y = std::clamp(dispatch_max.y, 0, static_cast<std::int32_t>(settings_.field_size.y) - 1);
+		dispatch_min.x = std::clamp(dispatch_min.x, 0, static_cast<std::int32_t>(padded_size.x) - 1);
+		dispatch_min.y = std::clamp(dispatch_min.y, 0, static_cast<std::int32_t>(padded_size.y) - 1);
+		dispatch_max.x = std::clamp(dispatch_max.x, 0, static_cast<std::int32_t>(padded_size.x) - 1);
+		dispatch_max.y = std::clamp(dispatch_max.y, 0, static_cast<std::int32_t>(padded_size.y) - 1);
 
 		if (dispatch_max.x < dispatch_min.x || dispatch_max.y < dispatch_min.y) return;
 
@@ -212,7 +251,7 @@ namespace game::terrain
 			gfx::ComputeDispatcher::Pass{
 				.shader = &terrain_edit_shader_,
 				.groups = groups,
-				.configure = [this, terrain_cell_size, edit_count = static_cast<std::uint32_t>(edits.size()), dispatch_min, dispatch_extent](const gfx::Shader& shader)
+				.configure = [this, terrain_cell_size, sample_origin = field_origin(settings_), edit_count = static_cast<std::uint32_t>(edits.size()), dispatch_min, dispatch_extent](const gfx::Shader& shader)
 				{
 					field_texture_.bind_image(image_binding, GL_READ_WRITE);
 					terrain_edit_buffer_.bind_base(terrain_edits_binding);
@@ -223,6 +262,7 @@ namespace game::terrain
 					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
 					shader.set_uniform("uChunkSize", settings_.chunk_size);
 					shader.set_uniform("uWorldCenter", settings_.world_center);
+					shader.set_uniform("uFieldOrigin", sample_origin);
 					shader.set_uniform("uCellSize", terrain_cell_size);
 				},
 				.barrier_after = GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT
@@ -270,15 +310,17 @@ namespace game::terrain
 	{
 		reset_surface_buffers();
 
-		const auto groups = gfx::ComputeDispatcher::groups_for(settings_.field_size, 16, 16);
+		const auto groups = gfx::ComputeDispatcher::groups_for(padded_field_size(settings_), 16, 16);
 		const auto terrain_cell_size = cell_size(settings_);
+		const auto sample_origin = field_origin(settings_);
+		const auto padding = field_padding(settings_);
 
 		const std::array rebuild_passes
 		{
 			gfx::ComputeDispatcher::Pass{
 				.shader = &edge_shader_,
 				.groups = groups,
-				.configure = [this, terrain_cell_size](const gfx::Shader& shader)
+				.configure = [this, terrain_cell_size, sample_origin](const gfx::Shader& shader)
 				{
 					field_texture_.bind_image(image_binding, GL_READ_ONLY);
 					boundary_vertices_buffer_.bind_base(boundary_vertices_binding);
@@ -290,6 +332,7 @@ namespace game::terrain
 					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
 					shader.set_uniform("uChunkSize", settings_.chunk_size);
 					shader.set_uniform("uWorldCenter", settings_.world_center);
+					shader.set_uniform("uFieldOrigin", sample_origin);
 					shader.set_uniform("uCellSize", terrain_cell_size);
 				},
 				.barrier_after = GL_SHADER_STORAGE_BARRIER_BIT
@@ -297,7 +340,7 @@ namespace game::terrain
 			gfx::ComputeDispatcher::Pass{
 				.shader = &mesh_shader_,
 				.groups = groups,
-				.configure = [this, terrain_cell_size](const gfx::Shader& shader)
+				.configure = [this, terrain_cell_size, sample_origin, padding](const gfx::Shader& shader)
 				{
 					field_texture_.bind_image(image_binding, GL_READ_ONLY);
 					boundary_vertices_buffer_.bind_base(boundary_vertices_binding);
@@ -312,6 +355,12 @@ namespace game::terrain
 					shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
 					shader.set_uniform("uChunkSize", settings_.chunk_size);
 					shader.set_uniform("uWorldCenter", settings_.world_center);
+					shader.set_uniform("uFieldOrigin", sample_origin);
+					shader.set_uniform("uFieldPadding", padding);
+					shader.set_uniform("uFieldSize", ivec2{
+						static_cast<std::int32_t>(settings_.field_size.x),
+						static_cast<std::int32_t>(settings_.field_size.y)
+					});
 					shader.set_uniform("uCellSize", terrain_cell_size);
 				},
 				.barrier_after = GL_SHADER_STORAGE_BARRIER_BIT | GL_BUFFER_UPDATE_BARRIER_BIT

@@ -22,18 +22,17 @@ uniform ivec2 uChunkCoord;
 uniform ivec2 uChunkGridSize;
 uniform vec2  uChunkSize;
 uniform vec2  uWorldCenter;
+uniform vec2  uFieldOrigin;
 uniform vec2  uCellSize;
 
 vec2 chunk_origin()
 {
-    return uWorldCenter +
-        (vec2(float(uChunkCoord.x), float(uChunkCoord.y)) - 0.5 * vec2(float(uChunkGridSize.x), float(uChunkGridSize.y))) *
-        uChunkSize;
+    return uWorldCenter + (uChunkCoord - 0.5 * uChunkGridSize) * uChunkSize;
 }
 
 vec2 grid_to_world(vec2 g)
 {
-    return chunk_origin() + g * uCellSize;
+	return uFieldOrigin + g * uCellSize;
 }
 
 void main()

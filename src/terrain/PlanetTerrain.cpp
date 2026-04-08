@@ -3,16 +3,33 @@
 
 namespace game::terrain
 {
-	namespace
-	{
-		vec2 scale_vec2(const vec2& value, const float scalar)
+		namespace
 		{
-			return { value.x * scalar, value.y * scalar };
+			vec2 scale_vec2(const vec2& value, const float scalar)
+			{
+				return { value.x * scalar, value.y * scalar };
+			}
+
+			vec2 normalize_vec2(const vec2& value, const vec2 fallback = { 0.0f, 1.0f })
+			{
+				const float length_sq = value.x * value.x + value.y * value.y;
+				if (length_sq <= 1e-8f) return fallback;
+
+				const float inverse_length = 1.0f / std::sqrt(length_sq);
+				return { value.x * inverse_length, value.y * inverse_length };
+			}
+
+			vec2 add_vec2(const vec2& a, const vec2& b)
+			{
+				return { a.x + b.x, a.y + b.y };
 		}
 
-		vec2 add_vec2(const vec2& a, const vec2& b)
+		vec2 cell_size(const ChunkSettings& settings)
 		{
-			return { a.x + b.x, a.y + b.y };
+			return {
+				settings.chunk_size.x / static_cast<float>(std::max(settings.field_size.x - 1u, 1u)),
+				settings.chunk_size.y / static_cast<float>(std::max(settings.field_size.y - 1u, 1u))
+			};
 		}
 
 		vec2 subtract_vec2(const vec2& a, const vec2& b)
@@ -113,6 +130,11 @@ namespace game::terrain
 		if (!pending_edits_.empty())
 		{
 			const auto total_chunk_count = chunk_count();
+			const auto terrain_cell_size = cell_size(base_chunk_settings_);
+			const vec2 padding_extent{
+				terrain_cell_size.x * static_cast<float>(base_chunk_settings_.field_padding.x),
+				terrain_cell_size.y * static_cast<float>(base_chunk_settings_.field_padding.y)
+			};
 			std::vector<std::vector<TerrainEdit>> edits_per_chunk(chunks_.size());
 
 			for (const auto& edit : pending_edits_)
@@ -126,8 +148,14 @@ namespace game::terrain
 				if (radius <= 0.0f) continue;
 				if (!circle_overlaps_rect(center, radius, grid_min_, grid_max_)) continue;
 
-				const vec2 min_bounds{ center.x - radius, center.y - radius };
-				const vec2 max_bounds{ center.x + radius, center.y + radius };
+				const vec2 min_bounds{
+					center.x - radius - padding_extent.x,
+					center.y - radius - padding_extent.y
+				};
+				const vec2 max_bounds{
+					center.x + radius + padding_extent.x,
+					center.y + radius + padding_extent.y
+				};
 				const auto min_chunk = chunk_index_from_world(min_bounds);
 				const auto max_chunk = chunk_index_from_world(max_bounds);
 
@@ -136,7 +164,7 @@ namespace game::terrain
 					for (int x = min_chunk.x; x <= max_chunk.x; ++x)
 					{
 						auto& chunk = chunks_[flat_index({ x, y }, total_chunk_count)];
-						if (!circle_overlaps_rect(center, radius, chunk.chunk_min(), chunk.chunk_max())) continue;
+						if (!circle_overlaps_rect(center, radius, chunk.display_min(), chunk.display_max())) continue;
 						edits_per_chunk[flat_index({ x, y }, total_chunk_count)].push_back(edit);
 					}
 				}
@@ -196,6 +224,7 @@ namespace game::terrain
 	vec2 PlanetTerrain::display_min() const { return display_min_; }
 	vec2 PlanetTerrain::display_max() const { return display_max_; }
 	vec2 PlanetTerrain::chunk_size() const { return base_chunk_settings_.chunk_size; }
+	vec2 PlanetTerrain::planet_center() const { return base_chunk_settings_.world_center; }
 
 	vec2 PlanetTerrain::spawn_point_from_top_center(const float height_offset) const
 	{
@@ -217,9 +246,14 @@ namespace game::terrain
 
 		if (ray_result.hit)
 		{
-			return {
+			const vec2 hit_point{
 				ray_result.point.x,
-				ray_result.point.y + height_offset
+				ray_result.point.y
+			};
+			const vec2 radial_up = normalize_vec2(subtract_vec2(hit_point, terrain_world_center));
+			return {
+				hit_point.x + radial_up.x * height_offset,
+				hit_point.y + radial_up.y * height_offset
 			};
 		}
 

@@ -28,6 +28,7 @@ namespace game::terrain
 		[[nodiscard]] vec2 display_min() const;
 		[[nodiscard]] vec2 display_max() const;
 		[[nodiscard]] vec2 chunk_size() const;
+		[[nodiscard]] vec2 planet_center() const;
 		[[nodiscard]] vec2 spawn_point_from_top_center(float height_offset) const;
 
 	private:

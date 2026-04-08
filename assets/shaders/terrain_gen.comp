@@ -8,6 +8,8 @@ uniform ivec2 uChunkCoord;
 uniform ivec2 uChunkGridSize;
 uniform vec2  uChunkSize;
 uniform vec2  uWorldCenter;
+uniform vec2  uFieldOrigin;
+uniform vec2  uCellSize;
 uniform uint  uSeed;
 uniform float uPlanetRadius;
 
@@ -75,7 +77,7 @@ float ridged_fbm(vec2 p)
 
 float surface_radius(vec2 direction)
 {
-	vec2 seed_offset = vec2(float(uSeed) * 0.0137, float(uSeed) * 0.0211);
+	vec2 seed_offset = vec2(0.0137, 0.0211) * uSeed;
 	float macro = fbm(direction * 1.85 + seed_offset + vec2(3.1, -7.4));
 	float medium = fbm(direction * 6.20 - seed_offset.yx + vec2(-11.2, 4.6));
 	float ridges = ridged_fbm(direction * 11.50 + seed_offset * 1.3 + vec2(8.4, -5.6));
@@ -93,11 +95,9 @@ void main()
 	ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
 	ivec2 size  = imageSize(outImage);
 
-	if (pixel.x >= size.x || pixel.y >= size.y)
-		return;
+	if (pixel.x >= size.x || pixel.y >= size.y) return;
 
-	vec2 uv = (vec2(pixel) + 0.5) / vec2(size);
-	vec2 world = chunk_origin() + uv * uChunkSize;
+	vec2 world = uFieldOrigin + vec2(pixel) * uCellSize;
 	vec2 offset = world - uWorldCenter;
 	float distance_from_center = length(offset);
 	vec2 direction = distance_from_center > 1e-5 ? offset / distance_from_center : vec2(0.0, 1.0);
@@ -106,9 +106,9 @@ void main()
 	float density = target_radius - distance_from_center;
 
 	float shell_mask = smoothstep(7.5, 0.0, abs(density));
-	float ridge_detail = ridged_fbm(world * 0.055 + vec2(float(uSeed) * 0.019, float(uSeed) * 0.023));
-	float medium_detail = fbm(world * 0.12 - vec2(float(uSeed) * 0.013, float(uSeed) * 0.017));
-	float micro_detail = fbm(world * 0.28 + vec2(float(uSeed) * 0.031, float(uSeed) * 0.029));
+	float ridge_detail = ridged_fbm(world * 0.055 + vec2(0.019, 0.023) * uSeed);
+	float medium_detail = fbm(world * 0.12 - vec2(0.013, 0.017) * uSeed);
+	float micro_detail = fbm(world * 0.28 + vec2(0.031, 0.029) * uSeed);
 
 	density += (ridge_detail - 0.42) * 4.75 * shell_mask;
 	density += (medium_detail - 0.5) * 1.85 * shell_mask;

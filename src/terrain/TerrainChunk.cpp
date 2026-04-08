@@ -61,9 +61,13 @@ namespace game::terrain
 			chunk_min_.y + settings_.chunk_size.y
 		};
 
-		const auto half_cell = scale_vec2(cell_size(settings_), 0.5f);
-		display_min_ = { chunk_min_.x - half_cell.x, chunk_min_.y - half_cell.y };
-		display_max_ = { chunk_max_.x + half_cell.x, chunk_max_.y + half_cell.y };
+		const auto terrain_cell_size = cell_size(settings_);
+		const vec2 padding_extent{
+			terrain_cell_size.x * static_cast<float>(settings_.field_padding.x),
+			terrain_cell_size.y * static_cast<float>(settings_.field_padding.y)
+		};
+		display_min_ = { chunk_min_.x - padding_extent.x, chunk_min_.y - padding_extent.y };
+		display_max_ = { chunk_max_.x + padding_extent.x, chunk_max_.y + padding_extent.y };
 
 		build_chunk_border();
 	}

@@ -58,6 +58,50 @@ namespace game::terrain
 				settings.chunk_size.y / static_cast<float>(std::max(settings.field_size.y - 1u, 1u))
 			};
 		}
+
+		vec2 chunk_min(const ChunkSettings& settings)
+		{
+			return {
+				settings.world_center.x +
+					(static_cast<float>(settings.chunk_coord.x) - 0.5f * static_cast<float>(settings.chunk_grid_size.x)) * settings.chunk_size.x,
+				settings.world_center.y +
+					(static_cast<float>(settings.chunk_coord.y) - 0.5f * static_cast<float>(settings.chunk_grid_size.y)) * settings.chunk_size.y
+			};
+		}
+
+		vec2 chunk_max(const ChunkSettings& settings)
+		{
+			const auto min = chunk_min(settings);
+			return { min.x + settings.chunk_size.x, min.y + settings.chunk_size.y };
+		}
+
+		bool touches_chunk_boundary(const std::span<const vec2> points, const ChunkSettings& settings, const float epsilon)
+		{
+			const auto terrain_cell_size = cell_size(settings);
+			const auto min = chunk_min(settings);
+			const auto max = chunk_max(settings);
+			const vec2 padded_min{
+				min.x - terrain_cell_size.x * static_cast<float>(settings.field_padding.x),
+				min.y - terrain_cell_size.y * static_cast<float>(settings.field_padding.y)
+			};
+			const vec2 padded_max{
+				max.x + terrain_cell_size.x * static_cast<float>(settings.field_padding.x),
+				max.y + terrain_cell_size.y * static_cast<float>(settings.field_padding.y)
+			};
+
+			for (const auto& point : points)
+			{
+				if (std::abs(point.x - min.x) <= epsilon || std::abs(point.x - max.x) <= epsilon ||
+					std::abs(point.y - min.y) <= epsilon || std::abs(point.y - max.y) <= epsilon ||
+					std::abs(point.x - padded_min.x) <= epsilon || std::abs(point.x - padded_max.x) <= epsilon ||
+					std::abs(point.y - padded_min.y) <= epsilon || std::abs(point.y - padded_max.y) <= epsilon)
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
 	}
 
 	TerrainContour::ExtractedContours TerrainContour::extract_contours(const std::vector<vec2>& boundary_vertices, const std::vector<TerrainGenerator::BoundaryEdge>& edges)
@@ -260,6 +304,7 @@ namespace game::terrain
 		const float collinear_epsilon = std::min(terrain_cell_size.x, terrain_cell_size.y) * 0.05f;
 		const float min_loop_area = terrain_cell_size.x * terrain_cell_size.y * 0.12f;
 		const float min_path_length = std::min(terrain_cell_size.x, terrain_cell_size.y) * 1.5f;
+		const float boundary_epsilon = std::max(terrain_cell_size.x, terrain_cell_size.y) * 0.1f;
 		float primary_score = 0.0f;
 
 		for (const auto& loop : result.loops)
@@ -292,7 +337,7 @@ namespace game::terrain
 			if (simplified.size() < 2) continue;
 
 			const auto length = polyline_length(simplified);
-			if (length < min_path_length) continue;
+			if (length < min_path_length && !touches_chunk_boundary(simplified, settings, boundary_epsilon)) continue;
 
 			const auto path_score = length * std::max(terrain_cell_size.x, terrain_cell_size.y);
 			result.collider_paths.push_back(simplified);
