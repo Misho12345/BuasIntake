@@ -43,12 +43,75 @@ namespace game::terrain
 				settings.chunk_size.y / static_cast<float>(std::max(settings.field_size.y - 1u, 1u))
 			};
 		}
+
+		uvec2 padded_field_size(const ChunkSettings& settings)
+		{
+			return {
+				settings.field_size.x + settings.field_padding.x * 2u,
+				settings.field_size.y + settings.field_padding.y * 2u
+			};
+		}
+
+		vec2 field_origin(const ChunkSettings& settings)
+		{
+			const auto terrain_cell_size = cell_size(settings);
+			const auto min = compute_chunk_min(settings);
+			return {
+				min.x - terrain_cell_size.x * static_cast<float>(settings.field_padding.x),
+				min.y - terrain_cell_size.y * static_cast<float>(settings.field_padding.y)
+			};
+		}
+
+		float bilerp(const float a, const float b, const float c, const float d, const float tx, const float ty)
+		{
+			const float ab = std::lerp(a, b, tx);
+			const float cd = std::lerp(c, d, tx);
+			return std::lerp(ab, cd, ty);
+		}
+
+		float sample_wetness(const std::span<const TerrainChunk::FieldSample> field_samples,
+			const ChunkSettings& settings, const vec2 world_position)
+		{
+			if (field_samples.empty()) return 0.0f;
+
+			const auto size = padded_field_size(settings);
+			const auto terrain_cell_size = cell_size(settings);
+			const auto origin = field_origin(settings);
+
+			const float gx = (world_position.x - origin.x) / terrain_cell_size.x;
+			const float gy = (world_position.y - origin.y) / terrain_cell_size.y;
+
+			const float clamped_x = std::clamp(gx, 0.0f, static_cast<float>(size.x - 1u));
+			const float clamped_y = std::clamp(gy, 0.0f, static_cast<float>(size.y - 1u));
+
+			const auto x0 = static_cast<std::uint32_t>(std::floor(clamped_x));
+			const auto y0 = static_cast<std::uint32_t>(std::floor(clamped_y));
+			const auto x1 = std::min(x0 + 1u, size.x - 1u);
+			const auto y1 = std::min(y0 + 1u, size.y - 1u);
+
+			const float tx = clamped_x - static_cast<float>(x0);
+			const float ty = clamped_y - static_cast<float>(y0);
+
+			auto wetness_at = [&](const std::uint32_t x, const std::uint32_t y)
+			{
+				return field_samples[static_cast<std::size_t>(y) * size.x + x].wetness;
+			};
+
+			return bilerp(
+				wetness_at(x0, y0),
+				wetness_at(x1, y0),
+				wetness_at(x0, y1),
+				wetness_at(x1, y1),
+				tx,
+				ty);
+		}
 	}
 
 	TerrainChunk::TerrainChunk(const b2WorldId world_id, const ChunkSettings& settings) :
 		settings_{ settings },
 		generator_{ settings_ },
-		collider_{ world_id }
+		collider_{ world_id, ColliderKind::Terrain, false },
+		water_collider_{ world_id, ColliderKind::Water, true }
 	{
 		chunk_min_ = compute_chunk_min(settings_);
 		chunk_max_ = {
@@ -104,7 +167,8 @@ namespace game::terrain
 		if (generation_finalized_) return;
 		if (!generation_dispatched_) dispatch_generation();
 
-		build_chunk(generate_chunk(), {});
+		const auto field_samples = generator_.read_field();
+		build_chunk(generate_chunk(), {}, field_samples);
 		generation_dispatched_ = false;
 		generation_finalized_ = true;
 	}
@@ -118,7 +182,7 @@ namespace game::terrain
 		generator_.dispatch_surface_rebuild(TerrainGenerator::water_channel_index, 0.0f);
 		const auto water_result = TerrainContour::score_and_filter(generator_.readback(), settings_);
 
-		build_chunk(terrain_result, water_result);
+		build_chunk(terrain_result, water_result, field_samples);
 	}
 
 	std::vector<TerrainChunk::FieldSample> TerrainChunk::readback_field() const
@@ -139,6 +203,7 @@ namespace game::terrain
 	{
 		collision_enabled_ = enabled;
 		collider_.set_enabled(enabled);
+		water_collider_.set_enabled(enabled);
 	}
 
 	TerrainContour::ScoredResult TerrainChunk::generate_chunk()
@@ -155,13 +220,16 @@ namespace game::terrain
 		chunk_border_.setOutlineThickness(0.07f);
 	}
 
-	void TerrainChunk::build_chunk(const TerrainContour::ScoredResult& terrain_result, const TerrainContour::ScoredResult& water_result)
+	void TerrainChunk::build_chunk(const TerrainContour::ScoredResult& terrain_result,
+		const TerrainContour::ScoredResult& water_result, const std::span<const FieldSample> field_samples)
 	{
-		build_terrain_mesh(terrain_result.mesh_vertices, terrain_result.mesh_indices);
+		build_terrain_mesh(terrain_result.mesh_vertices, terrain_result.mesh_indices, field_samples);
 		build_water_mesh(water_result.mesh_vertices, water_result.mesh_indices);
 		build_debug_lines(terrain_result.loops, terrain_result.open_paths, terrain_result.collider_loops, terrain_result.collider_paths);
 		collider_.build(terrain_result.collider_loops, terrain_result.collider_paths);
 		collider_.set_enabled(collision_enabled_);
+		water_collider_.build(water_result.collider_loops, water_result.collider_paths);
+		water_collider_.set_enabled(collision_enabled_);
 
 		if (!terrain_result.primary_contour.empty())
 		{
@@ -176,7 +244,8 @@ namespace game::terrain
 		}
 	}
 
-	void TerrainChunk::build_terrain_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices)
+	void TerrainChunk::build_terrain_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices,
+		const std::span<const FieldSample> field_samples)
 	{
 		std::vector<sf::Vertex> mesh_vertices;
 		mesh_vertices.reserve(vertices.size());
@@ -191,12 +260,14 @@ namespace game::terrain
 			};
 			const auto distance_from_center = std::sqrt(offset.x * offset.x + offset.y * offset.y);
 			const auto gradient = clamp01(distance_from_center / radius);
+			const auto wetness = std::clamp(sample_wetness(field_samples, settings_, point), 0.0f, 1.0f);
 			auto color = lerp_color(0x3F2C1C_rgb, 0xD6B27B_rgb, gradient);
 			color.a = 210;
 
 			sf::Vertex vertex{};
 			vertex.position = { point.x, point.y };
 			vertex.color = color;
+			vertex.texCoords = { wetness, gradient };
 			mesh_vertices.push_back(vertex);
 		}
 
@@ -213,37 +284,15 @@ namespace game::terrain
 			return;
 		}
 
-		float min_radius = std::numeric_limits<float>::infinity();
-		float max_radius = 0.0f;
-		for (const auto& point : vertices)
-		{
-			const vec2 offset{
-				point.x - settings_.world_center.x,
-				point.y - settings_.world_center.y
-			};
-			const float radius = std::sqrt(offset.x * offset.x + offset.y * offset.y);
-			min_radius = std::min(min_radius, radius);
-			max_radius = std::max(max_radius, radius);
-		}
-
-		const float radius_span = std::max(max_radius - min_radius, 1e-4f);
-
 		std::vector<sf::Vertex> mesh_vertices;
 		mesh_vertices.reserve(vertices.size());
 
 		for (const auto& point : vertices)
 		{
-			const vec2 offset{
-				point.x - settings_.world_center.x,
-				point.y - settings_.world_center.y
-			};
-			const float radius = std::sqrt(offset.x * offset.x + offset.y * offset.y);
-			const float depth = std::clamp((max_radius - radius) / radius_span, 0.0f, 1.0f);
-
 			sf::Vertex vertex{};
 			vertex.position = { point.x, point.y };
 			vertex.color = { 232, 248, 255, 196 };
-			vertex.texCoords = { depth, depth };
+			vertex.texCoords = { 0.0f, 0.0f };
 			mesh_vertices.push_back(vertex);
 		}
 

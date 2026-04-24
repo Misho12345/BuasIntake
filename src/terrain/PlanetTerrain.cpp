@@ -35,6 +35,20 @@ namespace game::terrain
 			return -std::abs(sample.terrain);
 		}
 
+		float wetness_strength(const float distance, const float max_distance)
+		{
+			if (max_distance <= 1e-6f || distance >= max_distance) return 0.0f;
+
+			const float saturated_band = max_distance * 0.25f;
+			if (distance <= saturated_band) return 1.0f;
+
+			const float normalized = std::clamp(
+				1.0f - (distance - saturated_band) / std::max(max_distance - saturated_band, 1e-6f),
+				0.0f,
+				1.0f);
+			return normalized * normalized * (3.0f - 2.0f * normalized);
+		}
+
 		std::uint8_t normalized_channel(const float value, const float min_value, const float max_value)
 		{
 			if (std::abs(max_value - min_value) <= 1e-6f) return 127u;
@@ -61,6 +75,27 @@ namespace game::terrain
 			{
 				if (std::abs(lhs.radial - rhs.radial) > 1e-5f) return lhs.radial > rhs.radial;
 				return lhs.click_distance_sq > rhs.click_distance_sq;
+			}
+		};
+
+		struct TerrainEditCandidate final
+		{
+			ivec2 coord{ 0, 0 };
+			float falloff{ 0.0f };
+			float distance_to_center{ 0.0f };
+		};
+
+		struct WetnessNode final
+		{
+			ivec2 coord{ 0, 0 };
+			float distance{ 0.0f };
+		};
+
+		struct WetnessNodeCompare final
+		{
+			bool operator()(const WetnessNode& lhs, const WetnessNode& rhs) const
+			{
+				return lhs.distance > rhs.distance;
 			}
 		};
 	}
@@ -104,6 +139,8 @@ namespace game::terrain
 				display_max_.y = std::max(display_max_.y, chunk.display_max().y);
 			}
 		}
+
+		base_chunk_settings_.planet_radius = planet_radius;
 
 		if (chunks_.empty())
 		{
@@ -183,40 +220,245 @@ namespace game::terrain
 		if (pending_edits_.empty() || global_field_.empty()) return;
 
 		std::vector<bool> dirty_chunks(chunks_.size(), false);
+		std::vector<ivec2> changed_coords;
 		bool any_changes = false;
 		for (const auto& edit : pending_edits_)
 		{
-			any_changes = apply_terrain_edit_to_global_field(edit, dirty_chunks) || any_changes;
+			any_changes = apply_terrain_edit_to_global_field(edit, dirty_chunks, changed_coords).changed || any_changes;
 		}
 
 		pending_edits_.clear();
-		if (any_changes) rebuild_dirty_chunks(dirty_chunks);
+		if (any_changes)
+		{
+			recompute_wetness_around(changed_coords, dirty_chunks);
+			rebuild_dirty_chunks(dirty_chunks);
+		}
 	}
 
-	bool PlanetTerrain::place_water(const vec2 world_position, const std::uint32_t volume_cap)
+	std::uint32_t PlanetTerrain::apply_ground_brush(const TerrainEdit& edit, const std::uint32_t unit_budget)
 	{
-		if (global_field_.empty() || volume_cap == 0u) return false;
+		if (global_field_.empty() || unit_budget == 0u) return 0u;
+
+		std::vector<bool> dirty_chunks(chunks_.size(), false);
+		std::vector<ivec2> changed_coords;
+		const auto result = apply_terrain_edit_to_global_field(edit, dirty_chunks, changed_coords, unit_budget);
+		if (result.changed)
+		{
+			recompute_wetness_around(changed_coords, dirty_chunks);
+			rebuild_dirty_chunks(dirty_chunks);
+		}
+
+		return result.units;
+	}
+
+	std::uint32_t PlanetTerrain::place_water(const vec2 world_position, const std::uint32_t volume_cap)
+	{
+		if (global_field_.empty() || volume_cap == 0u) return 0u;
 
 		const auto anchor = find_water_anchor(world_position);
-		if (!anchor.has_value()) return false;
+		if (!anchor.has_value()) return 0u;
+
+		ivec2 plan_start = *anchor;
+		const auto existing_volume = water_volume_at_anchor(*anchor, &plan_start);
+		const auto desired_total = std::min<std::uint64_t>(
+			static_cast<std::uint64_t>(existing_volume) + static_cast<std::uint64_t>(volume_cap),
+			std::numeric_limits<std::uint32_t>::max());
+		const auto plan = build_water_plan(plan_start, static_cast<std::uint32_t>(desired_total));
+		if (!plan.has_value()) return 0u;
 
 		std::vector<bool> dirty_chunks(chunks_.size(), false);
-		const bool changed = fill_water_basin(*anchor, volume_cap, dirty_chunks);
-		if (changed) rebuild_dirty_chunks(dirty_chunks);
-		return changed;
+		std::vector<ivec2> changed_coords;
+		const bool changed = apply_water_plan(*plan, dirty_chunks, changed_coords);
+		if (changed)
+		{
+			recompute_wetness_around(changed_coords, dirty_chunks);
+			rebuild_dirty_chunks(dirty_chunks);
+		}
+
+		return plan->wet_sample_count > existing_volume ? plan->wet_sample_count - existing_volume : 0u;
 	}
 
-	bool PlanetTerrain::pickup_water(const vec2 world_position, const std::uint32_t volume_cap)
+	std::uint32_t PlanetTerrain::pickup_water(const vec2 world_position, const std::uint32_t volume_cap)
 	{
-		if (global_field_.empty() || volume_cap == 0u) return false;
+		if (global_field_.empty() || volume_cap == 0u) return 0u;
 
 		const auto anchor = find_water_sample(world_position);
-		if (!anchor.has_value()) return false;
+		if (!anchor.has_value()) return 0u;
+
+		ivec2 plan_start = *anchor;
+		const auto existing_volume = water_volume_at_anchor(*anchor, &plan_start);
+		if (existing_volume == 0u) return 0u;
+
+		const auto desired_total = existing_volume > volume_cap ? existing_volume - volume_cap : 0u;
+		const auto plan = build_water_plan(plan_start, desired_total);
+		if (!plan.has_value()) return 0u;
 
 		std::vector<bool> dirty_chunks(chunks_.size(), false);
-		const bool changed = remove_water_volume(*anchor, volume_cap, dirty_chunks);
-		if (changed) rebuild_dirty_chunks(dirty_chunks);
-		return changed;
+		std::vector<ivec2> changed_coords;
+		const bool changed = apply_water_plan(*plan, dirty_chunks, changed_coords);
+		if (changed)
+		{
+			recompute_wetness_around(changed_coords, dirty_chunks);
+			rebuild_dirty_chunks(dirty_chunks);
+		}
+
+		return existing_volume > plan->wet_sample_count ? existing_volume - plan->wet_sample_count : 0u;
+	}
+
+	std::optional<PlanetTerrain::WaterPreviewMesh> PlanetTerrain::build_water_preview_mesh(const vec2 world_position,
+		const std::uint32_t volume_cap) const
+	{
+		if (global_field_.empty() || volume_cap == 0u) return std::nullopt;
+
+		const auto anchor = find_water_anchor(world_position);
+		if (!anchor.has_value()) return std::nullopt;
+
+		ivec2 plan_start = *anchor;
+		const auto existing_volume = water_volume_at_anchor(*anchor, &plan_start);
+		const auto desired_total = std::min<std::uint64_t>(
+			static_cast<std::uint64_t>(existing_volume) + static_cast<std::uint64_t>(volume_cap),
+			std::numeric_limits<std::uint32_t>::max());
+		const auto plan = build_water_plan(plan_start, static_cast<std::uint32_t>(desired_total));
+		if (!plan.has_value()) return std::nullopt;
+
+		std::vector<ivec2> relevant_coords = plan->dried_component;
+		relevant_coords.reserve(relevant_coords.size() + plan->affected_samples.size());
+		for (const auto& sample : plan->affected_samples)
+		{
+			if (sample.water > 1e-4f) relevant_coords.push_back(sample.coord);
+		}
+
+		if (relevant_coords.empty()) return std::nullopt;
+
+		ivec2 min_coord = relevant_coords.front();
+		ivec2 max_coord = relevant_coords.front();
+		for (const auto coord : relevant_coords)
+		{
+			min_coord.x = std::min(min_coord.x, coord.x);
+			min_coord.y = std::min(min_coord.y, coord.y);
+			max_coord.x = std::max(max_coord.x, coord.x);
+			max_coord.y = std::max(max_coord.y, coord.y);
+		}
+
+		min_coord.x = std::max(min_coord.x - 1, 0);
+		min_coord.y = std::max(min_coord.y - 1, 0);
+		max_coord.x = std::min(max_coord.x + 1, static_cast<int>(global_field_size_.x) - 1);
+		max_coord.y = std::min(max_coord.y + 1, static_cast<int>(global_field_size_.y) - 1);
+
+		if (max_coord.x == min_coord.x)
+		{
+			if (max_coord.x + 1 < static_cast<int>(global_field_size_.x)) ++max_coord.x;
+			else if (min_coord.x > 0) --min_coord.x;
+		}
+
+		if (max_coord.y == min_coord.y)
+		{
+			if (max_coord.y + 1 < static_cast<int>(global_field_size_.y)) ++max_coord.y;
+			else if (min_coord.y > 0) --min_coord.y;
+		}
+
+		const auto width = static_cast<std::uint32_t>(max_coord.x - min_coord.x + 1);
+		const auto height = static_cast<std::uint32_t>(max_coord.y - min_coord.y + 1);
+		if (width < 2u || height < 2u) return std::nullopt;
+
+		const auto patch_origin = global_sample_world_position(min_coord);
+		const vec2 patch_size{
+			terrain_cell_size_.x * static_cast<float>(width - 1u),
+			terrain_cell_size_.y * static_cast<float>(height - 1u)
+		};
+
+		ChunkSettings preview_settings{};
+		preview_settings.field_size = { width, height };
+		preview_settings.field_padding = { 0u, 0u };
+		preview_settings.chunk_coord = { 0, 0 };
+		preview_settings.chunk_grid_size = { 1, 1 };
+		preview_settings.chunk_size = patch_size;
+		preview_settings.world_center = {
+			patch_origin.x + patch_size.x * 0.5f,
+			patch_origin.y + patch_size.y * 0.5f
+		};
+		preview_settings.seed = base_chunk_settings_.seed;
+		preview_settings.planet_radius = base_chunk_settings_.planet_radius;
+
+		auto current_patch = std::vector<FieldSample>(static_cast<std::size_t>(width) * static_cast<std::size_t>(height));
+		auto future_patch = current_patch;
+
+		auto local_index = [width](const int x, const int y)
+		{
+			return static_cast<std::size_t>(y) * static_cast<std::size_t>(width) + static_cast<std::size_t>(x);
+		};
+
+		for (int y = min_coord.y; y <= max_coord.y; ++y)
+		{
+			for (int x = min_coord.x; x <= max_coord.x; ++x)
+			{
+				const auto local_x = x - min_coord.x;
+				const auto local_y = y - min_coord.y;
+				const auto& sample = global_field_[global_field_index({ x, y })];
+				current_patch[local_index(local_x, local_y)] = sample;
+				future_patch[local_index(local_x, local_y)] = sample;
+			}
+		}
+
+		for (const auto& coord : plan->dried_component)
+		{
+			if (coord.x < min_coord.x || coord.x > max_coord.x || coord.y < min_coord.y || coord.y > max_coord.y) continue;
+			auto& sample = future_patch[local_index(coord.x - min_coord.x, coord.y - min_coord.y)];
+			sample.water = dry_water_density(sample);
+		}
+
+		for (const auto& sample : plan->affected_samples)
+		{
+			if (sample.coord.x < min_coord.x || sample.coord.x > max_coord.x || sample.coord.y < min_coord.y || sample.coord.y > max_coord.y) continue;
+			future_patch[local_index(sample.coord.x - min_coord.x, sample.coord.y - min_coord.y)].water = sample.water;
+		}
+
+		TerrainGenerator current_generator{ preview_settings };
+		current_generator.upload_field(current_patch);
+		current_generator.dispatch_surface_rebuild(TerrainGenerator::water_channel_index, 0.0f);
+		const auto current_mesh = current_generator.readback();
+
+		TerrainGenerator future_generator{ preview_settings };
+		future_generator.upload_field(future_patch);
+		future_generator.dispatch_surface_rebuild(TerrainGenerator::water_channel_index, 0.0f);
+		const auto future_mesh = future_generator.readback();
+
+		return WaterPreviewMesh{
+			.current_vertices = current_mesh.mesh_vertices,
+			.current_indices = current_mesh.mesh_indices,
+			.future_vertices = future_mesh.mesh_vertices,
+			.future_indices = future_mesh.mesh_indices
+		};
+	}
+
+	std::vector<PlanetTerrain::WaterPreviewSample> PlanetTerrain::preview_water_placement(const vec2 world_position,
+		const std::uint32_t volume_cap) const
+	{
+		if (global_field_.empty() || volume_cap == 0u) return {};
+
+		const auto anchor = find_water_anchor(world_position);
+		if (!anchor.has_value()) return {};
+
+		ivec2 plan_start = *anchor;
+		const auto existing_volume = water_volume_at_anchor(*anchor, &plan_start);
+		const auto desired_total = std::min<std::uint64_t>(
+			static_cast<std::uint64_t>(existing_volume) + static_cast<std::uint64_t>(volume_cap),
+			std::numeric_limits<std::uint32_t>::max());
+		const auto plan = build_water_plan(plan_start, static_cast<std::uint32_t>(desired_total));
+		if (!plan.has_value()) return {};
+
+		std::vector<WaterPreviewSample> preview;
+		preview.reserve(plan->affected_samples.size());
+		for (const auto& sample : plan->affected_samples)
+		{
+			if (sample.water <= 1e-4f) continue;
+			preview.push_back({
+				.world_position = global_sample_world_position(sample.coord),
+				.fill = sample.water
+			});
+		}
+
+		return preview;
 	}
 
 	std::optional<fs::path> PlanetTerrain::save_chunk_field_image(const vec2 world_position) const
@@ -252,8 +494,8 @@ namespace game::terrain
 					{
 						normalized_channel(sample.terrain, terrain_min, terrain_max),
 						normalized_channel(sample.water, water_min, water_max),
-						static_cast<std::uint8_t>(sample.terrain >= 0.0f ? 255u : 0u),
-						static_cast<std::uint8_t>(sample.water > 0.0f ? 255u : 0u)
+						normalized_channel(sample.wetness, 0.0f, 1.0f),
+						static_cast<std::uint8_t>(sample.water > 0.0f || sample.terrain >= 0.0f ? 255u : 0u)
 					});
 			}
 		}
@@ -320,6 +562,8 @@ namespace game::terrain
 		for (auto& sample : global_field_)
 		{
 			sample.water = dry_water_density(sample);
+			sample.wetness = 0.0f;
+			sample.padding = 0.0f;
 		}
 	}
 
@@ -341,6 +585,13 @@ namespace game::terrain
 			global_field_origin_.x + static_cast<float>(coord.x) * terrain_cell_size_.x,
 			global_field_origin_.y + static_cast<float>(coord.y) * terrain_cell_size_.y
 		};
+	}
+
+	float PlanetTerrain::normalized_depth(const vec2 world_position) const
+	{
+		const float surface_radius = std::max(base_chunk_settings_.planet_radius, 1e-4f);
+		const float radius = radial_distance(world_position, base_chunk_settings_.world_center);
+		return std::clamp(1.0f - radius / surface_radius, 0.0f, 1.0f);
 	}
 
 	ivec2 PlanetTerrain::world_to_global_sample(const vec2 world_position) const
@@ -443,11 +694,41 @@ namespace game::terrain
 		return false;
 	}
 
+	bool PlanetTerrain::has_protective_water_neighbor(const ivec2 coord) const
+	{
+		if (!is_valid_global_sample(coord)) return false;
+
+		const float sample_radial = radial_distance(global_sample_world_position(coord), base_chunk_settings_.world_center);
+		const float radial_tolerance = std::min(terrain_cell_size_.x, terrain_cell_size_.y) * 0.45f;
+		static constexpr int search_radius = 2;
+
+		for (int y = -search_radius; y <= search_radius; ++y)
+		{
+			for (int x = -search_radius; x <= search_radius; ++x)
+			{
+				if (x == 0 && y == 0) continue;
+
+				const ivec2 neighbor{ coord.x + x, coord.y + y };
+				if (!is_valid_global_sample(neighbor)) continue;
+
+				const auto& neighbor_sample = global_field_[global_field_index(neighbor)];
+				if (!has_water(neighbor_sample)) continue;
+
+				const float neighbor_radial = radial_distance(global_sample_world_position(neighbor), base_chunk_settings_.world_center);
+				if (neighbor_radial + radial_tolerance >= sample_radial) return true;
+			}
+		}
+
+		return false;
+	}
+
 	bool PlanetTerrain::is_dig_protected(const ivec2 coord) const
 	{
 		if (!is_valid_global_sample(coord)) return false;
 		const auto& sample = global_field_[global_field_index(coord)];
-		return has_water(sample) || has_water_neighbor(coord);
+		return has_water(sample) ||
+			has_protective_water_neighbor(coord) ||
+			normalized_depth(global_sample_world_position(coord)) >= hard_rock_depth_threshold;
 	}
 
 	std::optional<ivec2> PlanetTerrain::find_water_anchor(const vec2 world_position) const
@@ -583,17 +864,44 @@ namespace game::terrain
 		return component;
 	}
 
-	bool PlanetTerrain::apply_terrain_edit_to_global_field(const TerrainEdit& edit, std::vector<bool>& dirty_chunks)
+	std::uint32_t PlanetTerrain::water_volume_at_anchor(const ivec2 anchor, ivec2* plan_start) const
+	{
+		if (plan_start != nullptr) *plan_start = anchor;
+		if (!is_valid_global_sample(anchor)) return 0u;
+		if (!has_water(global_field_[global_field_index(anchor)])) return 0u;
+
+		auto component = collect_water_component(anchor);
+		if (component.empty()) return 0u;
+
+		ivec2 lowest_coord = component.front();
+		float lowest_radial = radial_distance(global_sample_world_position(lowest_coord), base_chunk_settings_.world_center);
+		for (const auto coord : component)
+		{
+			const float radial = radial_distance(global_sample_world_position(coord), base_chunk_settings_.world_center);
+			if (radial > lowest_radial + 1e-5f) continue;
+			if (std::abs(radial - lowest_radial) <= 1e-5f &&
+				(coord.y > lowest_coord.y || (coord.y == lowest_coord.y && coord.x >= lowest_coord.x))) continue;
+
+			lowest_coord = coord;
+			lowest_radial = radial;
+		}
+
+		if (plan_start != nullptr) *plan_start = lowest_coord;
+		return static_cast<std::uint32_t>(component.size());
+	}
+
+	PlanetTerrain::TerrainEditResult PlanetTerrain::apply_terrain_edit_to_global_field(const TerrainEdit& edit,
+		std::vector<bool>& dirty_chunks, std::vector<ivec2>& changed_coords, const std::uint32_t unit_budget)
 	{
 		const float radius = std::max(edit.position_radius_strength.z, 0.0f);
-		if (radius <= 0.0f) return false;
+		if (radius <= 0.0f || unit_budget == 0u) return {};
 
 		const vec2 edit_center{
 			edit.position_radius_strength.x,
 			edit.position_radius_strength.y
 		};
 
-		if (!circle_overlaps_rect(edit_center, radius, grid_min_, grid_max_)) return false;
+		if (!circle_overlaps_rect(edit_center, radius, grid_min_, grid_max_)) return {};
 
 		const auto min_x = static_cast<int>(std::floor((edit_center.x - radius - global_field_origin_.x) / terrain_cell_size_.x));
 		const auto min_y = static_cast<int>(std::floor((edit_center.y - radius - global_field_origin_.y) / terrain_cell_size_.y));
@@ -608,7 +916,8 @@ namespace game::terrain
 		const float signed_strength = edit.position_radius_strength.w;
 		const float falloff_exponent = std::max(edit.shape.x, 0.001f);
 		const bool digging = signed_strength < 0.0f;
-		bool changed = false;
+		std::vector<TerrainEditCandidate> candidates;
+		candidates.reserve(static_cast<std::size_t>((clamped_max_x - clamped_min_x + 1) * (clamped_max_y - clamped_min_y + 1)));
 
 		for (int y = clamped_min_y; y <= clamped_max_y; ++y)
 		{
@@ -624,40 +933,82 @@ namespace game::terrain
 
 				const float normalized = 1.0f - distance_to_center / radius;
 				const float falloff = std::pow(normalized, falloff_exponent);
+				if (falloff <= 1e-6f) continue;
 
-				auto& sample = global_field_[global_field_index(coord)];
+				const auto& sample = global_field_[global_field_index(coord)];
 				const bool had_water = has_water(sample);
 				const float next_terrain = sample.terrain + signed_strength * falloff;
-				bool local_changed = std::abs(next_terrain - sample.terrain) > 1e-6f;
-				sample.terrain = next_terrain;
-
-				if (sample.terrain >= 0.0f)
+				float next_water = sample.water;
+				if (next_terrain >= 0.0f || !had_water)
 				{
-					const float next_water = dry_water_density(sample);
-					local_changed = std::abs(next_water - sample.water) > 1e-6f || local_changed;
-					sample.water = next_water;
-				}
-				else if (!had_water)
-				{
-					const float next_water = dry_water_density(sample);
-					local_changed = std::abs(next_water - sample.water) > 1e-6f || local_changed;
-					sample.water = next_water;
+					next_water = dry_water_density(FieldSample{
+						.terrain = next_terrain,
+						.water = sample.water,
+						.wetness = sample.wetness,
+						.padding = sample.padding
+					});
 				}
 
+				const bool local_changed = std::abs(next_terrain - sample.terrain) > 1e-6f ||
+					std::abs(next_water - sample.water) > 1e-6f;
 				if (!local_changed) continue;
 
-				changed = true;
-				mark_chunks_covering_global_sample(coord, dirty_chunks);
+				candidates.push_back({
+					.coord = coord,
+					.falloff = falloff,
+					.distance_to_center = distance_to_center
+				});
 			}
 		}
 
-		return changed;
+		if (candidates.empty()) return {};
+
+		std::ranges::sort(candidates, [](const TerrainEditCandidate& lhs, const TerrainEditCandidate& rhs)
+		{
+			if (std::abs(lhs.falloff - rhs.falloff) > 1e-6f) return lhs.falloff > rhs.falloff;
+			return lhs.distance_to_center < rhs.distance_to_center;
+		});
+
+		TerrainEditResult result{};
+		const auto apply_count = std::min<std::size_t>(candidates.size(), unit_budget);
+		for (std::size_t i = 0; i < apply_count; ++i)
+		{
+			const auto coord = candidates[i].coord;
+			auto& sample = global_field_[global_field_index(coord)];
+			const bool had_water = has_water(sample);
+			const float next_terrain = sample.terrain + signed_strength * candidates[i].falloff;
+			bool local_changed = std::abs(next_terrain - sample.terrain) > 1e-6f;
+			sample.terrain = next_terrain;
+
+			if (sample.terrain >= 0.0f)
+			{
+				const float next_water = dry_water_density(sample);
+				local_changed = std::abs(next_water - sample.water) > 1e-6f || local_changed;
+				sample.water = next_water;
+			}
+			else if (!had_water)
+			{
+				const float next_water = dry_water_density(sample);
+				local_changed = std::abs(next_water - sample.water) > 1e-6f || local_changed;
+				sample.water = next_water;
+			}
+
+			if (!local_changed) continue;
+
+			result.changed = true;
+			++result.units;
+			changed_coords.push_back(coord);
+			mark_chunks_covering_global_sample(coord, dirty_chunks);
+		}
+
+		return result;
 	}
 
-	bool PlanetTerrain::fill_water_basin(const ivec2 start_coord, const std::uint32_t volume_cap, std::vector<bool>& dirty_chunks)
+	std::optional<PlanetTerrain::WaterPlan> PlanetTerrain::build_water_plan(const ivec2 start_coord,
+		const std::uint32_t desired_wet_sample_count) const
 	{
-		if (!is_valid_global_sample(start_coord)) return false;
-		if (is_solid(global_field_[global_field_index(start_coord)])) return false;
+		if (!is_valid_global_sample(start_coord)) return std::nullopt;
+		if (is_solid(global_field_[global_field_index(start_coord)])) return std::nullopt;
 
 		static constexpr std::array neighbors{
 			ivec2{ 1, 0 },
@@ -665,19 +1016,11 @@ namespace game::terrain
 			ivec2{ 0, 1 },
 			ivec2{ 0, -1 }
 		};
-		const float smoothing_margin = std::min(terrain_cell_size_.x, terrain_cell_size_.y) * 2.5f;
+		const float cell_extent = std::min(terrain_cell_size_.x, terrain_cell_size_.y);
+		const float smoothing_margin = cell_extent * 7.5f;
 
-		bool changed = false;
-		for (const auto& coord : collect_water_component(start_coord))
-		{
-			auto& sample = global_field_[global_field_index(coord)];
-			const float next_water = dry_water_density(sample);
-			if (std::abs(sample.water - next_water) <= 1e-6f) continue;
-
-			sample.water = next_water;
-			changed = true;
-			mark_chunks_covering_global_sample(coord, dirty_chunks);
-		}
+		WaterPlan plan{};
+		plan.dried_component = collect_water_component(start_coord);
 
 		std::priority_queue<WaterCandidate, std::vector<WaterCandidate>, WaterCandidateCompare> frontier;
 		std::unordered_set<std::uint64_t> visited;
@@ -704,7 +1047,7 @@ namespace game::terrain
 
 		push_candidate(start_coord);
 
-		while (!frontier.empty() && selected_samples.size() < volume_cap)
+		while (!frontier.empty() && selected_samples.size() < desired_wet_sample_count)
 		{
 			const auto current = frontier.top();
 			frontier.pop();
@@ -716,7 +1059,8 @@ namespace game::terrain
 			}
 		}
 
-		if (selected_samples.empty()) return changed;
+		plan.wet_sample_count = static_cast<std::uint32_t>(selected_samples.size());
+		if (selected_samples.empty()) return plan;
 
 		const float highest_selected = std::ranges::max(selected_samples, {}, &WaterCandidate::radial).radial;
 		const float next_unselected = frontier.empty() ?
@@ -733,44 +1077,301 @@ namespace game::terrain
 
 		for (const auto& selected : affected_samples)
 		{
-			auto& sample = global_field_[global_field_index(selected.coord)];
-			const float next_water = surface_level - selected.radial;
+			const auto& field_sample = global_field_[global_field_index(selected.coord)];
+			const float base_water_depth = surface_level - selected.radial;
+			const int neighbor_solids = solid_neighbor_count(selected.coord);
+			const float terrain_fit_depth = std::max(-field_sample.terrain + cell_extent * 0.02f, 0.0f);
+			const float contact_blend = base_water_depth > 0.0f ?
+				std::clamp((static_cast<float>(neighbor_solids) - 4.0f) / 3.0f, 0.0f, 1.0f) :
+				0.0f;
+			const float contact_support = std::lerp(base_water_depth, terrain_fit_depth, contact_blend);
+
+			plan.affected_samples.push_back({
+				.coord = selected.coord,
+				.water = std::max(base_water_depth, contact_support)
+			});
+		}
+
+		return plan;
+	}
+
+	bool PlanetTerrain::apply_water_plan(const WaterPlan& plan, std::vector<bool>& dirty_chunks,
+		std::vector<ivec2>& changed_coords)
+	{
+		bool changed = false;
+		for (const auto& coord : plan.dried_component)
+		{
+			auto& sample = global_field_[global_field_index(coord)];
+			const float next_water = dry_water_density(sample);
 			if (std::abs(sample.water - next_water) <= 1e-6f) continue;
 
 			sample.water = next_water;
 			changed = true;
-			mark_chunks_covering_global_sample(selected.coord, dirty_chunks);
+			changed_coords.push_back(coord);
+			mark_chunks_covering_global_sample(coord, dirty_chunks);
+		}
+
+		for (const auto& entry : plan.affected_samples)
+		{
+			auto& sample = global_field_[global_field_index(entry.coord)];
+			if (std::abs(sample.water - entry.water) <= 1e-6f) continue;
+
+			sample.water = entry.water;
+			changed = true;
+			changed_coords.push_back(entry.coord);
+			mark_chunks_covering_global_sample(entry.coord, dirty_chunks);
 		}
 
 		return changed;
 	}
 
-	bool PlanetTerrain::remove_water_volume(const ivec2 start_coord, const std::uint32_t volume_cap, std::vector<bool>& dirty_chunks)
+	void PlanetTerrain::recompute_wetness_around(const std::vector<ivec2>& changed_coords, std::vector<bool>& dirty_chunks)
 	{
-		auto component = collect_water_component(start_coord);
-		if (component.empty()) return false;
+		if (changed_coords.empty() || global_field_.empty()) return;
 
-		std::ranges::sort(component, [this](const ivec2& lhs, const ivec2& rhs)
+		const float min_cell_extent = std::min(terrain_cell_size_.x, terrain_cell_size_.y);
+		static constexpr float base_wetness_radius_cells = 16.0f;
+		static constexpr float pond_radius_scale = 5.75f;
+		static constexpr float max_wetness_radius_cells = 180.0f;
+
+		struct SampleBounds final
 		{
-			const float lhs_radial = radial_distance(global_sample_world_position(lhs), base_chunk_settings_.world_center);
-			const float rhs_radial = radial_distance(global_sample_world_position(rhs), base_chunk_settings_.world_center);
-			if (std::abs(lhs_radial - rhs_radial) > 1e-5f) return lhs_radial > rhs_radial;
-			return lhs.y != rhs.y ? lhs.y < rhs.y : lhs.x < rhs.x;
-		});
+			ivec2 min{ 0, 0 };
+			ivec2 max{ -1, -1 };
+		};
 
-		bool changed = false;
-		const auto remove_count = std::min<std::size_t>(component.size(), volume_cap);
-		for (std::size_t i = 0; i < remove_count; ++i)
+		struct WetnessComponent final
 		{
-			auto& sample = global_field_[global_field_index(component[i])];
-			if (!has_water(sample)) continue;
+			std::vector<ivec2> water_cells{};
+			SampleBounds water_bounds{};
+			float max_distance{ 0.0f };
+			int radius_cells{ 0 };
+		};
 
-			sample.water = dry_water_density(sample);
-			changed = true;
-			mark_chunks_covering_global_sample(component[i], dirty_chunks);
+		auto clamp_bounds = [this](const ivec2 min_coord, const ivec2 max_coord)
+		{
+			return SampleBounds{
+				.min = {
+					std::clamp(min_coord.x, 0, static_cast<int>(global_field_size_.x) - 1),
+					std::clamp(min_coord.y, 0, static_cast<int>(global_field_size_.y) - 1)
+				},
+				.max = {
+					std::clamp(max_coord.x, 0, static_cast<int>(global_field_size_.x) - 1),
+					std::clamp(max_coord.y, 0, static_cast<int>(global_field_size_.y) - 1)
+				}
+			};
+		};
+
+		auto bounds_contains = [](const SampleBounds& bounds, const ivec2 coord)
+		{
+			return coord.x >= bounds.min.x && coord.y >= bounds.min.y &&
+				coord.x <= bounds.max.x && coord.y <= bounds.max.y;
+		};
+
+		auto expand_bounds = [&clamp_bounds](const SampleBounds& bounds, const int radius_cells)
+		{
+			return clamp_bounds(
+				{ bounds.min.x - radius_cells, bounds.min.y - radius_cells },
+				{ bounds.max.x + radius_cells, bounds.max.y + radius_cells });
+		};
+
+		auto merge_bounds = [](const SampleBounds& lhs, const SampleBounds& rhs)
+		{
+			return SampleBounds{
+				.min = { std::min(lhs.min.x, rhs.min.x), std::min(lhs.min.y, rhs.min.y) },
+				.max = { std::max(lhs.max.x, rhs.max.x), std::max(lhs.max.y, rhs.max.y) }
+			};
+		};
+
+		auto bounds_intersect = [](const SampleBounds& lhs, const SampleBounds& rhs)
+		{
+			return lhs.min.x <= rhs.max.x && lhs.max.x >= rhs.min.x &&
+				lhs.min.y <= rhs.max.y && lhs.max.y >= rhs.min.y;
+		};
+
+		auto component_wetness_distance = [min_cell_extent](const std::size_t water_sample_count)
+		{
+			const float equivalent_radius_cells = std::sqrt(
+				static_cast<float>(water_sample_count) / std::numbers::pi_v<float>);
+			const float radius_cells = std::clamp(
+				base_wetness_radius_cells + equivalent_radius_cells * pond_radius_scale,
+				1.0f,
+				max_wetness_radius_cells);
+			return std::max(radius_cells * min_cell_extent, min_cell_extent);
+		};
+
+		ivec2 changed_min = changed_coords.front();
+		ivec2 changed_max = changed_coords.front();
+		for (const auto coord : changed_coords)
+		{
+			changed_min.x = std::min(changed_min.x, coord.x);
+			changed_min.y = std::min(changed_min.y, coord.y);
+			changed_max.x = std::max(changed_max.x, coord.x);
+			changed_max.y = std::max(changed_max.y, coord.y);
 		}
 
-		return changed;
+		const int discovery_radius_cells = static_cast<int>(std::ceil(max_wetness_radius_cells));
+		const auto changed_bounds = clamp_bounds(changed_min, changed_max);
+		const auto discovery_bounds = expand_bounds(changed_bounds, discovery_radius_cells);
+
+		std::unordered_set<std::uint64_t> visited_water;
+		std::vector<WetnessComponent> components;
+
+		for (int y = discovery_bounds.min.y; y <= discovery_bounds.max.y; ++y)
+		{
+			for (int x = discovery_bounds.min.x; x <= discovery_bounds.max.x; ++x)
+			{
+				const ivec2 coord{ x, y };
+				if (!has_water(global_field_[global_field_index(coord)])) continue;
+
+				const auto key = sample_key(coord);
+				if (!visited_water.insert(key).second) continue;
+
+				auto water_cells = collect_water_component(coord);
+				for (const auto water_coord : water_cells)
+				{
+					visited_water.insert(sample_key(water_coord));
+				}
+
+				if (water_cells.empty()) continue;
+
+				SampleBounds water_bounds{
+					.min = water_cells.front(),
+					.max = water_cells.front()
+				};
+				for (const auto water_coord : water_cells)
+				{
+					water_bounds.min.x = std::min(water_bounds.min.x, water_coord.x);
+					water_bounds.min.y = std::min(water_bounds.min.y, water_coord.y);
+					water_bounds.max.x = std::max(water_bounds.max.x, water_coord.x);
+					water_bounds.max.y = std::max(water_bounds.max.y, water_coord.y);
+				}
+
+				const float max_distance = component_wetness_distance(water_cells.size());
+				const int radius_cells = std::max(
+					1,
+					static_cast<int>(std::ceil(max_distance / std::max(min_cell_extent, 1e-6f))));
+				const auto component_bounds = expand_bounds(water_bounds, radius_cells);
+				if (!bounds_intersect(component_bounds, discovery_bounds)) continue;
+
+				components.push_back({
+					.water_cells = std::move(water_cells),
+					.water_bounds = water_bounds,
+					.max_distance = max_distance,
+					.radius_cells = radius_cells
+				});
+			}
+		}
+
+		SampleBounds affected_bounds = expand_bounds(changed_bounds, 1);
+		for (const auto& component : components)
+		{
+			affected_bounds = merge_bounds(affected_bounds, expand_bounds(component.water_bounds, component.radius_cells));
+		}
+
+		const int affected_width = affected_bounds.max.x - affected_bounds.min.x + 1;
+		std::vector<float> best_wetness(
+			static_cast<std::size_t>(affected_width) * static_cast<std::size_t>(affected_bounds.max.y - affected_bounds.min.y + 1),
+			0.0f);
+
+		auto affected_index = [affected_bounds, affected_width](const ivec2 coord)
+		{
+			return static_cast<std::size_t>(coord.y - affected_bounds.min.y) *
+				static_cast<std::size_t>(affected_width) +
+				static_cast<std::size_t>(coord.x - affected_bounds.min.x);
+		};
+
+		auto neighbor_distance = [this](const ivec2 offset)
+		{
+			const float dx = terrain_cell_size_.x * static_cast<float>(offset.x);
+			const float dy = terrain_cell_size_.y * static_cast<float>(offset.y);
+			return std::sqrt(dx * dx + dy * dy);
+		};
+
+		static constexpr std::array wetness_neighbors{
+			ivec2{ 1, 0 },
+			ivec2{ -1, 0 },
+			ivec2{ 0, 1 },
+			ivec2{ 0, -1 },
+			ivec2{ 1, 1 },
+			ivec2{ 1, -1 },
+			ivec2{ -1, 1 },
+			ivec2{ -1, -1 }
+		};
+
+		for (const auto& component : components)
+		{
+			const auto propagation_bounds = expand_bounds(component.water_bounds, component.radius_cells);
+			const int propagation_width = propagation_bounds.max.x - propagation_bounds.min.x + 1;
+			std::vector<float> best_distances(
+				static_cast<std::size_t>(propagation_width) * static_cast<std::size_t>(propagation_bounds.max.y - propagation_bounds.min.y + 1),
+				std::numeric_limits<float>::infinity());
+
+			auto propagation_index = [propagation_bounds, propagation_width](const ivec2 coord)
+			{
+				return static_cast<std::size_t>(coord.y - propagation_bounds.min.y) *
+					static_cast<std::size_t>(propagation_width) +
+					static_cast<std::size_t>(coord.x - propagation_bounds.min.x);
+			};
+
+			std::priority_queue<WetnessNode, std::vector<WetnessNode>, WetnessNodeCompare> frontier;
+
+			auto try_push = [&](const ivec2 coord, const float distance)
+			{
+				if (!bounds_contains(propagation_bounds, coord) || !bounds_contains(affected_bounds, coord) ||
+					!is_valid_global_sample(coord)) return;
+				if (!is_solid(global_field_[global_field_index(coord)])) return;
+
+				auto& best_distance = best_distances[propagation_index(coord)];
+				if (distance + 1e-5f >= best_distance || distance > component.max_distance) return;
+
+				best_distance = distance;
+				frontier.push(WetnessNode{ coord, distance });
+			};
+
+			for (const auto water_coord : component.water_cells)
+			{
+				for (const auto& offset : wetness_neighbors)
+				{
+					try_push({ water_coord.x + offset.x, water_coord.y + offset.y }, neighbor_distance(offset));
+				}
+			}
+
+			while (!frontier.empty())
+			{
+				const auto [coord, distance] = frontier.top();
+				frontier.pop();
+
+				if (distance > best_distances[propagation_index(coord)] + 1e-5f) continue;
+
+				best_wetness[affected_index(coord)] = std::max(
+					best_wetness[affected_index(coord)],
+					wetness_strength(distance, component.max_distance));
+
+				for (const auto& offset : wetness_neighbors)
+				{
+					try_push(
+						{ coord.x + offset.x, coord.y + offset.y },
+						distance + neighbor_distance(offset));
+				}
+			}
+		}
+
+		for (int y = affected_bounds.min.y; y <= affected_bounds.max.y; ++y)
+		{
+			for (int x = affected_bounds.min.x; x <= affected_bounds.max.x; ++x)
+			{
+				const ivec2 coord{ x, y };
+				auto& sample = global_field_[global_field_index(coord)];
+
+				const float next_wetness = is_solid(sample) ? best_wetness[affected_index(coord)] : 0.0f;
+
+				if (std::abs(sample.wetness - next_wetness) <= 1e-6f) continue;
+
+				sample.wetness = next_wetness;
+				mark_chunks_covering_global_sample(coord, dirty_chunks);
+			}
+		}
 	}
 
 	void PlanetTerrain::update_active_colliders(const vec2 world_position)
@@ -812,7 +1413,27 @@ namespace game::terrain
 	vec2 PlanetTerrain::display_min() const { return display_min_; }
 	vec2 PlanetTerrain::display_max() const { return display_max_; }
 	vec2 PlanetTerrain::chunk_size() const { return base_chunk_settings_.chunk_size; }
+	vec2 PlanetTerrain::terrain_cell_size() const { return terrain_cell_size_; }
 	vec2 PlanetTerrain::planet_center() const { return base_chunk_settings_.world_center; }
+
+	float PlanetTerrain::wetness_at(const vec2 world_position) const
+	{
+		if (global_field_.empty()) return 0.0f;
+
+		const auto coord = world_to_global_sample(world_position);
+		const auto& sample = global_field_[global_field_index(coord)];
+		if (!is_solid(sample)) return 0.0f;
+		return std::clamp(sample.wetness, 0.0f, 1.0f);
+	}
+
+	bool PlanetTerrain::is_seed_plantable(const vec2 world_position) const
+	{
+		if (global_field_.empty()) return false;
+
+		const auto coord = world_to_global_sample(world_position);
+		const auto& sample = global_field_[global_field_index(coord)];
+		return is_solid(sample) && sample.wetness >= seed_plantable_wetness_threshold;
+	}
 
 	vec2 PlanetTerrain::spawn_point_from_top_center(const float height_offset) const
 	{

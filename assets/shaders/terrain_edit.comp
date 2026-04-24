@@ -2,7 +2,7 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(rg32f, binding = 0) uniform image2D uField;
+layout(rgba32f, binding = 0) uniform image2D uField;
 
 struct TerrainEdit
 {
@@ -45,10 +45,11 @@ void main()
 
     if (pixel.x >= size.x || pixel.y >= size.y) return;
 
-    vec4 field_value = imageLoad(uField, pixel);
-    float density = field_value.r;
-    float water = field_value.g;
-    vec2 world = grid_to_world(vec2(pixel));
+	vec4 field_value = imageLoad(uField, pixel);
+	float density = field_value.r;
+	float water = field_value.g;
+	float wetness = field_value.b;
+	vec2 world = grid_to_world(vec2(pixel));
 
     for (uint i = 0; i < uEditCount; ++i)
     {
@@ -66,5 +67,5 @@ void main()
         density += edit.positionRadiusStrength.w * falloff;
     }
 
-    imageStore(uField, pixel, vec4(density, water, 0.0, 0.0));
+	imageStore(uField, pixel, vec4(density, water, wetness, field_value.a));
 }

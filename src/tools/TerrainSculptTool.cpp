@@ -17,14 +17,58 @@ namespace game::tools
 	{
 		if (context.terrain == nullptr) return;
 
-		emit_brush_stamps(context, resolver, MouseButton::Left, dig_brush_, dig_state_, dt);
-		emit_brush_stamps(context, resolver, MouseButton::Right, place_brush_, place_state_, dt);
-		context.terrain->apply_pending_edits();
+		const auto& tier = current_tier();
+		emit_brush_stamps(context, resolver, MouseButton::Left, true, tier.dig, dig_state_, dt);
+		emit_brush_stamps(context, resolver, MouseButton::Right, false, tier.place, place_state_, dt);
 	}
 
 	void TerrainSculptTool::handle_mouse_pressed(const TerrainToolContext& /*context*/,
 		const TerrainTargetResolver& /*resolver*/, const MouseButton /*button*/)
 	{
+	}
+
+	void TerrainSculptTool::upgrade()
+	{
+		if (tier_index_ + 1u >= 3u) return;
+		++tier_index_;
+	}
+
+	std::size_t TerrainSculptTool::tier_index() const
+	{
+		return tier_index_;
+	}
+
+	std::uint32_t TerrainSculptTool::stored_ground() const
+	{
+		return stored_ground_;
+	}
+
+	std::uint32_t TerrainSculptTool::capacity() const
+	{
+		return current_tier().capacity;
+	}
+
+	const TerrainSculptTool::ToolTier& TerrainSculptTool::current_tier() const
+	{
+		static constexpr std::array<ToolTier, 3> terrain_tool_tiers{{
+			ToolTier{
+				.dig = { 0.95f, -0.9f, 3.5f, 0.9f, 2.5f },
+				.place = { 0.78f, 0.8f, 3.5f, 0.85f, 1.7f },
+				.capacity = 2400u
+			},
+			ToolTier{
+				.dig = { 1.28f, -0.95f, 6.0f, 0.72f, 2.2f },
+				.place = { 1.0f, 0.85f, 6.0f, 0.68f, 1.55f },
+				.capacity = 4800u
+			},
+			ToolTier{
+				.dig = { 1.6f, -1.0f, 9.5f, 0.58f, 2.0f },
+				.place = { 1.22f, 0.9f, 9.5f, 0.55f, 1.4f },
+				.capacity = 8000u
+			}
+		}};
+
+		return terrain_tool_tiers[std::min(tier_index_, terrain_tool_tiers.size() - 1u)];
 	}
 
 	void TerrainSculptTool::reset_brush_state(BrushState& state)
@@ -34,11 +78,12 @@ namespace game::tools
 	}
 
 	void TerrainSculptTool::emit_brush_stamps(const TerrainToolContext& context, const TerrainTargetResolver& resolver,
-		const MouseButton button, const BrushConfig& config, BrushState& state, const float dt)
+		const MouseButton button, const bool digging, const BrushConfig& config, BrushState& state, const float dt)
 	{
 		if (context.terrain == nullptr) return;
 
-		if (!Input::is_pressed(button))
+		const auto available_units = digging ? capacity() - std::min(stored_ground_, capacity()) : stored_ground_;
+		if (!Input::is_pressed(button) || available_units == 0u)
 		{
 			reset_brush_state(state);
 			return;
@@ -53,11 +98,27 @@ namespace game::tools
 
 		const auto emit_stamp = [&](const vec2 position)
 		{
-			context.terrain->queue_edit(terrain::TerrainGenerator::TerrainEdit::make(
-				position,
-				config.radius,
-				config.signed_strength_per_stamp,
-				config.falloff_exponent));
+			const auto budget = digging ? capacity() - std::min(stored_ground_, capacity()) : stored_ground_;
+			if (budget == 0u) return;
+
+			const auto units = context.terrain->apply_ground_brush(
+				terrain::TerrainGenerator::TerrainEdit::make(
+					position,
+					config.radius,
+					config.signed_strength_per_stamp,
+					config.falloff_exponent),
+				budget);
+
+			if (units == 0u) return;
+
+			if (digging)
+			{
+				stored_ground_ = std::min(capacity(), stored_ground_ + units);
+			}
+			else
+			{
+				stored_ground_ -= std::min(stored_ground_, units);
+			}
 		};
 
 		const float stamps_per_second = std::max(config.stamps_per_second, 1.0f);

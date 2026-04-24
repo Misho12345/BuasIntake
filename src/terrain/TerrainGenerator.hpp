@@ -16,10 +16,13 @@ namespace game::terrain
 		{
 			float terrain{};
 			float water{};
+			float wetness{};
+			float padding{};
 		};
 
 		static constexpr std::uint32_t terrain_channel_index = 0u;
 		static constexpr std::uint32_t water_channel_index = 1u;
+		static constexpr std::uint32_t wetness_channel_index = 2u;
 
 		struct TerrainEdit final
 		{

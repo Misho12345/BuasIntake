@@ -22,5 +22,7 @@ namespace game::terrain
 	private:
 		gfx::Shader shader_{};
 		sf::Texture dirt_texture_{};
+		sf::Texture rock_texture_{};
+		sf::Texture hard_rock_texture_{};
 	};
 }

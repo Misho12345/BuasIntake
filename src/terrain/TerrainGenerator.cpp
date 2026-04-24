@@ -104,9 +104,9 @@ namespace game::terrain
 		terrain_edit_shader_{ gfx::Shader::from_compute_file("assets/shaders/terrain_edit.comp") },
 		edge_shader_{ gfx::Shader::from_compute_file("assets/shaders/chunk_edges_gen.comp") },
 		mesh_shader_{ gfx::Shader::from_compute_file("assets/shaders/chunk_mesh_gen.comp") },
-		field_texture_{ padded_field_size(settings), gfx::TextureFormat::RG32F }
+		field_texture_{ padded_field_size(settings), gfx::TextureFormat::RGBA32F }
 	{
-		static_assert(sizeof(FieldSample) == sizeof(float) * 2);
+		static_assert(sizeof(FieldSample) == sizeof(float) * 4);
 
 		const auto padded_size = padded_field_size(settings_);
 		boundary_vertices_buffer_.allocate_persistent_read<vec2>(max_boundary_vertex_count(settings_));
@@ -355,7 +355,7 @@ namespace game::terrain
 			0,
 			static_cast<GLsizei>(size.x),
 			static_cast<GLsizei>(size.y),
-			GL_RG,
+			GL_RGBA,
 			GL_FLOAT,
 			field_samples.empty() ? nullptr : field_samples.data());
 	}
@@ -369,7 +369,7 @@ namespace game::terrain
 		glGetTextureImage(
 			field_texture_.native_handle(),
 			0,
-			GL_RG,
+			GL_RGBA,
 			GL_FLOAT,
 			static_cast<GLsizei>(field_samples.size() * sizeof(FieldSample)),
 			field_samples.data());

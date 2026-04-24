@@ -50,6 +50,7 @@ namespace game
 		gl_loaded_ = true;
 		glViewport(0, 0, static_cast<std::int32_t>(settings_.win_size.x),
 		           static_cast<std::int32_t>(settings_.win_size.y));
+		terrain_tools_.initialize_ui_assets();
 		configure_input();
 
 		try
@@ -146,6 +147,10 @@ namespace game
 		if (terrain_) terrain_->draw_gl(world_view_);
 		if (terrain_) terrain_->draw_water_gl(world_view_);
 		player_.draw_gl(world_view_);
+		if (const auto context = const_cast<Game*>(this)->terrain_tool_context(); context.has_value())
+		{
+			terrain_tools_.draw_world_preview(*context, world_view_);
+		}
 	}
 
 	void Game::render_sfml()
@@ -154,6 +159,20 @@ namespace game
 
 		//if (terrain_) terrain_->render_debug(window_);
 		player_.draw_sf(window_);
+
+		const auto window_size = window_.getSize();
+		const sf::View ui_view{
+			{
+				static_cast<float>(window_size.x) * 0.5f,
+				static_cast<float>(window_size.y) * 0.5f
+			},
+			{
+				static_cast<float>(window_size.x),
+				static_cast<float>(window_size.y)
+			}
+		};
+		window_.setView(ui_view);
+		terrain_tools_.draw_ui(window_);
 	}
 
 	void Game::create_world()
@@ -178,17 +197,38 @@ namespace game
 	{
 		Input::on([this](const Event::MouseWheelScrolled& scroll)
 		{
-			constexpr float zoom_step = 0.12f;
-			camera_zoom_    = std::clamp(
-				camera_zoom_ * (1.0f - scroll.delta * zoom_step),
-				min_camera_zoom_,
-				max_camera_zoom_);
-			update_world_view(window_.getSize());
+			if (Input::is_pressed(Key::LControl) || Input::is_pressed(Key::RControl))
+			{
+				constexpr float zoom_step = 0.12f;
+				camera_zoom_ = std::clamp(
+					camera_zoom_ * (1.0f - scroll.delta * zoom_step),
+					min_camera_zoom_,
+					max_camera_zoom_);
+				update_world_view(window_.getSize());
+				return;
+			}
+
+			terrain_tools_.handle_scroll(scroll.delta);
 		});
 
 		Input::on<Event::KeyPressed>(Key::P, [this]
 		{
 			export_current_chunk_field();
+		});
+
+		Input::on<Event::KeyPressed>(Key::Enter, [this]
+		{
+			terrain_tools_.handle_upgrade();
+		});
+
+		Input::on<Event::KeyPressed>(Key::Num0, [this]
+		{
+			terrain_tools_.refill_bucket();
+		});
+
+		Input::on<Event::KeyPressed>(Key::Escape, [this]
+		{
+			terrain_tools_.cancel_bucket_placement();
 		});
 
 		Input::on<Event::MouseButtonPressed>(MouseButton::Left, [this]

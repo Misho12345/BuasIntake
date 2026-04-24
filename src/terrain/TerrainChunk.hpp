@@ -48,8 +48,10 @@ namespace game::terrain
 		[[nodiscard]] TerrainContour::ScoredResult generate_chunk();
 
 		void build_chunk_border();
-		void build_chunk(const TerrainContour::ScoredResult& terrain_result, const TerrainContour::ScoredResult& water_result);
-		void build_terrain_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices);
+		void build_chunk(const TerrainContour::ScoredResult& terrain_result, const TerrainContour::ScoredResult& water_result,
+			std::span<const FieldSample> field_samples);
+		void build_terrain_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices,
+			std::span<const FieldSample> field_samples);
 		void build_water_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices);
 		void build_debug_lines(const std::vector<std::vector<vec2>>& loops, const std::vector<std::vector<vec2>>& open_paths, const std::vector<std::vector<vec2>>& collider_loops, const std::vector<std::vector<vec2>>& collider_paths);
 
@@ -57,6 +59,7 @@ namespace game::terrain
 
 		TerrainGenerator generator_;
 		TerrainCollider collider_;
+		TerrainCollider water_collider_;
 		TerrainRenderable renderable_{};
 		water::WaterRenderable water_renderable_{};
 

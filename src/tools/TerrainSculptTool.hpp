@@ -17,14 +17,27 @@ namespace game::tools
 		void handle_mouse_pressed(const TerrainToolContext& context, const TerrainTargetResolver& resolver,
 			MouseButton button) override;
 
+		void upgrade();
+
+		[[nodiscard]] std::size_t tier_index() const;
+		[[nodiscard]] std::uint32_t stored_ground() const;
+		[[nodiscard]] std::uint32_t capacity() const;
+
 	private:
 		struct BrushConfig final
 		{
-			float radius{ 1.2f };
+			float radius{ 1.0f };
 			float signed_strength_per_stamp{ 0.0f };
-			float stamps_per_second{ 30.0f };
-			float spacing_factor{ 0.5f };
+			float stamps_per_second{ 1.0f };
+			float spacing_factor{ 1.0f };
 			float falloff_exponent{ 1.8f };
+		};
+
+		struct ToolTier final
+		{
+			BrushConfig dig{};
+			BrushConfig place{};
+			std::uint32_t capacity{ 0u };
 		};
 
 		struct BrushState final
@@ -33,12 +46,13 @@ namespace game::tools
 			std::optional<vec2> last_stamp_world{ std::nullopt };
 		};
 
+		[[nodiscard]] const ToolTier& current_tier() const;
 		void reset_brush_state(BrushState& state);
 		void emit_brush_stamps(const TerrainToolContext& context, const TerrainTargetResolver& resolver,
-			MouseButton button, const BrushConfig& config, BrushState& state, float dt);
+			MouseButton button, bool digging, const BrushConfig& config, BrushState& state, float dt);
 
-		BrushConfig dig_brush_{ 2.25f, -0.85f, 60.0f, 2.45f, 2.8f };
-		BrushConfig place_brush_{ 1.05f, 0.8f, 60.0f, 1.45f, 1.5f };
+		std::size_t tier_index_{ 0u };
+		std::uint32_t stored_ground_{ 0u };
 		BrushState dig_state_{};
 		BrushState place_state_{};
 	};

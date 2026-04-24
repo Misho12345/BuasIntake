@@ -2,7 +2,7 @@
 
 layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(rg32f, binding = 0) uniform writeonly image2D outImage;
+layout(rgba32f, binding = 0) uniform writeonly image2D outImage;
 
 uniform ivec2 uChunkCoord;
 uniform ivec2 uChunkGridSize;
