@@ -93,10 +93,16 @@
     <ClCompile Include="src\player\Player.cpp">
       <Filter>Source Files\player</Filter>
     </ClCompile>
+    <ClCompile Include="src\tools\SeedTool.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
     <ClCompile Include="src\tools\TerrainSculptTool.cpp">
       <Filter>Source Files\tools</Filter>
     </ClCompile>
     <ClCompile Include="src\tools\TerrainTargetResolver.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="src\tools\TerrainToolHudRenderer.cpp">
       <Filter>Source Files\tools</Filter>
     </ClCompile>
     <ClCompile Include="src\tools\TerrainToolController.cpp">
@@ -128,7 +134,13 @@
     <ClInclude Include="src\gfx\ComputeDispatcher.hpp">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
+    <ClInclude Include="src\gfx\AlphaBlendPass.hpp">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
     <ClInclude Include="src\gfx\Mesh.hpp">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gfx\MeshBuilders.hpp">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
     <ClInclude Include="src\gfx\Projection.hpp">
@@ -143,7 +155,13 @@
     <ClInclude Include="src\terrain\ChunkSettings.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
+    <ClInclude Include="src\terrain\TerrainConstants.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
     <ClInclude Include="src\terrain\TerrainGenerator.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainGridMath.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
     <ClInclude Include="src\terrain\TerrainContour.hpp">
@@ -163,6 +181,12 @@
     </ClInclude>
     <ClInclude Include="src\player\Player.hpp">
       <Filter>Header Files\player</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\SeedTool.hpp">
+      <Filter>Header Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\TerrainToolHudRenderer.hpp">
+      <Filter>Header Files\tools</Filter>
     </ClInclude>
     <ClInclude Include="src\tools\TerrainSculptTool.hpp">
       <Filter>Header Files\tools</Filter>

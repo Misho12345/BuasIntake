@@ -28,52 +28,37 @@ namespace game::terrain
 
 		void draw_gl(const sf::View& view) const;
 		void draw_water_gl(const sf::View& view) const;
-		void render_debug(sf::RenderTarget& target) const;
 		void dispatch_generation();
 		void finalize_generation();
 		void rebuild_from_field(std::span<const FieldSample> field_samples);
 		[[nodiscard]] std::vector<FieldSample> readback_field() const;
 
-		[[nodiscard]] const gfx::Mesh& mesh() const;
 		[[nodiscard]] ivec2 chunk_coord() const;
-		[[nodiscard]] vec2 player_spawn() const;
-		[[nodiscard]] vec2 chunk_min() const;
-		[[nodiscard]] vec2 chunk_max() const;
 		[[nodiscard]] vec2 display_min() const;
 		[[nodiscard]] vec2 display_max() const;
-		[[nodiscard]] bool has_collider() const;
 		void set_collision_enabled(bool enabled);
 
 	private:
 		[[nodiscard]] TerrainContour::ScoredResult generate_chunk();
 
-		void build_chunk_border();
 		void build_chunk(const TerrainContour::ScoredResult& terrain_result, const TerrainContour::ScoredResult& water_result,
 			std::span<const FieldSample> field_samples);
 		void build_terrain_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices,
 			std::span<const FieldSample> field_samples);
 		void build_water_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices);
-		void build_debug_lines(const std::vector<std::vector<vec2>>& loops, const std::vector<std::vector<vec2>>& open_paths, const std::vector<std::vector<vec2>>& collider_loops, const std::vector<std::vector<vec2>>& collider_paths);
 
 		ChunkSettings settings_{};
 
 		TerrainGenerator generator_;
 		TerrainCollider collider_;
-		TerrainCollider water_collider_;
 		TerrainRenderable renderable_{};
 		water::WaterRenderable water_renderable_{};
 
 		gfx::Mesh mesh_{};
 		gfx::Mesh water_mesh_{};
-		sf::RectangleShape chunk_border_{};
-		std::vector<sf::VertexArray> edge_debug_lines_{};
-		std::vector<sf::VertexArray> collider_debug_lines_{};
 
-		vec2 chunk_min_{};
-		vec2 chunk_max_{};
 		vec2 display_min_{};
 		vec2 display_max_{};
-		vec2 player_spawn_{};
 		bool collision_enabled_{ true };
 		bool generation_dispatched_{ false };
 		bool generation_finalized_{ false };

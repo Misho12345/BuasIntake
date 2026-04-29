@@ -176,9 +176,9 @@ namespace game::gfx
 			const auto log = shader_log(shader);
 			glDeleteShader(shader);
 			std::println(std::cerr,
-			             "Failed to compile shader '{}':\n{}",
-			             path.string(),
-			             log.empty() ? "No additional info" : log);
+				"Failed to compile shader '{}':\n{}",
+				path.string(),
+				log.empty() ? "No additional info" : log);
 			return 0;
 		}
 
@@ -209,9 +209,9 @@ namespace game::gfx
 			const auto log = program_log(program);
 			glDeleteProgram(program);
 			std::println(std::cerr,
-			             "Failed to link shader program '{}':\n{}",
-			             label,
-			             log.empty() ? "No additional info" : log);
+				"Failed to link shader program '{}':\n{}",
+				label,
+				log.empty() ? "No additional info" : log);
 			return 0;
 		}
 

@@ -22,7 +22,6 @@ namespace game::terrain
 
 		static constexpr std::uint32_t terrain_channel_index = 0u;
 		static constexpr std::uint32_t water_channel_index = 1u;
-		static constexpr std::uint32_t wetness_channel_index = 2u;
 
 		struct TerrainEdit final
 		{
@@ -74,30 +73,39 @@ namespace game::terrain
 		TerrainGenerator& operator=(TerrainGenerator&& other) noexcept;
 
 		void dispatch();
-		void dispatch_edits(std::span<const TerrainEdit> edits);
 		void dispatch_surface_rebuild(std::uint32_t channel_index, float iso);
 		void upload_field(std::span<const FieldSample> field_samples);
 		[[nodiscard]] std::vector<FieldSample> read_field() const;
-		[[nodiscard]] bool try_readback(RawPipelineResult& result);
 		[[nodiscard]] RawPipelineResult readback();
-		[[nodiscard]] RawPipelineResult run();
 
 	private:
+		struct FieldLayout final
+		{
+			uvec2 padded_size{ 0u, 0u };
+			vec2 cell_size{ 0.0f, 0.0f };
+			vec2 field_origin{ 0.0f, 0.0f };
+			ivec2 field_padding{ 0, 0 };
+		};
+
 		void reset_surface_buffers();
 		void replace_completion_fence();
 		void clear_completion_fence();
 		void wait_for_completion();
-		[[nodiscard]] bool is_readback_ready() const;
+		[[nodiscard]] FieldLayout field_layout() const;
+		void bind_chunk_uniforms(const gfx::Shader& shader, const FieldLayout& layout) const;
+		void bind_generation_pass(const gfx::Shader& shader, const FieldLayout& layout) const;
+		void bind_surface_edge_pass(const gfx::Shader& shader, const FieldLayout& layout,
+			std::uint32_t channel_index, float iso) const;
+		void bind_surface_mesh_pass(const gfx::Shader& shader, const FieldLayout& layout,
+			std::uint32_t channel_index, float iso) const;
 		[[nodiscard]] RawPipelineResult consume_readback();
 
 		ChunkSettings settings_{};
 
 		gfx::Shader terrain_shader_{};
-		gfx::Shader terrain_edit_shader_{};
 		gfx::Shader edge_shader_{};
 		gfx::Shader mesh_shader_{};
 		gfx::Texture2D field_texture_{};
-		gfx::SSBO terrain_edit_buffer_{};
 
 		gfx::SSBO boundary_vertices_buffer_{};
 		gfx::SSBO horizontal_edge_ids_buffer_{};

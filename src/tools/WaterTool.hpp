@@ -38,6 +38,9 @@ namespace game::tools
 			std::uint32_t capacity{ 0u };
 		};
 
+		void begin_placement();
+		void confirm_placement(const TerrainToolContext& context, const TerrainTargetResolver& resolver);
+		void collect_water(const TerrainToolContext& context, const TerrainTargetResolver& resolver);
 		[[nodiscard]] const BucketTier& current_tier() const;
 
 		std::size_t tier_index_{ 0u };

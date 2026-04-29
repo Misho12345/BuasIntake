@@ -22,15 +22,26 @@ namespace game::tools
 		emit_brush_stamps(context, resolver, MouseButton::Right, false, tier.place, place_state_, dt);
 	}
 
-	void TerrainSculptTool::handle_mouse_pressed(const TerrainToolContext& /*context*/,
-		const TerrainTargetResolver& /*resolver*/, const MouseButton /*button*/)
+	void TerrainSculptTool::handle_mouse_pressed(const TerrainToolContext& context,
+		const TerrainTargetResolver& resolver, const MouseButton button)
 	{
+		if (button != MouseButton::Left || context.terrain == nullptr) return;
+
+		const auto world_position = resolver.terrain_tool_hit_world_position(context);
+		if (!world_position.has_value()) return;
+
+		static_cast<void>(context.terrain->try_harvest_resource(*world_position));
 	}
 
 	void TerrainSculptTool::upgrade()
 	{
 		if (tier_index_ + 1u >= 3u) return;
 		++tier_index_;
+	}
+
+	void TerrainSculptTool::clear_storage()
+	{
+		stored_ground_ = 0u;
 	}
 
 	std::size_t TerrainSculptTool::tier_index() const
@@ -52,19 +63,19 @@ namespace game::tools
 	{
 		static constexpr std::array<ToolTier, 3> terrain_tool_tiers{{
 			ToolTier{
-				.dig = { 0.95f, -0.9f, 3.5f, 0.9f, 2.5f },
-				.place = { 0.78f, 0.8f, 3.5f, 0.85f, 1.7f },
-				.capacity = 2400u
+				.dig = { 1.5f, -1.45f, 22.0f, 0.6f, 1.85f },
+				.place = { 1.5f, 1.45f, 22.0f, 0.6f, 1.85f },
+				.capacity = 6000u
 			},
 			ToolTier{
-				.dig = { 1.28f, -0.95f, 6.0f, 0.72f, 2.2f },
-				.place = { 1.0f, 0.85f, 6.0f, 0.68f, 1.55f },
-				.capacity = 4800u
+				.dig = { 1.92f, -1.75f, 38.0f, 0.42f, 1.65f },
+				.place = { 1.92f, 1.75f, 38.0f, 0.42f, 1.65f },
+				.capacity = 12000u
 			},
 			ToolTier{
-				.dig = { 1.6f, -1.0f, 9.5f, 0.58f, 2.0f },
-				.place = { 1.22f, 0.9f, 9.5f, 0.55f, 1.4f },
-				.capacity = 8000u
+				.dig = { 2.35f, -2.15f, 68.0f, 0.34f, 1.48f },
+				.place = { 2.35f, 2.15f, 68.0f, 0.34f, 1.48f },
+				.capacity = 22000u
 			}
 		}};
 

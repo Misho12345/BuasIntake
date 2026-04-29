@@ -4,19 +4,10 @@
 
 namespace game::terrain
 {
-	enum class ColliderKind
-	{
-		Terrain,
-		Water
-	};
-
-	[[nodiscard]] void* collider_user_data(ColliderKind kind);
-	[[nodiscard]] bool is_water_collider_user_data(const void* user_data);
-
 	class TerrainCollider final
 	{
 	public:
-		explicit TerrainCollider(b2WorldId world_id, ColliderKind kind = ColliderKind::Terrain, bool sensor = false);
+		explicit TerrainCollider(b2WorldId world_id);
 		~TerrainCollider();
 
 		TerrainCollider(const TerrainCollider&) = delete;
@@ -34,7 +25,5 @@ namespace game::terrain
 	private:
 		b2WorldId world_id_{ b2_nullWorldId };
 		b2BodyId terrain_body_{ b2_nullBodyId };
-		ColliderKind kind_{ ColliderKind::Terrain };
-		bool sensor_{ false };
 	};
 }

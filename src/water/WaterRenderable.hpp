@@ -19,9 +19,6 @@ namespace game::water
 
 		void draw(const gfx::Mesh& mesh, const sf::View& view) const;
 
-		float time{ 0.0f };
-		sf::Texture* texture{ nullptr };
-
 	private:
 		gfx::Shader shader_{};
 	};

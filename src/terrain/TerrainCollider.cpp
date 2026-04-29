@@ -5,24 +5,50 @@ namespace game::terrain
 {
 	namespace
 	{
-		int terrain_collider_tag = 0;
-		int water_collider_tag = 0;
+		constexpr float minimum_segment_length_sq = 1e-4f;
+
+		bool is_valid_segment(const vec2& start, const vec2& end)
+		{
+			if (!std::isfinite(start.x) || !std::isfinite(start.y) ||
+				!std::isfinite(end.x) || !std::isfinite(end.y))
+			{
+				return false;
+			}
+
+			const vec2 delta = subtract_vec2(end, start);
+			return delta.lengthSquared() > minimum_segment_length_sq;
+		}
+
+		std::vector<b2Vec2> sanitize_points(const std::vector<vec2>& source, const bool loop)
+		{
+			std::vector<b2Vec2> points;
+			points.reserve(source.size());
+
+			for (const auto& point : source)
+			{
+				if (!std::isfinite(point.x) || !std::isfinite(point.y)) continue;
+
+				if (!points.empty())
+				{
+					const vec2 previous{ points.back().x, points.back().y };
+					if (!is_valid_segment(previous, point)) continue;
+				}
+
+				points.push_back(to_b2(point));
+			}
+
+			if (loop && points.size() >= 2u)
+			{
+				const vec2 first{ points.front().x, points.front().y };
+				const vec2 last{ points.back().x, points.back().y };
+				if (!is_valid_segment(last, first)) points.pop_back();
+			}
+
+			return points;
+		}
 	}
 
-	void* collider_user_data(const ColliderKind kind)
-	{
-		return kind == ColliderKind::Water ? static_cast<void*>(&water_collider_tag) : static_cast<void*>(&terrain_collider_tag);
-	}
-
-	bool is_water_collider_user_data(const void* user_data)
-	{
-		return user_data == static_cast<const void*>(&water_collider_tag);
-	}
-
-	TerrainCollider::TerrainCollider(const b2WorldId world_id, const ColliderKind kind, const bool sensor) :
-		world_id_{ world_id },
-		kind_{ kind },
-		sensor_{ sensor } {}
+	TerrainCollider::TerrainCollider(const b2WorldId world_id) : world_id_{ world_id } {}
 
 	TerrainCollider::~TerrainCollider()
 	{
@@ -31,9 +57,7 @@ namespace game::terrain
 
 	TerrainCollider::TerrainCollider(TerrainCollider&& other) noexcept :
 		world_id_{ other.world_id_ },
-		terrain_body_{ std::exchange(other.terrain_body_, b2_nullBodyId) },
-		kind_{ other.kind_ },
-		sensor_{ other.sensor_ }
+		terrain_body_{ std::exchange(other.terrain_body_, b2_nullBodyId) }
 	{
 		other.world_id_ = b2_nullWorldId;
 	}
@@ -46,8 +70,6 @@ namespace game::terrain
 
 		world_id_ = other.world_id_;
 		terrain_body_ = std::exchange(other.terrain_body_, b2_nullBodyId);
-		kind_ = other.kind_;
-		sensor_ = other.sensor_;
 		other.world_id_ = b2_nullWorldId;
 		return *this;
 	}
@@ -64,8 +86,7 @@ namespace game::terrain
 
 		b2BodyDef body_def = b2DefaultBodyDef();
 		body_def.type = b2_staticBody;
-		body_def.name = kind_ == ColliderKind::Water ? "water_chunk" : "terrain_chunk";
-		body_def.userData = collider_user_data(kind_);
+		body_def.name = "terrain_chunk";
 
 		terrain_body_ = b2CreateBody(world_id_, &body_def);
 
@@ -76,9 +97,6 @@ namespace game::terrain
 		b2ShapeDef segment_shape_def = b2DefaultShapeDef();
 		segment_shape_def.material.friction = material.friction;
 		segment_shape_def.material.restitution = material.restitution;
-		segment_shape_def.userData = collider_user_data(kind_);
-		segment_shape_def.isSensor = sensor_;
-		segment_shape_def.enableSensorEvents = sensor_;
 
 		std::size_t created_count = 0;
 
@@ -86,29 +104,10 @@ namespace game::terrain
 		{
 			if (loop.size() < 4) continue;
 
-			if (sensor_)
-			{
-				for (std::size_t i = 0; i < loop.size(); ++i)
-				{
-					const auto& start = loop[i];
-					const auto& end = loop[(i + 1) % loop.size()];
-					const b2Segment segment{ to_b2(start), to_b2(end) };
-					b2CreateSegmentShape(terrain_body_, &segment_shape_def, &segment);
-					++created_count;
-				}
-
-				continue;
-			}
-
-			std::vector<b2Vec2> points;
-			points.reserve(loop.size());
-			for (const auto& point : loop)
-			{
-				points.push_back(to_b2(point));
-			}
+			auto points = sanitize_points(loop, true);
+			if (points.size() < 4u) continue;
 
 			b2ChainDef chain_def = b2DefaultChainDef();
-			chain_def.userData = collider_user_data(kind_);
 			chain_def.points = points.data();
 			chain_def.count = static_cast<int>(points.size());
 			chain_def.materials = &material;
@@ -123,9 +122,24 @@ namespace game::terrain
 		{
 			if (path.size() < 2) continue;
 
-			for (std::size_t i = 1; i < path.size(); ++i)
+			auto points = sanitize_points(path, false);
+			if (points.size() >= 4u)
 			{
-				const b2Segment segment{ to_b2(path[i - 1]), to_b2(path[i]) };
+				b2ChainDef chain_def = b2DefaultChainDef();
+				chain_def.points = points.data();
+				chain_def.count = static_cast<int>(points.size());
+				chain_def.materials = &material;
+				chain_def.materialCount = 1;
+				chain_def.isLoop = false;
+
+				b2CreateChain(terrain_body_, &chain_def);
+				++created_count;
+				continue;
+			}
+
+			for (std::size_t i = 1; i < points.size(); ++i)
+			{
+				const b2Segment segment{ points[i - 1], points[i] };
 				b2CreateSegmentShape(terrain_body_, &segment_shape_def, &segment);
 				++created_count;
 			}

@@ -37,7 +37,6 @@ namespace game::player
 		void refresh_grounded_state(vec2 planet_center);
 		void prepare_for_physics_step(float fixed_step, vec2 planet_center);
 		void sync_from_physics(vec2 planet_center);
-		void draw_gl(const sf::View& view) const;
 		void draw_sf(sf::RenderTarget& target) const;
 
 		[[nodiscard]] b2BodyId body() const;
@@ -47,6 +46,17 @@ namespace game::player
 		[[nodiscard]] bool is_move_input_active() const;
 
 	private:
+		void create_physics_body(vec2 spawn_position, float spawn_angle);
+		void create_capsule_shape();
+		void create_ground_sensor_shape();
+		void configure_capsule_drawable();
+		void reset_ground_state(vec2 spawn_up);
+		[[nodiscard]] bool sensor_detects_ground() const;
+		[[nodiscard]] std::optional<vec2> raycast_ground_normal(vec2 planet_center) const;
+		[[nodiscard]] float movement_axis() const;
+		[[nodiscard]] vec2 movement_direction(vec2 up_direction) const;
+		void apply_horizontal_movement(float fixed_step, vec2 movement_direction);
+		void try_jump(vec2 up_direction, bool jump_held);
 		void apply_input(float fixed_step, vec2 planet_center);
 		void apply_gravity(vec2 planet_center) const;
 		void align_to_planet(vec2 planet_center) const;
@@ -54,7 +64,6 @@ namespace game::player
 		b2WorldId world_{ b2_nullWorldId };
 		GameObject object_{};
 		PlayerConfig config_{};
-		b2ShapeId body_shape_{ b2_nullShapeId };
 		b2ShapeId ground_sensor_shape_{ b2_nullShapeId };
 		bool grounded_{ false };
 		float jump_cooldown_timer_{ 0.0f };

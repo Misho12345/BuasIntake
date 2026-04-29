@@ -1,32 +1,11 @@
 #include "pch.hpp"
 #include "tools/WaterTool.hpp"
 
+#include "gfx/MeshBuilders.hpp"
 #include "tools/TerrainTargetResolver.hpp"
 
 namespace game::tools
 {
-	namespace
-	{
-		std::vector<sf::Vertex> build_water_vertices(const std::vector<vec2>& vertices, const vec2 planet_center,
-			const sf::Color tint)
-		{
-			if (vertices.empty()) return {};
-			std::vector<sf::Vertex> mesh_vertices;
-			mesh_vertices.reserve(vertices.size());
-
-			for (const auto& point : vertices)
-			{
-				sf::Vertex vertex{};
-				vertex.position = { point.x, point.y };
-				vertex.color = tint;
-				vertex.texCoords = { 0.0f, 0.0f };
-				mesh_vertices.push_back(vertex);
-			}
-
-			return mesh_vertices;
-		}
-	}
-
 	void WaterTool::deactivate()
 	{
 		cancel_placement();
@@ -43,27 +22,8 @@ namespace game::tools
 
 		if (button == MouseButton::Right)
 		{
-			if (!placement_mode_)
-			{
-				placement_mode_ = true;
-				desired_place_amount_ = current_amount_;
-				return;
-			}
-
-			if (current_amount_ == 0u || desired_place_amount_ == 0u)
-			{
-				cancel_placement();
-				return;
-			}
-
-			const auto world_position = resolver.water_tool_target_world_position(context);
-			if (!world_position.has_value()) return;
-
-			const auto placed = context.terrain->place_water(*world_position, std::min(desired_place_amount_, current_amount_));
-			if (placed == 0u) return;
-
-			current_amount_ -= std::min(current_amount_, placed);
-			cancel_placement();
+			if (!placement_mode_) begin_placement();
+			else confirm_placement(context, resolver);
 			return;
 		}
 
@@ -74,6 +34,35 @@ namespace game::tools
 			return;
 		}
 
+		collect_water(context, resolver);
+	}
+
+	void WaterTool::begin_placement()
+	{
+		placement_mode_ = true;
+		desired_place_amount_ = current_amount_;
+	}
+
+	void WaterTool::confirm_placement(const TerrainToolContext& context, const TerrainTargetResolver& resolver)
+	{
+		if (current_amount_ == 0u || desired_place_amount_ == 0u)
+		{
+			cancel_placement();
+			return;
+		}
+
+		const auto world_position = resolver.water_tool_target_world_position(context);
+		if (!world_position.has_value()) return;
+
+		const auto placed = context.terrain->place_water(*world_position, std::min(desired_place_amount_, current_amount_));
+		if (placed == 0u) return;
+
+		current_amount_ -= std::min(current_amount_, placed);
+		cancel_placement();
+	}
+
+	void WaterTool::collect_water(const TerrainToolContext& context, const TerrainTargetResolver& resolver)
+	{
 		const auto free_space = current_capacity() - std::min(current_amount_, current_capacity());
 		if (free_space == 0u) return;
 
@@ -125,17 +114,14 @@ namespace game::tools
 		const auto preview = context.terrain->build_water_preview_mesh(*target_position, desired_place_amount_);
 		if (!preview.has_value() || preview->future_vertices.empty() || preview->future_indices.empty()) return;
 
-		const auto planet_center = context.terrain->planet_center();
 		gfx::Mesh current_mesh;
 		gfx::Mesh future_mesh;
 
-		const auto current_vertices = build_water_vertices(
+		const auto current_vertices = gfx::build_tinted_vertices(
 			preview->current_vertices,
-			planet_center,
 			{ 232, 248, 255, 128 });
-		const auto future_vertices = build_water_vertices(
+		const auto future_vertices = gfx::build_tinted_vertices(
 			preview->future_vertices,
-			planet_center,
 			{ 214, 252, 255, 96 });
 
 		if (!preview_renderable_.has_value())

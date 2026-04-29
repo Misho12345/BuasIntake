@@ -2,27 +2,12 @@
 
 #include "pch.hpp"
 
-#include "gfx/Mesh.hpp"
-#include "terrain/TerrainRenderable.hpp"
-#include "water/WaterRenderable.hpp"
-
 namespace game
 {
 	class GameObject final
 	{
 	public:
-		using SfDrawable = std::unique_ptr<sf::Drawable>;
-
-		struct GlRenderable final
-		{
-			const gfx::Mesh* mesh{ nullptr };
-			std::variant<
-				terrain::TerrainRenderable*,
-				water::WaterRenderable*
-			> renderer{};
-		};
-
-		using Renderable = std::variant<std::monostate, SfDrawable, GlRenderable>;
+		using Drawable = std::unique_ptr<sf::Drawable>;
 
 		GameObject() = default;
 		~GameObject() = default;
@@ -34,8 +19,7 @@ namespace game
 
 		b2BodyId body{ b2_nullBodyId };
 		sf::Transformable transformable{};
-		Renderable renderable{};
-		sf::RenderStates sfml_states{ sf::RenderStates::Default };
+		Drawable renderable{};
 
 		void sync_from_physics()
 		{
@@ -47,49 +31,13 @@ namespace game
 			transformable.setRotation(sf::radians(angle));
 		}
 
-		void draw_gl(const sf::View& view) const
-		{
-			if (const auto* gl = std::get_if<GlRenderable>(&renderable))
-			{
-				if (!gl->mesh) return;
-
-				std::visit([&](auto* renderer)
-				{
-					if (renderer) renderer->draw(*gl->mesh, view);
-				}, gl->renderer);
-			}
-		}
-
 		void draw_sf(sf::RenderTarget& target) const
 		{
-			if (const auto* sf_drawable = std::get_if<SfDrawable>(&renderable))
-			{
-				if (!*sf_drawable) return;
+			if (!renderable) return;
 
-				auto states = sfml_states;
-				states.transform = transformable.getTransform() * sfml_states.transform;
-				target.draw(**sf_drawable, states);
-			}
-		}
-
-		template <typename T, typename... Args> requires std::derived_from<T, sf::Drawable>
-		[[nodiscard]]
-		static GameObject make_sf(Args&&... args)
-		{
-			GameObject obj;
-			obj.renderable = std::make_unique<T>(std::forward<Args>(args)...);
-			return obj;
-		}
-
-		template <typename RendererT> requires (
-			std::same_as<RendererT, terrain::TerrainRenderable> ||
-			std::same_as<RendererT, water::WaterRenderable>)
-		[[nodiscard]]
-		static GameObject make_gl(const gfx::Mesh& mesh, RendererT& renderer)
-		{
-			GameObject obj;
-			obj.renderable = GlRenderable{ &mesh, &renderer };
-			return obj;
+			sf::RenderStates states{ sf::RenderStates::Default };
+			states.transform = transformable.getTransform();
+			target.draw(*renderable, states);
 		}
 	};
 }

@@ -29,26 +29,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -178,8 +178,10 @@
     <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\player\Player.cpp" />
+    <ClCompile Include="src\tools\SeedTool.cpp" />
     <ClCompile Include="src\tools\TerrainSculptTool.cpp" />
     <ClCompile Include="src\tools\TerrainTargetResolver.cpp" />
+    <ClCompile Include="src\tools\TerrainToolHudRenderer.cpp" />
     <ClCompile Include="src\tools\TerrainToolController.cpp" />
     <ClCompile Include="src\tools\WaterTool.cpp" />
     <ClCompile Include="src\gfx\Mesh.cpp" />
@@ -211,23 +213,29 @@
     <ClInclude Include="src\Game.hpp" />
     <ClInclude Include="src\GameObject.hpp" />
     <ClInclude Include="src\player\Player.hpp" />
+    <ClInclude Include="src\tools\SeedTool.hpp" />
+    <ClInclude Include="src\tools\TerrainToolHudRenderer.hpp" />
     <ClInclude Include="src\tools\TerrainSculptTool.hpp" />
     <ClInclude Include="src\tools\TerrainTargetResolver.hpp" />
     <ClInclude Include="src\tools\TerrainToolController.hpp" />
     <ClInclude Include="src\tools\ToolStrategy.hpp" />
     <ClInclude Include="src\tools\WaterTool.hpp" />
     <ClInclude Include="src\gfx\ComputeDispatcher.hpp" />
+    <ClInclude Include="src\gfx\AlphaBlendPass.hpp" />
     <ClInclude Include="src\gfx\Mesh.hpp" />
+    <ClInclude Include="src\gfx\MeshBuilders.hpp" />
     <ClInclude Include="src\gfx\Projection.hpp" />
     <ClInclude Include="src\gfx\Shader.hpp" />
     <ClInclude Include="src\gfx\SSBO.hpp" />
     <ClInclude Include="src\gfx\Texture2D.hpp" />
     <ClInclude Include="src\pch.hpp" />
     <ClInclude Include="src\terrain\ChunkSettings.hpp" />
+    <ClInclude Include="src\terrain\TerrainConstants.hpp" />
     <ClInclude Include="src\terrain\TerrainCollider.hpp" />
     <ClInclude Include="src\terrain\TerrainChunk.hpp" />
     <ClInclude Include="src\terrain\TerrainContour.hpp" />
     <ClInclude Include="src\terrain\TerrainGenerator.hpp" />
+    <ClInclude Include="src\terrain\TerrainGridMath.hpp" />
     <ClInclude Include="src\terrain\PlanetTerrain.hpp" />
     <ClInclude Include="src\terrain\TerrainRenderable.hpp" />
     <ClInclude Include="src\water\WaterRenderable.hpp" />

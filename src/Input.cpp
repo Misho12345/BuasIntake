@@ -3,14 +3,36 @@
 
 namespace game
 {
+	namespace
+	{
+		template <typename KeyT, typename EventT, typename CallbackMapT, typename VoidCallbackMapT>
+		void dispatch_keyed_callbacks(
+			CallbackMapT& callbacks,
+			VoidCallbackMapT& void_callbacks,
+			const KeyT key,
+			const EventT& event)
+		{
+			if (const auto callback_it = callbacks.find(key); callback_it != callbacks.end())
+			{
+				for (auto& callback : callback_it->second) callback(event);
+			}
+
+			if (const auto void_callback_it = void_callbacks.find(key); void_callback_it != void_callbacks.end())
+			{
+				for (auto& callback : void_callback_it->second) callback();
+			}
+		}
+
+		template <typename EventT, typename CallbackListT>
+		void dispatch_callbacks(CallbackListT& callbacks, const EventT& event)
+		{
+			for (auto& callback : callbacks) callback(event);
+		}
+	}
+
 	void Input::on(const Key key, callback<Event::KeyPressed> callback)
 	{
 		instance().key_pressed_callbacks_[key].push_back(std::move(callback));
-	}
-
-	void Input::on(const Key key, callback<Event::KeyReleased> callback)
-	{
-		instance().key_released_callbacks_[key].push_back(std::move(callback));
 	}
 
 
@@ -19,20 +41,10 @@ namespace game
 		instance().mouse_button_pressed_callbacks_[btn].push_back(std::move(callback));
 	}
 
-	void Input::on(const MouseButton btn, callback<Event::MouseButtonReleased> callback)
-	{
-		instance().mouse_button_released_callbacks_[btn].push_back(std::move(callback));
-	}
-
 
 	void Input::on(callback<Event::MouseWheelScrolled> callback)
 	{
 		instance().mouse_wheel_scrolled_callbacks_.push_back(std::move(callback));
-	}
-
-	void Input::on(callback<Event::MouseMoved> callback)
-	{
-		instance().mouse_moved_callbacks_.push_back(std::move(callback));
 	}
 
 
@@ -71,38 +83,27 @@ namespace game
 
 			if (const auto* key = event->getIf<Event::KeyPressed>())
 			{
-				for (auto& callback : key_pressed_callbacks_[key->code]) callback(*key);
-				for (auto& callback : key_pressed_callbacks_void_[key->code]) callback();
-			}
-
-			if (const auto* key = event->getIf<Event::KeyReleased>())
-			{
-				for (auto& callback : key_released_callbacks_[key->code]) callback(*key);
-				for (auto& callback : key_released_callbacks_void_[key->code]) callback();
+				dispatch_keyed_callbacks(
+					key_pressed_callbacks_,
+					key_pressed_callbacks_void_,
+					key->code,
+					*key);
 			}
 
 
 			if (const auto* btn = event->getIf<Event::MouseButtonPressed>())
 			{
-				for (auto& callback : mouse_button_pressed_callbacks_[btn->button]) callback(*btn);
-				for (auto& callback : mouse_button_pressed_callbacks_void_[btn->button]) callback();
-			}
-
-			if (const auto* btn = event->getIf<Event::MouseButtonReleased>())
-			{
-				for (auto& callback : mouse_button_released_callbacks_[btn->button]) callback(*btn);
-				for (auto& callback : mouse_button_released_callbacks_void_[btn->button]) callback();
+				dispatch_keyed_callbacks(
+					mouse_button_pressed_callbacks_,
+					mouse_button_pressed_callbacks_void_,
+					btn->button,
+					*btn);
 			}
 
 
 			if (const auto* scroll = event->getIf<Event::MouseWheelScrolled>())
 			{
-				for (auto& callback : mouse_wheel_scrolled_callbacks_) callback(*scroll);
-			}
-
-			if (const auto* moved = event->getIf<Event::MouseMoved>())
-			{
-				for (auto& callback : mouse_moved_callbacks_) callback(*moved);
+				dispatch_callbacks(mouse_wheel_scrolled_callbacks_, *scroll);
 			}
 		}
 

@@ -18,6 +18,7 @@ namespace game::tools
 			MouseButton button) override;
 
 		void upgrade();
+		void clear_storage();
 
 		[[nodiscard]] std::size_t tier_index() const;
 		[[nodiscard]] std::uint32_t stored_ground() const;

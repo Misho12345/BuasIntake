@@ -1,6 +1,7 @@
 #include "pch.hpp"
 #include "WaterRenderable.hpp"
 
+#include "gfx/AlphaBlendPass.hpp"
 #include "gfx/Projection.hpp"
 
 namespace game::water
@@ -24,10 +25,8 @@ namespace game::water
 	{
 		if (mesh.empty() || !shader_.valid()) return;
 
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		const gfx::ScopedAlphaBlendPass blend_pass{};
+		static_cast<void>(blend_pass);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -37,7 +36,5 @@ namespace game::water
 		mesh.draw();
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		glUseProgram(0);
 	}
 }

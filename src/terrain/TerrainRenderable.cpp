@@ -1,7 +1,9 @@
 #include "pch.hpp"
 #include "TerrainRenderable.hpp"
 
+#include "gfx/AlphaBlendPass.hpp"
 #include "gfx/Projection.hpp"
+#include "terrain/TerrainConstants.hpp"
 
 namespace game::terrain
 {
@@ -9,7 +11,6 @@ namespace game::terrain
 	{
 		constexpr float rock_blend_start_depth = 0.12f;
 		constexpr float rock_blend_end_depth = 0.52f;
-		constexpr float hard_rock_start_depth = 0.60f;
 	}
 
 	TerrainRenderable::TerrainRenderable() : shader_{
@@ -20,11 +21,7 @@ namespace game::terrain
 	{
 		auto load_texture = [](sf::Texture& texture, const char* path)
 		{
-			if (!texture.loadFromFile(path))
-			{
-				std::println(std::cerr, "Failed to load {}", path);
-				return;
-			}
+			if (!texture.loadFromFile(path)) return;
 
 			texture.setRepeated(true);
 			texture.setSmooth(true);
@@ -39,10 +36,8 @@ namespace game::terrain
 	{
 		if (mesh.empty() || !shader_.valid()) return;
 
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_CULL_FACE);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		const gfx::ScopedAlphaBlendPass blend_pass{};
+		static_cast<void>(blend_pass);
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
@@ -60,7 +55,7 @@ namespace game::terrain
 		shader_.set_uniform("uTextureScale", 0.085f);
 		shader_.set_uniform("uRockBlendStartDepth", rock_blend_start_depth);
 		shader_.set_uniform("uRockBlendEndDepth", rock_blend_end_depth);
-		shader_.set_uniform("uHardRockStartDepth", hard_rock_start_depth);
+		shader_.set_uniform("uHardRockStartDepth", constants::hard_rock_depth_threshold);
 		mesh.draw();
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -71,6 +66,5 @@ namespace game::terrain
 		glBindTexture(GL_TEXTURE_2D, 0);
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, 0);
-		glUseProgram(0);
 	}
 }

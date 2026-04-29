@@ -14,27 +14,18 @@ namespace game
 
 	public:
 		static void on(Key key, callback<Event::KeyPressed> callback);
-		static void on(Key key, callback<Event::KeyReleased> callback);
 
 		template <typename T> requires std::same_as<T, Event::KeyPressed>
 		static void on(Key key, callback_void callback);
 
-		template <typename T> requires std::same_as<T, Event::KeyReleased>
-		static void on(Key key, callback_void callback);
-
 
 		static void on(MouseButton btn, callback<Event::MouseButtonPressed> callback);
-		static void on(MouseButton btn, callback<Event::MouseButtonReleased> callback);
 
 		template <typename T> requires std::same_as<T, Event::MouseButtonPressed>
 		static void on(MouseButton btn, callback_void callback);
 
-		template <typename T> requires std::same_as<T, Event::MouseButtonReleased>
-		static void on(MouseButton btn, callback_void callback);
-
 
 		static void on(callback<Event::MouseWheelScrolled> callback);
-		static void on(callback<Event::MouseMoved> callback);
 
 		[[nodiscard]] static bool is_pressed(Key key);
 		[[nodiscard]] static bool is_pressed(MouseButton button);
@@ -63,21 +54,16 @@ namespace game
 
 
 		callbacks_map<Key, Event::KeyPressed> key_pressed_callbacks_;
-		callbacks_map<Key, Event::KeyReleased> key_released_callbacks_;
 
 		callbacks_void_map<Key> key_pressed_callbacks_void_;
-		callbacks_void_map<Key> key_released_callbacks_void_;
 
 
 		callbacks_map<MouseButton, Event::MouseButtonPressed> mouse_button_pressed_callbacks_;
-		callbacks_map<MouseButton, Event::MouseButtonReleased> mouse_button_released_callbacks_;
 
 		callbacks_void_map<MouseButton> mouse_button_pressed_callbacks_void_;
-		callbacks_void_map<MouseButton> mouse_button_released_callbacks_void_;
 
 
 		callbacks<Event::MouseWheelScrolled> mouse_wheel_scrolled_callbacks_;
-		callbacks<Event::MouseMoved> mouse_moved_callbacks_;
 
 		friend class Game;
 	};
@@ -89,22 +75,10 @@ namespace game
 		instance().key_pressed_callbacks_void_[key].push_back(std::move(callback));
 	}
 
-	template <typename T> requires std::same_as<T, Event::KeyReleased>
-	void Input::on(const Key key, callback_void callback)
-	{
-		instance().key_released_callbacks_void_[key].push_back(std::move(callback));
-	}
-
 
 	template <typename T> requires std::same_as<T, Event::MouseButtonPressed>
 	void Input::on(const MouseButton btn, callback_void callback)
 	{
 		instance().mouse_button_pressed_callbacks_void_[btn].push_back(std::move(callback));
-	}
-
-	template <typename T> requires std::same_as<T, Event::MouseButtonReleased>
-	void Input::on(const MouseButton btn, callback_void callback)
-	{
-		instance().mouse_button_released_callbacks_void_[btn].push_back(std::move(callback));
 	}
 }

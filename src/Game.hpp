@@ -29,8 +29,32 @@ namespace game
 		static void quit();
 
 	private:
+		struct CameraSettings final
+		{
+			vec2 world_span{ 36.0f, 27.0f };
+			float min_zoom{ 0.05f };
+			float max_zoom{ 3.5f };
+			float follow_threshold{ 3.25f };
+			float follow_smoothing{ 10.0f };
+			float recenter_smoothing{ 5.0f };
+			float rotation_smoothing{ 7.5f };
+		};
+
+		struct CameraState final
+		{
+			float zoom{ 1.0f };
+			bool initialized{ false };
+			vec2 focus_world{ 0.0f, 0.0f };
+			float rotation_radians{ 0.0f };
+		};
+
 		void update(float dt);
-		void render_opengl() const;
+		void initialize_window();
+		bool initialize_graphics();
+		void initialize_world_state();
+		void destroy_world();
+		void destroy_graphics();
+		void render_opengl();
 		void render_sfml();
 		void create_world();
 		void create_player();
@@ -39,8 +63,11 @@ namespace game
 		void sync_camera_to_player(float dt);
 		void update_terrain_editing(float dt);
 		void export_current_chunk_field();
-		void handle_water_input(MouseButton button);
+		void handle_tool_mouse_pressed(MouseButton button);
+		void handle_resize(uvec2 size);
+		void apply_viewport(uvec2 size) const;
 		void update_world_view(uvec2 size);
+		[[nodiscard]] sf::View make_ui_view() const;
 		std::optional<tools::TerrainToolContext> terrain_tool_context();
 		vec2 mouse_world_position() const;
 		vec2 player_up_direction() const;
@@ -60,21 +87,8 @@ namespace game
 		player::PlayerConfig player_config_{};
 
 		float physics_accumulator_{ 0.0f };
-		vec2 camera_world_span_{ 36.0f, 27.0f };
-
-		float camera_zoom_{ 1.0f };
-		float min_camera_zoom_{ 0.05f };
-		float max_camera_zoom_{ 3.5f };
-
-		bool  camera_initialized_{ false };
-
-		vec2 camera_focus_world_{ 0.0f, 0.0f };
-
-		float camera_rotation_radians_{ 0.0f };
-		float camera_follow_threshold_{ 3.25f };
-		float camera_follow_smoothing_{ 10.0f };
-		float camera_recenter_smoothing_{ 5.0f };
-		float camera_rotation_smoothing_{ 7.5f };
+		CameraSettings camera_settings_{};
+		CameraState camera_state_{};
 
 		tools::TerrainToolController terrain_tools_{};
 

@@ -20,8 +20,6 @@ namespace game::terrain
 		{
 			std::vector<vec2> mesh_vertices{};
 			std::vector<std::uint32_t> mesh_indices{};
-			std::vector<std::vector<vec2>> loops{};
-			std::vector<std::vector<vec2>> open_paths{};
 			std::vector<std::vector<vec2>> collider_loops{};
 			std::vector<std::vector<vec2>> collider_paths{};
 			std::vector<vec2> primary_contour{};
