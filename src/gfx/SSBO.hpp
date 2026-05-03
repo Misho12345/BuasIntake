@@ -51,7 +51,7 @@ namespace game::gfx
 			const auto byte_count = sizeof(T) * count;
 			allocate_storage_bytes(
 				byte_count,
-				GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT,
+				GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT | GL_DYNAMIC_STORAGE_BIT,
 				GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
 		}
 
@@ -65,7 +65,12 @@ namespace game::gfx
 		void write(const std::span<const T> data, const std::size_t offset_elements = 0)
 		{
 			const auto offset = offset_elements * sizeof(T);
-			assert(offset + data.size_bytes() <= size_bytes_ && "Write exceeds buffer size");
+			if (offset + data.size_bytes() > size_bytes_)
+			{
+				Log::error("SSBO write exceeds buffer size: offset={}, bytes={}, capacity={}", offset, data.size_bytes(), size_bytes_);
+				return;
+			}
+
 			glNamedBufferSubData(id_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(data.size_bytes()), data.data());
 		}
 
@@ -77,7 +82,12 @@ namespace game::gfx
 			if (count == 0) return output;
 
 			const auto offset = offset_elements * sizeof(T);
-			assert(offset + sizeof(T) * count <= size_bytes_ && "Read exceeds buffer size");
+			if (offset + sizeof(T) * count > size_bytes_)
+			{
+				Log::error("SSBO read exceeds buffer size: offset={}, bytes={}, capacity={}", offset, sizeof(T) * count, size_bytes_);
+				return {};
+			}
+
 			if (mapped_ptr_ != nullptr)
 			{
 				std::memcpy(output.data(), static_cast<const std::byte*>(mapped_ptr_) + offset, sizeof(T) * count);
@@ -93,9 +103,14 @@ namespace game::gfx
 		[[nodiscard]]
 		T read_one(const std::size_t offset_elements = 0) const
 		{
-			T          output{};
+			T output{};
 			const auto offset = offset_elements * sizeof(T);
-			assert(offset + sizeof(T) <= size_bytes_ && "Read exceeds buffer size");
+			if (offset + sizeof(T) > size_bytes_)
+			{
+				Log::error("SSBO single-value read exceeds buffer size: offset={}, bytes={}, capacity={}", offset, sizeof(T), size_bytes_);
+				return output;
+			}
+
 			if (mapped_ptr_ != nullptr)
 			{
 				std::memcpy(&output, static_cast<const std::byte*>(mapped_ptr_) + offset, sizeof(T));
@@ -104,6 +119,7 @@ namespace game::gfx
 			{
 				glGetNamedBufferSubData(id_, static_cast<GLintptr>(offset), static_cast<GLsizeiptr>(sizeof(T)), &output);
 			}
+
 			return output;
 		}
 
@@ -135,7 +151,12 @@ namespace game::gfx
 
 		void resize_bytes(const std::size_t byte_count, const void* data = nullptr)
 		{
-			assert(!immutable_storage_ && "Cannot resize immutable SSBO storage");
+			if (immutable_storage_)
+			{
+				Log::error("Cannot resize immutable SSBO storage");
+				return;
+			}
+
 			size_bytes_ = byte_count;
 			glNamedBufferData(id_, static_cast<GLsizeiptr>(byte_count), data, usage_);
 		}

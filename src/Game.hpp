@@ -33,7 +33,7 @@ namespace game
 		{
 			vec2 world_span{ 36.0f, 27.0f };
 			float min_zoom{ 0.05f };
-			float max_zoom{ 3.5f };
+			float max_zoom{ 7.5f };
 			float follow_threshold{ 3.25f };
 			float follow_smoothing{ 10.0f };
 			float recenter_smoothing{ 5.0f };
@@ -49,15 +49,15 @@ namespace game
 		};
 
 		void update(float dt);
-		void initialize_window();
-		bool initialize_graphics();
-		void initialize_world_state();
+		[[nodiscard]] Result<void> initialize_window();
+		[[nodiscard]] Result<void> initialize_graphics();
+		[[nodiscard]] Result<void> initialize_world_state();
 		void destroy_world();
 		void destroy_graphics();
 		void render_opengl();
 		void render_sfml();
-		void create_world();
-		void create_player();
+		[[nodiscard]] Result<void> create_world();
+		[[nodiscard]] Result<void> create_player();
 		void configure_input();
 		void step_physics(float dt);
 		void sync_camera_to_player(float dt);
@@ -82,6 +82,7 @@ namespace game
 		b2WorldId world_{ b2_nullWorldId };
 
 		std::optional<terrain::PlanetTerrain> terrain_{ std::nullopt };
+		vec2 initial_spawn_position_{ 0.0f, 0.0f };
 
 		player::Player player_{};
 		player::PlayerConfig player_config_{};
@@ -92,6 +93,7 @@ namespace game
 
 		tools::TerrainToolController terrain_tools_{};
 
+		bool owns_instance_{ false };
 		bool  gl_loaded_{ false };
 		bool failed_{ false };
 	};

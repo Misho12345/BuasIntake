@@ -3,23 +3,24 @@
 
 namespace game::tools
 {
-	void TerrainToolController::initialize_ui_assets()
+	Result<void> TerrainToolController::initialize_ui_assets()
 	{
-		if (ui_assets_ready_) return;
+		if (ui_assets_ready_) return {};
 
 		if (!tools_texture_.loadFromFile("assets/images/tools.png"))
 		{
-			throw std::runtime_error("Failed to load tools sprite sheet");
+			return fail("Failed to load tools sprite sheet 'assets/images/tools.png'");
 		}
 		tools_texture_.setSmooth(false);
 
 		if (!seed_icon_texture_.loadFromFile("assets/images/vegetation/ground_plants.png"))
 		{
-			throw std::runtime_error("Failed to load seed icon texture");
+			return fail("Failed to load seed icon texture 'assets/images/vegetation/ground_plants.png'");
 		}
 		seed_icon_texture_.setSmooth(false);
 
 		ui_assets_ready_ = true;
+		return {};
 	}
 
 	void TerrainToolController::update(const TerrainToolContext& context, const float dt)
@@ -48,7 +49,7 @@ namespace game::tools
 			return;
 		}
 
-		const int slot_count = static_cast<int>(hotbar_slot_count);
+		constexpr int slot_count = hotbar_slot_count;
 		const int direction = delta > 0.0f ? 1 : -1;
 		const int current = static_cast<int>(selected_slot_);
 		selected_slot_ = static_cast<HotbarSlot>((current + direction + slot_count) % slot_count);
@@ -61,9 +62,10 @@ namespace game::tools
 		else if (!is_seed_slot_selected()) terrain_tool_.upgrade();
 	}
 
-	void TerrainToolController::handle_zero_shortcut()
+	void TerrainToolController::handle_zero_shortcut(const TerrainToolContext& context)
 	{
 		if (is_water_slot_selected()) water_tool_.fill_to_capacity();
+		else if (is_seed_slot_selected() && context.terrain != nullptr) context.terrain->grant_seeds(10u);
 		else if (!is_seed_slot_selected()) terrain_tool_.clear_storage();
 	}
 
@@ -90,7 +92,14 @@ namespace game::tools
 	{
 		if (context.terrain == nullptr) return;
 
-		static_cast<void>(context.terrain->save_chunk_field_image(context.player_world_position));
+		if (const auto export_result = context.terrain->save_chunk_field_image(context.player_world_position); !export_result)
+		{
+			Log::warn("{}", export_result.error().message);
+		}
+		else
+		{
+			Log::info("Saved chunk field image to '{}'", export_result->string());
+		}
 	}
 
 	void TerrainToolController::sync_active_tool()
@@ -140,7 +149,8 @@ namespace game::tools
 		const std::optional<float> overlay_ratio =
 			water_tool_.is_placement_mode() && water_tool_.current_capacity() > 0u
 			? std::optional<float>{
-				static_cast<float>(water_tool_.desired_place_amount()) / static_cast<float>(water_tool_.current_capacity())
+				static_cast<float>(water_tool_.desired_place_amount()) / 
+					static_cast<float>(water_tool_.current_capacity())
 			}
 			: std::nullopt;
 

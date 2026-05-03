@@ -13,13 +13,6 @@ uniform vec2  uCellSize;
 uniform uint  uSeed;
 uniform float uPlanetRadius;
 
-vec2 chunk_origin()
-{
-	return uWorldCenter +
-		(vec2(float(uChunkCoord.x), float(uChunkCoord.y)) - 0.5 * vec2(float(uChunkGridSize.x), float(uChunkGridSize.y))) *
-		uChunkSize;
-}
-
 float hash(vec2 p)
 {
 	float seed = float(uSeed) * 0.0009765625;
@@ -103,7 +96,8 @@ void main()
 	vec2 direction = distance_from_center > 1e-5 ? offset / distance_from_center : vec2(0.0, 1.0);
 
 	float target_radius = surface_radius(direction);
-	float density = target_radius - distance_from_center;
+	float base_density = target_radius - distance_from_center;
+	float density = base_density;
 
 	float shell_mask = smoothstep(7.5, 0.0, abs(density));
 	float ridge_detail = ridged_fbm(world * 0.055 + vec2(0.019, 0.023) * uSeed);
@@ -113,6 +107,7 @@ void main()
 	density += (ridge_detail - 0.42) * 4.75 * shell_mask;
 	density += (medium_detail - 0.5) * 1.85 * shell_mask;
 	density += (micro_detail - 0.5) * 0.75 * shell_mask;
+	density = clamp(density, -1.0, max(1.0, base_density));
 
-	imageStore(outImage, pixel, vec4(density, 0.0, 0.0, 0.0));
+	imageStore(outImage, pixel, vec4(density, -abs(density), 0.0, 0.0));
 }

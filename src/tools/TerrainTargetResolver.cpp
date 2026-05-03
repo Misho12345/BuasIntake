@@ -3,9 +3,9 @@
 
 namespace game::tools
 {
-	namespace
-	{
-		constexpr float max_tool_reach = 5.5f;
+		namespace
+		{
+			constexpr float max_tool_reach = 5.5f;
 
 		struct ToolRayCastContext final
 		{
@@ -68,6 +68,57 @@ namespace game::tools
 
 			return ray_context.hit_point;
 		}
+
+		std::optional<vec2> find_water_point_along_tool_line(const TerrainToolContext& context)
+		{
+			if (context.terrain == nullptr) return std::nullopt;
+
+			const auto translation = tool_ray_translation(context);
+			if (!translation.has_value()) return std::nullopt;
+
+			const vec2 start = context.player_world_position;
+			const vec2 end{
+				start.x + translation->x,
+				start.y + translation->y
+			};
+			const float ray_distance = translation->length();
+			if (ray_distance <= std::numeric_limits<float>::epsilon()) return std::nullopt;
+
+			const float step_length = std::max(std::min(context.terrain->terrain_cell_size().x, context.terrain->terrain_cell_size().y) * 0.35f, 0.05f);
+			const int step_count = std::max(2, static_cast<int>(std::ceil(ray_distance / step_length)));
+
+			vec2 previous = start;
+			bool previous_in_water = context.terrain->contains_water_volume(previous);
+			for (int step = 1; step <= step_count; ++step)
+			{
+				const float t = static_cast<float>(step) / static_cast<float>(step_count);
+				const vec2 current = lerp_vec2(start, end, t);
+				const bool current_in_water = context.terrain->contains_water_volume(current);
+				if (!current_in_water)
+				{
+					previous = current;
+					previous_in_water = false;
+					continue;
+				}
+
+				if (!previous_in_water)
+				{
+					vec2 low = previous;
+					vec2 high = current;
+					for (int i = 0; i < 6; ++i)
+					{
+						const vec2 mid = lerp_vec2(low, high, 0.5f);
+						if (context.terrain->contains_water_volume(mid)) high = mid;
+						else low = mid;
+					}
+					return high;
+				}
+
+				return current;
+			}
+
+			return std::nullopt;
+		}
 	}
 
 	std::optional<vec2> TerrainTargetResolver::clamped_tool_world_position(const TerrainToolContext& context) const
@@ -88,7 +139,21 @@ namespace game::tools
 
 	std::optional<vec2> TerrainTargetResolver::water_tool_target_world_position(const TerrainToolContext& context) const
 	{
-		if (const auto hit = terrain_tool_hit_world_position(context); hit.has_value()) return hit;
-		return clamped_tool_world_position(context);
+		if (const auto water_hit = find_water_point_along_tool_line(context); water_hit.has_value()) return water_hit;
+
+		const auto clamped_position = clamped_tool_world_position(context);
+		if (context.terrain != nullptr && clamped_position.has_value() && context.terrain->contains_water_volume(*clamped_position))
+		{
+			return clamped_position;
+		}
+
+		const auto hit = terrain_tool_hit_world_position(context);
+		if (context.terrain != nullptr && hit.has_value() && context.terrain->contains_water_volume(*hit))
+		{
+			return hit;
+		}
+
+		if (hit.has_value()) return hit;
+		return clamped_position;
 	}
 }

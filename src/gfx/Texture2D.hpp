@@ -16,7 +16,6 @@ namespace game::gfx
 	{
 	public:
 		Texture2D() = default;
-		Texture2D(uvec2 size, TextureFormat format);
 		~Texture2D();
 
 		Texture2D(const Texture2D&) = delete;
@@ -24,10 +23,12 @@ namespace game::gfx
 		Texture2D(Texture2D&& other) noexcept;
 		Texture2D& operator=(Texture2D&& other) noexcept;
 
+		[[nodiscard]] Result<void> create(uvec2 size, TextureFormat format);
 		void bind_image(GLuint unit, GLenum access) const;
 
 		[[nodiscard]] GLuint native_handle() const;
 		[[nodiscard]] uvec2 size() const;
+		[[nodiscard]] bool valid() const;
 
 		[[nodiscard]] static GLenum to_gl_format(TextureFormat format);
 

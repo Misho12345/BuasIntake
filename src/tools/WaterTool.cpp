@@ -55,9 +55,14 @@ namespace game::tools
 		if (!world_position.has_value()) return;
 
 		const auto placed = context.terrain->place_water(*world_position, std::min(desired_place_amount_, current_amount_));
-		if (placed == 0u) return;
+		if (!placed)
+		{
+			Log::warn("{}", placed.error().message);
+			return;
+		}
+		if (*placed == 0u) return;
 
-		current_amount_ -= std::min(current_amount_, placed);
+		current_amount_ -= std::min(current_amount_, *placed);
 		cancel_placement();
 	}
 
@@ -70,7 +75,13 @@ namespace game::tools
 		if (!world_position.has_value()) return;
 
 		const auto picked_up = context.terrain->pickup_water(*world_position, free_space);
-		current_amount_ = std::min(current_capacity(), current_amount_ + picked_up);
+		if (!picked_up)
+		{
+			Log::warn("{}", picked_up.error().message);
+			return;
+		}
+
+		current_amount_ = std::min(current_capacity(), current_amount_ + *picked_up);
 	}
 
 	void WaterTool::adjust_placement_amount(const float delta)
@@ -112,26 +123,37 @@ namespace game::tools
 		if (!target_position.has_value()) return;
 
 		const auto preview = context.terrain->build_water_preview_mesh(*target_position, desired_place_amount_);
-		if (!preview.has_value() || preview->future_vertices.empty() || preview->future_indices.empty()) return;
+		if (!preview)
+		{
+			Log::warn("{}", preview.error().message);
+			return;
+		}
+		if (!preview->has_value() || (*preview)->future_vertices.empty() || (*preview)->future_indices.empty()) return;
 
 		gfx::Mesh current_mesh;
 		gfx::Mesh future_mesh;
 
 		const auto current_vertices = gfx::build_tinted_vertices(
-			preview->current_vertices,
+			(*preview)->current_vertices,
 			{ 232, 248, 255, 128 });
 		const auto future_vertices = gfx::build_tinted_vertices(
-			preview->future_vertices,
+			(*preview)->future_vertices,
 			{ 214, 252, 255, 96 });
 
 		if (!preview_renderable_.has_value())
 		{
 			preview_renderable_.emplace();
+			if (const auto initialize_result = preview_renderable_->initialize(); !initialize_result)
+			{
+				Log::error(initialize_result.error());
+				preview_renderable_.reset();
+				return;
+			}
 		}
 		auto& preview_renderable = *preview_renderable_;
 
-		current_mesh.set_data(current_vertices, preview->current_indices);
-		future_mesh.set_data(future_vertices, preview->future_indices);
+		current_mesh.set_data(current_vertices, (*preview)->current_indices);
+		future_mesh.set_data(future_vertices, (*preview)->future_indices);
 
 		glEnable(GL_STENCIL_TEST);
 		glStencilMask(0xFF);

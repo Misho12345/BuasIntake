@@ -1,7 +1,6 @@
 #include "pch.hpp"
 #include "TerrainContour.hpp"
 
-#include "terrain/TerrainConstants.hpp"
 #include "terrain/TerrainGridMath.hpp"
 
 namespace game::terrain
@@ -237,33 +236,6 @@ namespace game::terrain
 		}
 
 		return simplified;
-	}
-
-	vec2 TerrainContour::calculate_spawn(const std::vector<vec2>& contour, const ChunkSettings& settings)
-	{
-		if (contour.empty()) return { 0.0f, 0.0f };
-
-		float top = -std::numeric_limits<float>::infinity();
-		for (const auto& point : contour)
-		{
-			top = std::max(top, point.y);
-		}
-
-		float x_sum = 0.0f;
-		std::size_t x_count = 0;
-		const float band = cell_size(settings).y * 4.0f;
-
-		for (const auto& point : contour)
-		{
-			if (top - point.y <= band)
-			{
-				x_sum += point.x;
-				++x_count;
-			}
-		}
-
-		const float spawn_x = x_count > 0 ? x_sum / static_cast<float>(x_count) : contour.front().x;
-		return { spawn_x, top + constants::player_spawn_height_offset };
 	}
 
 	TerrainContour::ScoredResult TerrainContour::score_and_filter(TerrainGenerator::RawPipelineResult raw, const ChunkSettings& settings)

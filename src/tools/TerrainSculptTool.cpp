@@ -6,6 +6,37 @@
 
 namespace game::tools
 {
+		namespace
+		{
+			constexpr vec2 placement_blocker_padding{ 1.15f, 0.55f };
+
+			std::optional<terrain::GroundBrushBlocker> make_player_ground_brush_blocker(
+				const TerrainToolContext& context)
+			{
+			if (context.terrain == nullptr || !b2Body_IsValid(context.player_body)) return std::nullopt;
+
+			const b2AABB player_bounds = b2Body_ComputeAABB(context.player_body);
+			const vec2 up = normalize_vec2(
+				subtract_vec2(context.player_world_position, context.terrain->planet_center()),
+				{ 0.0f, 1.0f });
+			const vec2 right{ up.y, -up.x };
+			const vec2 extents = {
+				(player_bounds.upperBound.x - player_bounds.lowerBound.x) * 0.5f,
+				(player_bounds.upperBound.y - player_bounds.lowerBound.y) * 0.5f
+			};
+
+			return terrain::GroundBrushBlocker{
+				.center = context.player_world_position,
+				.right = right,
+				.up = up,
+				.half_extents = {
+					std::abs(right.x) * extents.x + std::abs(right.y) * extents.y + placement_blocker_padding.x,
+					std::abs(up.x) * extents.x + std::abs(up.y) * extents.y + placement_blocker_padding.y
+				}
+			};
+		}
+		}
+
 	void TerrainSculptTool::deactivate()
 	{
 		reset_brush_state(dig_state_);
@@ -63,18 +94,24 @@ namespace game::tools
 	{
 		static constexpr std::array<ToolTier, 3> terrain_tool_tiers{{
 			ToolTier{
-				.dig = { 1.5f, -1.45f, 22.0f, 0.6f, 1.85f },
-				.place = { 1.5f, 1.45f, 22.0f, 0.6f, 1.85f },
+				.dig = { .radius         = 1.5f, .signed_strength_per_stamp = -1.45f, .stamps_per_second = 22.0f,
+				         .spacing_factor = 0.6f, .falloff_exponent          = 1.85f },
+				.place = { .radius         = 1.5f, .signed_strength_per_stamp = 1.45f, .stamps_per_second = 22.0f,
+				           .spacing_factor = 0.6f, .falloff_exponent          = 1.85f },
 				.capacity = 6000u
 			},
 			ToolTier{
-				.dig = { 1.92f, -1.75f, 38.0f, 0.42f, 1.65f },
-				.place = { 1.92f, 1.75f, 38.0f, 0.42f, 1.65f },
+				.dig = { .radius         = 1.92f, .signed_strength_per_stamp = -1.75f, .stamps_per_second = 38.0f,
+				         .spacing_factor = 0.42f, .falloff_exponent          = 1.65f },
+				.place = { .radius         = 1.92f, .signed_strength_per_stamp = 1.75f, .stamps_per_second = 38.0f,
+				           .spacing_factor = 0.42f, .falloff_exponent          = 1.65f },
 				.capacity = 12000u
 			},
 			ToolTier{
-				.dig = { 2.35f, -2.15f, 68.0f, 0.34f, 1.48f },
-				.place = { 2.35f, 2.15f, 68.0f, 0.34f, 1.48f },
+				.dig = { .radius         = 2.35f, .signed_strength_per_stamp = -2.15f, .stamps_per_second = 68.0f,
+				         .spacing_factor = 0.34f, .falloff_exponent          = 1.48f },
+				.place = { .radius         = 2.35f, .signed_strength_per_stamp = 2.15f, .stamps_per_second = 68.0f,
+				           .spacing_factor = 0.34f, .falloff_exponent          = 1.48f },
 				.capacity = 22000u
 			}
 		}};
@@ -112,13 +149,17 @@ namespace game::tools
 			const auto budget = digging ? capacity() - std::min(stored_ground_, capacity()) : stored_ground_;
 			if (budget == 0u) return;
 
+			const auto blocker = digging ? std::nullopt : make_player_ground_brush_blocker(context);
+			const auto edit = terrain::TerrainGenerator::TerrainEdit::make(
+				position,
+				config.radius,
+				config.signed_strength_per_stamp,
+				config.falloff_exponent);
+
 			const auto units = context.terrain->apply_ground_brush(
-				terrain::TerrainGenerator::TerrainEdit::make(
-					position,
-					config.radius,
-					config.signed_strength_per_stamp,
-					config.falloff_exponent),
-				budget);
+				edit,
+				budget,
+				blocker);
 
 			if (units == 0u) return;
 

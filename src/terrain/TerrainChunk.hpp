@@ -17,6 +17,7 @@ namespace game::terrain
 	public:
 		using TerrainEdit = TerrainGenerator::TerrainEdit;
 		using FieldSample = TerrainGenerator::FieldSample;
+		using TerrainEditSummary = TerrainGenerator::TerrainEditSummary;
 
 		explicit TerrainChunk(b2WorldId world_id, const ChunkSettings& settings = {});
 		~TerrainChunk() = default;
@@ -26,20 +27,27 @@ namespace game::terrain
 		TerrainChunk(TerrainChunk&&) noexcept = default;
 		TerrainChunk& operator=(TerrainChunk&&) noexcept = default;
 
+		[[nodiscard]] Result<void> initialize();
 		void draw_gl(const sf::View& view) const;
 		void draw_water_gl(const sf::View& view) const;
-		void dispatch_generation();
-		void finalize_generation();
-		void rebuild_from_field(std::span<const FieldSample> field_samples);
-		[[nodiscard]] std::vector<FieldSample> readback_field() const;
+		[[nodiscard]] Result<void> dispatch_generation();
+		[[nodiscard]] Result<void> finalize_generation();
+		[[nodiscard]] Result<TerrainEditSummary> apply_ground_brush_gpu(const TerrainEdit& edit,
+			std::uint32_t unit_budget = std::numeric_limits<std::uint32_t>::max(),
+			const std::optional<GroundBrushBlocker>& blocker = std::nullopt);
+		[[nodiscard]] Result<std::vector<FieldSample>> finalize_gpu_ground_brush();
+		[[nodiscard]] Result<void> rebuild_from_field(std::span<const FieldSample> field_samples, bool smooth_water = false);
+		[[nodiscard]] Result<std::vector<FieldSample>> readback_field() const;
+		[[nodiscard]] bool has_pending_gpu_ground_brush() const;
 
 		[[nodiscard]] ivec2 chunk_coord() const;
 		[[nodiscard]] vec2 display_min() const;
 		[[nodiscard]] vec2 display_max() const;
-		void set_collision_enabled(bool enabled);
 
 	private:
-		[[nodiscard]] TerrainContour::ScoredResult generate_chunk();
+		[[nodiscard]] Result<TerrainContour::ScoredResult> read_scored_surface();
+		[[nodiscard]] Result<TerrainContour::ScoredResult> rebuild_scored_surface(std::uint32_t channel_index, float iso);
+		[[nodiscard]] Result<void> rebuild_chunk_meshes(std::span<const FieldSample> field_samples);
 
 		void build_chunk(const TerrainContour::ScoredResult& terrain_result, const TerrainContour::ScoredResult& water_result,
 			std::span<const FieldSample> field_samples);
@@ -59,8 +67,8 @@ namespace game::terrain
 
 		vec2 display_min_{};
 		vec2 display_max_{};
-		bool collision_enabled_{ true };
 		bool generation_dispatched_{ false };
 		bool generation_finalized_{ false };
+		bool pending_gpu_ground_brush_{ false };
 	};
 }

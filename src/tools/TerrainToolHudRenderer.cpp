@@ -79,17 +79,17 @@ namespace game::tools
 	{
 		if (slots.empty()) return;
 
-		const auto target_size = target.getSize();
-		const float width = static_cast<float>(target_size.x);
-		const float height = static_cast<float>(target_size.y);
-		const float slot_size = 74.0f;
-		const float slot_gap = 12.0f;
-		const float panel_padding_x = 14.0f;
-		const float panel_padding_y = 14.0f;
-		const float bar_width = 22.0f;
-		const float bar_height = 108.0f;
-		const float bar_gap = 10.0f;
-		const float hotbar_width =
+		const auto      target_size     = target.getSize();
+		const float     width           = static_cast<float>(target_size.x);
+		const float     height          = static_cast<float>(target_size.y);
+		constexpr float slot_size       = 74.0f;
+		constexpr float slot_gap        = 12.0f;
+		constexpr float panel_padding_x = 14.0f;
+		constexpr float panel_padding_y = 14.0f;
+		constexpr float bar_width       = 22.0f;
+		constexpr float bar_height      = 108.0f;
+		constexpr float bar_gap         = 10.0f;
+		const float     hotbar_width    =
 			panel_padding_x * 2.0f +
 			slot_size * static_cast<float>(slots.size()) +
 			slot_gap * static_cast<float>(slots.size() - 1u);

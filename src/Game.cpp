@@ -13,33 +13,49 @@ namespace game
 
 	Game::Game(GameSettings settings) : settings_{ std::move(settings) }
 	{
-		assert(!instance && "Multiple instances of Game are not allowed");
-		instance = this;
-
-		initialize_window();
-		if (!initialize_graphics())
+		if (instance != nullptr)
 		{
+			Log::error("Multiple instances of Game are not allowed");
 			failed_ = true;
 			return;
 		}
 
-		terrain_tools_.initialize_ui_assets();
+		instance = this;
+		owns_instance_ = true;
+
+		if (const auto window_result = initialize_window(); !window_result)
+		{
+			Log::error(window_result.error());
+			failed_ = true;
+			return;
+		}
+
+		if (const auto graphics_result = initialize_graphics(); !graphics_result)
+		{
+			Log::error(graphics_result.error());
+			failed_ = true;
+			return;
+		}
+
+		if (const auto ui_result = terrain_tools_.initialize_ui_assets(); !ui_result)
+		{
+			Log::error(ui_result.error());
+			failed_ = true;
+			return;
+		}
+
 		configure_input();
 
-		try
+		if (const auto world_result = initialize_world_state(); !world_result)
 		{
-			initialize_world_state();
-		}
-		catch (const std::exception& exception)
-		{
-			std::println(std::cerr, "Initialization failed: {}", exception.what());
+			Log::error(world_result.error());
 			failed_ = true;
 		}
 	}
 
 	Game::~Game()
 	{
-		instance = nullptr;
+		if (owns_instance_) instance = nullptr;
 		destroy_world();
 		destroy_graphics();
 	}
@@ -48,7 +64,6 @@ namespace game
 	void Game::run()
 	{
 		if (failed_) return;
-		assert(instance == this && "Game instance is not properly initialized");
 
 		while (window_.isOpen())
 		{
@@ -77,20 +92,26 @@ namespace game
 
 	void Game::quit()
 	{
-		assert(instance && "No active Game instance to quit");
+		if (instance == nullptr)
+		{
+			Log::warn("Game::quit() ignored because no active game instance exists");
+			return;
+		}
+
 		instance->window_.close();
 	}
 
 
 	void Game::update(const float dt)
 	{
+		if (terrain_ && player_.valid()) terrain_->update_active_water_colliders(player_.world_position());
 		step_physics(dt);
 		sync_camera_to_player(dt);
 		if (terrain_) terrain_->update(dt);
 		update_terrain_editing(dt);
 	}
 
-	void Game::initialize_window()
+	Result<void> Game::initialize_window()
 	{
 		window_ = sf::RenderWindow
 		{
@@ -108,37 +129,48 @@ namespace game
 
 		window_.setFramerateLimit(1000);
 		window_.setKeyRepeatEnabled(false);
+		if (!window_.isOpen()) return fail("Failed to create the main render window");
+
+		return {};
 	}
 
-	bool Game::initialize_graphics()
+	Result<void> Game::initialize_graphics()
 	{
 		if (!window_.setActive(true))
 		{
-			std::println(std::cerr, "Failed to activate OpenGL context");
-			return false;
+			return fail("Failed to activate the OpenGL context");
 		}
 
 		if (gladLoaderLoadGL() == 0)
 		{
-			std::println(std::cerr, "Failed to initialize GLAD");
-			return false;
+			return fail("Failed to initialize GLAD");
 		}
 
 		gl_loaded_ = true;
 		apply_viewport(settings_.win_size);
-		return true;
+		return {};
 	}
 
-	void Game::initialize_world_state()
+	Result<void> Game::initialize_world_state()
 	{
-		create_world();
+		TRY(create_world());
+
 		terrain_.emplace(world_);
+		if (const auto terrain_result = terrain_->initialize(); !terrain_result)
+		{
+			terrain_.reset();
+			return fail("Failed to initialize planet terrain: {}", terrain_result.error().message);
+		}
+
 		camera_settings_.world_span = {
 			terrain_->chunk_size().x * 1.75f,
 			terrain_->chunk_size().y * 1.75f
 		};
-		create_player();
+
+		TRY(create_player());
+
 		update_world_view(settings_.win_size);
+		return {};
 	}
 
 	void Game::destroy_world()
@@ -175,7 +207,6 @@ namespace game
 	{
 		window_.setView(world_view_);
 
-		if (terrain_) terrain_->draw_overlays(window_, world_view_);
 		player_.draw_sf(window_);
 
 		window_.setView(make_ui_view());
@@ -183,21 +214,26 @@ namespace game
 		terrain_tools_.draw_ui(window_);
 	}
 
-	void Game::create_world()
+	Result<void> Game::create_world()
 	{
 		b2WorldDef world_def = b2DefaultWorldDef();
 		world_def.gravity    = { .x = 0.0f, .y = 0.0f };
 		world_               = b2CreateWorld(&world_def);
+		if (!b2World_IsValid(world_)) return fail("Failed to create the Box2D world");
+		return {};
 	}
 
-	void Game::create_player()
+	Result<void> Game::create_player()
 	{
-		assert(terrain_ && "Terrain must exist before creating the player");
+		if (!terrain_.has_value()) return fail("Terrain must exist before creating the player");
 
 		const auto spawn = terrain_->spawn_point_from_top_center(
 			player_config_.capsule_half_height + player_config_.spawn_air_clearance);
-		player_.create(world_, spawn, terrain_->planet_center(), player_config_);
+		initial_spawn_position_ = spawn;
+		TRY(player_.create(world_, spawn, terrain_->planet_center(), player_config_));
+
 		camera_state_.initialized = false;
+		return {};
 	}
 
 	void Game::configure_input()
@@ -230,7 +266,17 @@ namespace game
 
 		Input::on<Event::KeyPressed>(Key::Num0, [this]
 		{
-			terrain_tools_.handle_zero_shortcut();
+			if (const auto context = terrain_tool_context(); context.has_value())
+			{
+				terrain_tools_.handle_zero_shortcut(*context);
+			}
+		});
+
+		Input::on<Event::KeyPressed>(Key::Num9, [this]
+		{
+			if (!terrain_.has_value() || !player_.valid()) return;
+			player_.teleport(initial_spawn_position_, terrain_->planet_center());
+			camera_state_.initialized = false;
 		});
 
 		Input::on<Event::KeyPressed>(Key::Escape, [this]
@@ -259,17 +305,31 @@ namespace game
 		static constexpr int   sub_steps  = 4;
 		const vec2             planet_center = terrain_ ? terrain_->planet_center() : vec2{ 0.0f, 0.0f };
 
-		player_.refresh_grounded_state(planet_center);
+		auto refresh_player_state = [this, planet_center]
+		{
+			player_.refresh_grounded_state(planet_center);
+			if (terrain_.has_value())
+			{
+				player_.set_in_water(player_.is_in_water() || terrain_->contains_water_volume(player_.world_position()));
+			}
+		};
+
+		refresh_player_state();
 
 		while (physics_accumulator_ >= fixed_step)
 		{
-			player_.prepare_for_physics_step(fixed_step, planet_center);
+			const bool in_water = player_.is_in_water();
+			player_.prepare_for_physics_step(fixed_step, planet_center, in_water);
 			b2World_Step(world_, fixed_step, sub_steps);
-			player_.refresh_grounded_state(planet_center);
+			refresh_player_state();
 			physics_accumulator_ -= fixed_step;
 		}
 
 		player_.sync_from_physics(planet_center);
+		if (terrain_.has_value())
+		{
+			player_.set_in_water(player_.is_in_water() || terrain_->contains_water_volume(player_.world_position()));
+		}
 	}
 
 	void Game::sync_camera_to_player(const float dt)

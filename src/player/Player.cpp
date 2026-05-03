@@ -29,20 +29,22 @@ namespace game::player
 			{
 				const float t     = static_cast<float>(i) / static_cast<float>(arc_segments);
 				const float angle = std::numbers::pi_v<float> * (1.0f - t);
-				shape->setPoint(i, {
-					                std::cos(angle) * radius,
-					                top_center_y + std::sin(angle) * radius
-				                });
+				shape->setPoint(
+					i, {
+						std::cos(angle) * radius,
+						top_center_y + std::sin(angle) * radius
+					});
 			}
 
 			for (std::size_t i = 0; i <= arc_segments; ++i)
 			{
 				const float t     = static_cast<float>(i) / static_cast<float>(arc_segments);
 				const float angle = -std::numbers::pi_v<float> * t;
-				shape->setPoint(top_arc_count + i, {
-					                std::cos(angle) * radius,
-					                bottom_center_y + std::sin(angle) * radius
-				                });
+				shape->setPoint(
+					top_arc_count + i, {
+						std::cos(angle) * radius,
+						bottom_center_y + std::sin(angle) * radius
+					});
 			}
 
 			shape->setOrigin(shape->getLocalBounds().getCenter());
@@ -53,15 +55,8 @@ namespace game::player
 		                               const float     fraction, void*        context)
 		{
 			auto& ray_context = *static_cast<GroundRayCastContext*>(context);
-			if (B2_ID_EQUALS(b2Shape_GetBody(shape_id), ray_context.ignored_body))
-			{
-				return -1.0f;
-			}
-
-			if (b2Shape_IsSensor(shape_id))
-			{
-				return -1.0f;
-			}
+			if (B2_ID_EQUALS(b2Shape_GetBody(shape_id), ray_context.ignored_body) || 
+				b2Shape_IsSensor(shape_id)) return -1.0f;
 
 			ray_context.hit      = true;
 			ray_context.fraction = fraction;
@@ -76,11 +71,14 @@ namespace game::player
 		destroy();
 	}
 
-	void Player::create(const b2WorldId     world_id, const vec2 spawn_position, const vec2 planet_center,
-	                    const PlayerConfig& config)
+	Result<void> Player::create(const b2WorldId     world_id, const vec2 spawn_position, const vec2 planet_center,
+	                           const PlayerConfig& config)
 	{
 		destroy();
-		assert(b2World_IsValid(world_id) && "Player requires a valid Box2D world");
+		if (!b2World_IsValid(world_id))
+		{
+			return fail("Player requires a valid Box2D world");
+		}
 
 		world_  = world_id;
 		config_ = config;
@@ -88,15 +86,20 @@ namespace game::player
 		const vec2  spawn_up    = normalize_vec2(subtract_vec2(spawn_position, planet_center));
 		const float spawn_angle = angle_from_up_direction(spawn_up);
 		object_.renderable = make_capsule_drawable(config_.capsule_radius, config_.capsule_half_height);
-		create_physics_body(spawn_position, spawn_angle);
-		create_capsule_shape();
-		create_ground_sensor_shape();
+		
+		TRY(create_physics_body(spawn_position, spawn_angle));
+		TRY(create_capsule_shape());
+		TRY(create_ground_sensor_shape());
+		TRY(create_water_sensor_shape());
+
 		configure_capsule_drawable();
 		reset_ground_state(spawn_up);
 		sync_from_physics(planet_center);
+
+		return {};
 	}
 
-	void Player::create_physics_body(const vec2 spawn_position, const float spawn_angle)
+	Result<void> Player::create_physics_body(const vec2 spawn_position, const float spawn_angle)
 	{
 		b2BodyDef body_def         = b2DefaultBodyDef();
 		body_def.type              = b2_dynamicBody;
@@ -110,10 +113,15 @@ namespace game::player
 		body_def.name              = "player_capsule";
 
 		object_.body = b2CreateBody(world_, &body_def);
-		assert(b2Body_IsValid(object_.body) && "Failed to create player body");
+		if (!b2Body_IsValid(object_.body))
+		{
+			return fail("Failed to create player body");
+		}
+
+		return {};
 	}
 
-	void Player::create_capsule_shape()
+	Result<void> Player::create_capsule_shape()
 	{
 		b2ShapeDef shape_def           = b2DefaultShapeDef();
 		shape_def.density              = 1.25f;
@@ -122,14 +130,16 @@ namespace game::player
 
 		const float     capsule_center_offset = std::max(config_.capsule_half_height - config_.capsule_radius, 0.01f);
 		const b2Capsule capsule{
-			{ 0.0f, -capsule_center_offset },
-			{ 0.0f, capsule_center_offset },
-			config_.capsule_radius
+			.center1 = { .x = 0.0f, .y = -capsule_center_offset },
+			.center2 ={ .x = 0.0f, .y = capsule_center_offset },
+			.radius  =config_.capsule_radius
 		};
-		b2CreateCapsuleShape(object_.body, &shape_def, &capsule);
+
+		if (!b2Shape_IsValid(b2CreateCapsuleShape(object_.body, &shape_def, &capsule))) return fail("Failed to create player capsule shape");
+		return {};
 	}
 
-	void Player::create_ground_sensor_shape()
+	Result<void> Player::create_ground_sensor_shape()
 	{
 		b2ShapeDef sensor_shape_def         = b2DefaultShapeDef();
 		sensor_shape_def.isSensor           = true;
@@ -138,14 +148,32 @@ namespace game::player
 		sensor_shape_def.density            = 0.0f;
 
 		const float     sensor_half_width  = config_.capsule_radius * 0.42f;
-		const float     sensor_half_height = 0.08f;
+		constexpr float sensor_half_height = 0.08f;
 		const float     sensor_offset_y    = -config_.capsule_half_height - sensor_half_height * 0.35f;
 		const b2Polygon ground_sensor      = b2MakeOffsetBox(
 			sensor_half_width,
 			sensor_half_height,
-			{ 0.0f, sensor_offset_y },
+			{ .x = 0.0f, .y = sensor_offset_y },
 			b2Rot_identity);
 		ground_sensor_shape_ = b2CreatePolygonShape(object_.body, &sensor_shape_def, &ground_sensor);
+		if (!b2Shape_IsValid(ground_sensor_shape_)) return fail("Failed to create player ground sensor shape");
+		return {};
+	}
+
+	Result<void> Player::create_water_sensor_shape()
+	{
+		b2ShapeDef sensor_shape_def         = b2DefaultShapeDef();
+		sensor_shape_def.isSensor           = true;
+		sensor_shape_def.enableSensorEvents = true;
+		sensor_shape_def.updateBodyMass     = false;
+		sensor_shape_def.density            = 0.0f;
+
+		const float sensor_half_width  = config_.capsule_radius * 0.92f;
+		const float sensor_half_height = config_.capsule_half_height * 0.92f;
+		const b2Polygon water_sensor   = b2MakeOffsetBox(sensor_half_width, sensor_half_height, { .x = 0.0f, .y = 0.0f }, b2Rot_identity);
+		water_sensor_shape_ = b2CreatePolygonShape(object_.body, &sensor_shape_def, &water_sensor);
+		if (!b2Shape_IsValid(water_sensor_shape_)) return fail("Failed to create player water sensor shape");
+		return {};
 	}
 
 	void Player::configure_capsule_drawable()
@@ -173,9 +201,23 @@ namespace game::player
 		object_              = GameObject{};
 		world_               = b2_nullWorldId;
 		ground_sensor_shape_ = b2_nullShapeId;
+		water_sensor_shape_  = b2_nullShapeId;
 		grounded_            = false;
+		in_water_            = false;
 		jump_cooldown_timer_ = 0.0f;
 		ground_normal_       = { 0.0f, 1.0f };
+	}
+
+	void Player::teleport(const vec2 world_position, const vec2 planet_center)
+	{
+		if (!valid()) return;
+
+		const float target_angle = angle_from_up_direction(normalize_vec2(subtract_vec2(world_position, planet_center)));
+		b2Body_SetLinearVelocity(object_.body, { .x = 0.0f, .y = 0.0f });
+		b2Body_SetAngularVelocity(object_.body, 0.0f);
+		b2Body_SetTransform(object_.body, to_b2(world_position), b2MakeRot(target_angle));
+		reset_ground_state(normalize_vec2(subtract_vec2(world_position, planet_center)));
+		object_.sync_from_physics();
 	}
 
 	void Player::refresh_grounded_state(const vec2 planet_center)
@@ -187,6 +229,7 @@ namespace game::player
 		const vec2 up = up_direction(planet_center);
 		const bool sensor_grounded = sensor_detects_ground();
 		const auto ray_ground_normal = raycast_ground_normal(planet_center);
+		in_water_ = sensor_detects_water();
 
 		grounded_ = sensor_grounded || ray_ground_normal.has_value();
 		if (ray_ground_normal.has_value())
@@ -220,6 +263,27 @@ namespace game::player
 		return false;
 	}
 
+	bool Player::sensor_detects_water() const
+	{
+		if (!b2Shape_IsValid(water_sensor_shape_)) return false;
+
+		const int capacity = b2Shape_GetSensorCapacity(water_sensor_shape_);
+		if (capacity <= 0) return false;
+
+		std::vector<b2ShapeId> overlaps(static_cast<std::size_t>(capacity));
+		const int overlap_count = b2Shape_GetSensorOverlaps(water_sensor_shape_, overlaps.data(), capacity);
+		for (int i = 0; i < overlap_count; ++i)
+		{
+			const auto overlap_shape = overlaps[static_cast<std::size_t>(i)];
+			if (!b2Shape_IsValid(overlap_shape)) continue;
+			if (B2_ID_EQUALS(b2Shape_GetBody(overlap_shape), object_.body)) continue;
+			if (!b2Shape_IsSensor(overlap_shape)) continue;
+			return true;
+		}
+
+		return false;
+	}
+
 	std::optional<vec2> Player::raycast_ground_normal(const vec2 planet_center) const
 	{
 		if (!valid() || !b2World_IsValid(world_)) return std::nullopt;
@@ -247,13 +311,13 @@ namespace game::player
 		return normal;
 	}
 
-	void Player::prepare_for_physics_step(const float fixed_step, const vec2 planet_center)
+	void Player::prepare_for_physics_step(const float fixed_step, const vec2 planet_center, const bool in_water)
 	{
 		if (!valid()) return;
 
 		align_to_planet(planet_center);
-		apply_gravity(planet_center);
-		apply_input(fixed_step, planet_center);
+		apply_gravity(planet_center, in_water);
+		apply_input(fixed_step, planet_center, in_water);
 	}
 
 	void Player::sync_from_physics(const vec2 planet_center)
@@ -310,17 +374,18 @@ namespace game::player
 		return normalize_vec2(ground_tangent, right_direction);
 	}
 
-	void Player::apply_horizontal_movement(const float fixed_step, const vec2 movement_direction)
+	void Player::apply_horizontal_movement(const float fixed_step, const vec2 movement_direction, const bool in_water)
 	{
 		const vec2 current_velocity = from_b2(b2Body_GetLinearVelocity(object_.body));
 		const float current_tangent_speed = current_velocity.dot(movement_direction);
 		const float move_axis = movement_axis();
 		const float player_mass = b2Body_GetMass(object_.body);
+		const float movement_scale = in_water ? 0.68f : 1.0f;
 
 		if (move_axis != 0.0f)
 		{
-			const float desired_tangent_speed = move_axis * config_.move_speed;
-			const float max_speed_change = config_.move_acceleration * fixed_step;
+			const float desired_tangent_speed = move_axis * config_.move_speed * movement_scale;
+			const float max_speed_change = config_.move_acceleration * fixed_step * (in_water ? 0.60f : 1.0f);
 			const float speed_change = std::clamp(
 				desired_tangent_speed - current_tangent_speed,
 				-max_speed_change,
@@ -333,9 +398,9 @@ namespace game::player
 			return;
 		}
 
-		if (!grounded_) return;
+		if (!grounded_ && !in_water) return;
 
-		const float brake_speed = std::min(std::abs(current_tangent_speed), config_.ground_brake * fixed_step);
+		const float brake_speed = std::min(std::abs(current_tangent_speed), config_.ground_brake * fixed_step * (in_water ? 0.40f : 1.0f));
 		if (brake_speed <= 1e-4f) return;
 
 		const float direction = current_tangent_speed > 0.0f ? -1.0f : 1.0f;
@@ -343,9 +408,18 @@ namespace game::player
 		b2Body_ApplyLinearImpulseToCenter(object_.body, to_b2(brake_impulse), true);
 	}
 
-	void Player::try_jump(const vec2 up_direction, const bool jump_held)
+	void Player::try_jump(const vec2 up_direction, const bool jump_held, const bool in_water)
 	{
-		if (!jump_held || !grounded_ || jump_cooldown_timer_ > 0.0f) return;
+		if (!jump_held) return;
+
+		if (in_water)
+		{
+			const vec2 swim_force = scale_vec2(up_direction, b2Body_GetMass(object_.body) * config_.jump_speed * 1.9f);
+			b2Body_ApplyForceToCenter(object_.body, to_b2(swim_force), true);
+			return;
+		}
+
+		if (!grounded_ || jump_cooldown_timer_ > 0.0f) return;
 
 		const vec2 jump_impulse = scale_vec2(up_direction, b2Body_GetMass(object_.body) * config_.jump_speed);
 		b2Body_ApplyLinearImpulseToCenter(object_.body, to_b2(jump_impulse), true);
@@ -354,7 +428,7 @@ namespace game::player
 		jump_cooldown_timer_ = config_.jump_cooldown;
 	}
 
-	void Player::apply_input(const float fixed_step, const vec2 planet_center)
+	void Player::apply_input(const float fixed_step, const vec2 planet_center, const bool in_water)
 	{
 		if (!valid()) return;
 		jump_cooldown_timer_ = std::max(jump_cooldown_timer_ - fixed_step, 0.0f);
@@ -363,17 +437,18 @@ namespace game::player
 		const auto move_direction = movement_direction(up);
 		const bool jump_held = Input::is_pressed(Key::W) || Input::is_pressed(Key::Space);
 
-		apply_horizontal_movement(fixed_step, move_direction);
-		try_jump(up, jump_held);
+		apply_horizontal_movement(fixed_step, move_direction, in_water);
+		try_jump(up, jump_held, in_water);
 	}
 
-	void Player::apply_gravity(const vec2 planet_center) const
+	void Player::apply_gravity(const vec2 planet_center, const bool in_water) const
 	{
 		if (!valid()) return;
 
+		const float gravity_scale = in_water ? 0.22f : 1.0f;
 		const vec2 gravity_force = scale_vec2(
 			up_direction(planet_center),
-			-b2Body_GetMass(object_.body) * config_.gravity_acceleration);
+			-b2Body_GetMass(object_.body) * config_.gravity_acceleration * gravity_scale);
 		b2Body_ApplyForceToCenter(object_.body, to_b2(gravity_force), true);
 	}
 

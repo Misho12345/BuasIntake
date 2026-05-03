@@ -18,21 +18,16 @@ uniform vec2  uWorldCenter;
 uniform vec2  uFieldOrigin;
 uniform vec2  uCellSize;
 
-vec2 chunk_origin()
-{
-	return uWorldCenter + (uChunkCoord - 0.5 * uChunkGridSize) * uChunkSize;
-}
-
 float sample_field(ivec2 p)
 {
     vec4 field = imageLoad(uField, p);
 
-    if (uChannelIndex == 0)
-    {
-        return field.r;
-    }
+	if (uChannelIndex == 0)
+	{
+		return field.r;
+	}
 
-    return min(-field.r, field.g);
+	return min(-field.r, field.g);
 }
 
 vec2 grid_to_world(vec2 g)
@@ -62,7 +57,6 @@ void main()
             float t = 0.5;
             float d = b - a;
             if (abs(d) > 1e-6) t = clamp((uIso - a) / d, 0.0, 1.0);
-
             vec2 pos = grid_to_world(vec2(id) + vec2(t, 0.0));
 
             uint v = atomicAdd(uVertexCounter.count, 1);
@@ -87,7 +81,6 @@ void main()
             float t = 0.5;
             float d = b - a;
             if (abs(d) > 1e-6) t = clamp((uIso - a) / d, 0.0, 1.0);
-
             vec2 pos = grid_to_world(vec2(id) + vec2(0.0, t));
 
             uint v = atomicAdd(uVertexCounter.count, 1);

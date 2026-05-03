@@ -1,8 +1,8 @@
 #version 460 core
 
-layout(local_size_x = 64, local_size_y = 1) in;
+layout(local_size_x = 16, local_size_y = 16) in;
 
-layout(rgba32f, binding = 0) uniform image2D uField;
+layout(rgba32f, binding = 0) uniform readonly image2D uField;
 
 struct TerrainEdit
 {
@@ -15,19 +15,6 @@ layout(std430, binding = 1) readonly buffer TerrainEdits
 	TerrainEdit data[];
 } uTerrainEdits;
 
-layout(std430, binding = 2) buffer TerrainEditSummary
-{
-	uint removedUnits;
-	uint placedUnits;
-	uint changedAny;
-	uint touchedWaterOrWet;
-	uint appliedSamples;
-	int changedMinX;
-	int changedMinY;
-	int changedMaxX;
-	int changedMaxY;
-} uEditSummary;
-
 struct TerrainEditCandidate
 {
 	ivec2 pixel;
@@ -35,20 +22,25 @@ struct TerrainEditCandidate
 	float padding;
 };
 
-layout(std430, binding = 3) readonly buffer SelectedTerrainEditCandidates
+layout(std430, binding = 3) buffer TerrainEditCandidates
 {
 	TerrainEditCandidate data[];
-} uSelectedCandidates;
+} uCandidates;
 
-uniform uint  uSelectedCount;
+layout(std430, binding = 4) buffer TerrainEditCandidateCount
+{
+	uint count;
+} uCandidateCount;
+
+uniform uint  uMaxCandidateCount;
+uniform ivec2 uDispatchOrigin;
+uniform ivec2 uDispatchSize;
 uniform ivec2 uChunkCoord;
 uniform ivec2 uChunkGridSize;
 uniform vec2  uChunkSize;
 uniform vec2  uWorldCenter;
 uniform vec2  uFieldOrigin;
 uniform vec2  uCellSize;
-uniform ivec2 uFieldPadding;
-uniform ivec2 uFieldSize;
 uniform uint  uSeed;
 uniform float uPlanetRadius;
 uniform float uHardRockDepthThreshold;
@@ -132,6 +124,19 @@ float surface_radius(vec2 direction)
 		(micro - 0.5) * uPlanetRadius * 0.02;
 }
 
+bool point_inside_blocker(vec2 point)
+{
+	if (uHasBlocker == 0) return false;
+
+	vec2 delta = point - uBlockerCenter;
+	float local_x = dot(delta, uBlockerRight);
+	float local_y = dot(delta, uBlockerUp);
+	vec2 padding = uCellSize * 0.35;
+	return
+		abs(local_x) <= uBlockerHalfExtents.x + padding.x &&
+		abs(local_y) <= uBlockerHalfExtents.y + padding.y;
+}
+
 bool sample_has_water(vec4 field)
 {
 	return min(-field.r, field.g) > 1e-4;
@@ -165,87 +170,51 @@ bool dig_protected_by_water(ivec2 pixel, vec2 world, vec2 up)
 	return false;
 }
 
-bool has_adjacent_water(ivec2 pixel)
+bool dig_protected(ivec2 pixel, vec2 world, vec2 up, vec4 field_value, float distance_from_center)
 {
-	ivec2 size = imageSize(uField);
-	for (int oy = -1; oy <= 1; ++oy)
-	{
-		for (int ox = -1; ox <= 1; ++ox)
-		{
-			if (ox == 0 && oy == 0) continue;
-			ivec2 neighbor = pixel + ivec2(ox, oy);
-			if (neighbor.x < 0 || neighbor.y < 0 || neighbor.x >= size.x || neighbor.y >= size.y) continue;
-			if (sample_has_water(imageLoad(uField, neighbor))) return true;
-		}
-	}
+	if (sample_has_water(field_value)) return true;
+	if (dig_protected_by_water(pixel, world, up)) return true;
 
-	return false;
-}
-
-bool owns_transition(ivec2 pixel)
-{
-	ivec2 owned_min = uFieldPadding;
-	ivec2 owned_max = uFieldPadding + uFieldSize - ivec2(1, 1);
-	if (uChunkCoord.x > 0) owned_min.x += 1;
-	if (uChunkCoord.y > 0) owned_min.y += 1;
-
-	return
-		pixel.x >= owned_min.x && pixel.y >= owned_min.y &&
-		pixel.x <= owned_max.x && pixel.y <= owned_max.y;
+	float normalized_depth = 1.0 - distance_from_center / max(uPlanetRadius, 1e-4);
+	return normalized_depth >= uHardRockDepthThreshold;
 }
 
 void main()
 {
-	uint candidate_index = gl_GlobalInvocationID.x;
-	if (candidate_index >= uSelectedCount) return;
+	ivec2 dispatch_id = ivec2(gl_GlobalInvocationID.xy);
+	if (dispatch_id.x >= uDispatchSize.x || dispatch_id.y >= uDispatchSize.y) return;
+
+	ivec2 pixel = uDispatchOrigin + dispatch_id;
+	ivec2 size = imageSize(uField);
+	if (pixel.x >= size.x || pixel.y >= size.y) return;
 
 	TerrainEdit edit = uTerrainEdits.data[0];
-	TerrainEditCandidate candidate = uSelectedCandidates.data[candidate_index];
-	ivec2 pixel = candidate.pixel;
-	vec4 field_value = imageLoad(uField, pixel);
-	float density = field_value.r;
-	float water = field_value.g;
-	float wetness = field_value.b;
 	vec2 world = grid_to_world(vec2(pixel));
-	vec2 offset = world - uWorldCenter;
-	float distance_from_center = length(offset);
-	vec2 direction = distance_from_center > 1e-5 ? offset / distance_from_center : vec2(0.0, 1.0);
+	vec2 delta = world - edit.positionRadiusStrength.xy;
+	float radius = max(edit.positionRadiusStrength.z, 1e-4);
+	float distance_to_center = length(delta);
+	if (distance_to_center >= radius) return;
+
+	vec4 field_value = imageLoad(uField, pixel);
+	vec2 radial_offset = world - uWorldCenter;
+	float distance_from_center = length(radial_offset);
+	vec2 direction = distance_from_center > 1e-5 ? radial_offset / distance_from_center : vec2(0.0, 1.0);
+	if (edit.positionRadiusStrength.w < 0.0 && dig_protected(pixel, world, direction, field_value, distance_from_center)) return;
+	if (edit.positionRadiusStrength.w > 0.0 && point_inside_blocker(world)) return;
+
 	float target_radius = surface_radius(direction);
 	float base_density = target_radius - distance_from_center;
-	float radius = max(edit.positionRadiusStrength.z, 1e-4);
-	float normalized = 1.0 - candidate.distanceToCenter / radius;
-	float falloff_exponent = max(edit.shape.x, 0.001);
 	bool hard_dig = edit.positionRadiusStrength.w < 0.0 && edit.shape.y >= 0.5;
+	float normalized = 1.0 - distance_to_center / radius;
+	float falloff_exponent = max(edit.shape.x, 0.001);
 	float falloff = hard_dig ? 1.0 : pow(normalized, falloff_exponent);
-	float next_density = hard_dig ? min(density, edit.positionRadiusStrength.w) : density + edit.positionRadiusStrength.w * falloff;
+	float next_density = hard_dig ? min(field_value.r, edit.positionRadiusStrength.w) : field_value.r + edit.positionRadiusStrength.w * falloff;
 	next_density = clamp(next_density, -1.0, max(1.0, base_density));
-	bool was_solid = density >= 0.0;
-	bool is_solid_now = next_density >= 0.0;
-	if (abs(next_density - density) <= 1e-6) return;
+	if (abs(next_density - field_value.r) <= 1e-6) return;
 
-	density = next_density;
-	atomicAdd(uEditSummary.appliedSamples, 1u);
-	atomicMax(uEditSummary.changedAny, 1u);
-	atomicMin(uEditSummary.changedMinX, pixel.x);
-	atomicMin(uEditSummary.changedMinY, pixel.y);
-	atomicMax(uEditSummary.changedMaxX, pixel.x);
-	atomicMax(uEditSummary.changedMaxY, pixel.y);
-	if (sample_has_water(field_value) || wetness > 1e-4 || has_adjacent_water(pixel))
-	{
-		atomicMax(uEditSummary.touchedWaterOrWet, 1u);
-	}
-
-	if (owns_transition(pixel))
-	{
-		if (edit.positionRadiusStrength.w < 0.0 && was_solid && !is_solid_now)
-		{
-			atomicAdd(uEditSummary.removedUnits, 1u);
-		}
-		if (edit.positionRadiusStrength.w > 0.0 && !was_solid && is_solid_now)
-		{
-			atomicAdd(uEditSummary.placedUnits, 1u);
-		}
-	}
-
-	imageStore(uField, pixel, vec4(density, water, wetness, field_value.a));
+	uint index = atomicAdd(uCandidateCount.count, 1u);
+	if (index >= uMaxCandidateCount) return;
+	uCandidates.data[index].pixel = pixel;
+	uCandidates.data[index].distanceToCenter = distance_to_center;
+	uCandidates.data[index].padding = 0.0;
 }

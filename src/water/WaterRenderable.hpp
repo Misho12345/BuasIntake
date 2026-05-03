@@ -9,7 +9,7 @@ namespace game::water
 {
 	struct WaterRenderable
 	{
-		WaterRenderable();
+		WaterRenderable() = default;
 		~WaterRenderable() = default;
 
 		WaterRenderable(const WaterRenderable&) = delete;
@@ -17,6 +17,7 @@ namespace game::water
 		WaterRenderable(WaterRenderable&&) noexcept = default;
 		WaterRenderable& operator=(WaterRenderable&&) noexcept = default;
 
+		[[nodiscard]] Result<void> initialize();
 		void draw(const gfx::Mesh& mesh, const sf::View& view) const;
 
 	private:

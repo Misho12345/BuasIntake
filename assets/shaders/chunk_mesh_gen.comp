@@ -32,23 +32,16 @@ uniform ivec2 uFieldPadding;
 uniform ivec2 uFieldSize;
 uniform vec2  uCellSize;
 
-vec2 chunk_origin()
-{
-	return uWorldCenter +
-		(vec2(float(uChunkCoord.x), float(uChunkCoord.y)) - 0.5 * vec2(float(uChunkGridSize.x), float(uChunkGridSize.y))) *
-		uChunkSize;
-}
-
 float sample_field(ivec2 p)
 {
     vec4 field = imageLoad(uField, p);
 
-    if (uChannelIndex == 0)
-    {
-        return field.r;
-    }
+	if (uChannelIndex == 0)
+	{
+		return field.r;
+	}
 
-    return min(-field.r, field.g);
+	return min(-field.r, field.g);
 }
 
 vec2 grid_to_world(vec2 g)

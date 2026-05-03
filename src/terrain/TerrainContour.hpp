@@ -30,7 +30,6 @@ namespace game::terrain
 
 		[[nodiscard]] static ExtractedContours extract_contours(const std::vector<vec2>& boundary_vertices, const std::vector<TerrainGenerator::BoundaryEdge>& edges);
 		[[nodiscard]] static std::vector<vec2> simplify_contour(const std::vector<vec2>& contour, bool closed, float min_segment_length, float collinear_epsilon);
-		[[nodiscard]] static vec2 calculate_spawn(const std::vector<vec2>& contour, const ChunkSettings& settings);
 		[[nodiscard]] static ScoredResult score_and_filter(TerrainGenerator::RawPipelineResult raw, const ChunkSettings& settings);
 	};
 }

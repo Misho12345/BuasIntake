@@ -3,9 +3,21 @@
 
 namespace game::gfx
 {
-	Texture2D::Texture2D(const uvec2 size, const TextureFormat format) : size_{ size }, format_{ format }
+	Result<void> Texture2D::create(const uvec2 size, const TextureFormat format)
 	{
-		assert(size.x > 0 && size.y > 0 && "Texture size must be non-zero");
+		if (size.x == 0 || size.y == 0)
+		{
+			return fail("Texture size must be non-zero");
+		}
+
+		if (handle_ != 0)
+		{
+			glDeleteTextures(1, &handle_);
+			handle_ = 0;
+		}
+
+		size_ = size;
+		format_ = format;
 
 		glCreateTextures(GL_TEXTURE_2D, 1, &handle_);
 		glTextureStorage2D(
@@ -19,6 +31,7 @@ namespace game::gfx
 		glTextureParameteri(handle_, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		glTextureParameteri(handle_, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 		glTextureParameteri(handle_, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		return {};
 	}
 
 	Texture2D::~Texture2D()
@@ -46,13 +59,14 @@ namespace game::gfx
 
 	void Texture2D::bind_image(const GLuint unit, const GLenum access) const
 	{
-		assert(handle_ != 0 && "Texture is not initialized");
+		if (handle_ == 0) return;
 		glBindImageTexture(unit, handle_, 0, GL_FALSE, 0, access, to_gl_format(format_));
 	}
 
 	GLuint Texture2D::native_handle() const { return handle_; }
 
 	uvec2 Texture2D::size() const { return size_; }
+	bool Texture2D::valid() const { return handle_ != 0; }
 
 	GLenum Texture2D::to_gl_format(const TextureFormat format)
 	{
@@ -64,7 +78,7 @@ namespace game::gfx
 			case TextureFormat::RGBA32F: return GL_RGBA32F;
 		}
 
-		assert(false && "Unsupported texture format");
+		Log::error("Unsupported texture format requested for Texture2D");
 		return GL_RGBA8;
 	}
 }

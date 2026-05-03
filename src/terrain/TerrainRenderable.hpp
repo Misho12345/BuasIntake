@@ -9,7 +9,7 @@ namespace game::terrain
 {
 	struct TerrainRenderable
 	{
-		TerrainRenderable();
+		TerrainRenderable() = default;
 		~TerrainRenderable() = default;
 
 		TerrainRenderable(const TerrainRenderable&) = delete;
@@ -17,11 +17,13 @@ namespace game::terrain
 		TerrainRenderable(TerrainRenderable&&) noexcept = default;
 		TerrainRenderable& operator=(TerrainRenderable&&) noexcept = default;
 
+		[[nodiscard]] Result<void> initialize();
 		void draw(const gfx::Mesh& mesh, const sf::View& view) const;
 
 	private:
 		gfx::Shader shader_{};
 		sf::Texture dirt_texture_{};
+		sf::Texture grass_texture_{};
 		sf::Texture rock_texture_{};
 		sf::Texture hard_rock_texture_{};
 	};

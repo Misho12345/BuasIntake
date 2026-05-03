@@ -21,12 +21,12 @@ namespace game::tools
 		TerrainToolController(TerrainToolController&&) noexcept = default;
 		TerrainToolController& operator=(TerrainToolController&&) noexcept = default;
 
-		void initialize_ui_assets();
+		[[nodiscard]] Result<void> initialize_ui_assets();
 		void update(const TerrainToolContext& context, float dt);
 		void handle_mouse_pressed(const TerrainToolContext& context, MouseButton button);
 		void handle_scroll(float delta);
 		void handle_upgrade();
-		void handle_zero_shortcut();
+		void handle_zero_shortcut(const TerrainToolContext& context);
 		void cancel_bucket_placement();
 		void draw_world_preview(const TerrainToolContext& context, const sf::View& view) const;
 		void draw_ui(sf::RenderTarget& target) const;

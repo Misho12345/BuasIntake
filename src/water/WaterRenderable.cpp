@@ -15,11 +15,16 @@ namespace game::water
 		}
 	}
 
-	WaterRenderable::WaterRenderable() : shader_{
-		gfx::Shader::from_graphics_files(
+	Result<void> WaterRenderable::initialize()
+	{
+		auto shader = gfx::Shader::from_graphics_files(
 			"assets/shaders/default.vert",
-			"assets/shaders/water_mesh.frag")
-	} {}
+			"assets/shaders/water_mesh.frag");
+		if (!shader) return fail(shader.error());
+
+		shader_ = std::move(*shader);
+		return {};
+	}
 
 	void WaterRenderable::draw(const gfx::Mesh& mesh, const sf::View& view) const
 	{
@@ -30,7 +35,12 @@ namespace game::water
 
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		shader_.use();
+		if (const auto use_result = shader_.use(); !use_result)
+		{
+			Log::error(use_result.error());
+			return;
+		}
+
 		shader_.set_uniform("uProjection", gfx::make_projection(view));
 		shader_.set_uniform("uTime", shared_water_animation_time());
 		mesh.draw();
