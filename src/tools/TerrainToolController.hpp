@@ -2,63 +2,82 @@
 
 #include "pch.hpp"
 
+
+#include "resources/Inventory.hpp"
 #include "tools/SeedTool.hpp"
-#include "tools/TerrainToolHudRenderer.hpp"
 #include "tools/TerrainSculptTool.hpp"
 #include "tools/TerrainTargetResolver.hpp"
+#include "tools/TerrainToolHudRenderer.hpp"
 #include "tools/WaterTool.hpp"
+#include "ui/UpgradeMenu.hpp"
 
 namespace game::tools
 {
-	class TerrainToolController final
-	{
-	public:
-		TerrainToolController() = default;
-		~TerrainToolController() = default;
+    class TerrainToolController final
+    {
+      public:
+        TerrainToolController() = default;
+        ~TerrainToolController() = default;
 
-		TerrainToolController(const TerrainToolController&) = delete;
-		TerrainToolController& operator=(const TerrainToolController&) = delete;
-		TerrainToolController(TerrainToolController&&) noexcept = default;
-		TerrainToolController& operator=(TerrainToolController&&) noexcept = default;
+        TerrainToolController(const TerrainToolController&) = delete;
+        TerrainToolController& operator=(const TerrainToolController&) = delete;
+        TerrainToolController(TerrainToolController&&) noexcept = delete;
+        TerrainToolController& operator=(TerrainToolController&&) noexcept = delete;
 
-		[[nodiscard]] Result<void> initialize_ui_assets();
-		void update(const TerrainToolContext& context, float dt);
-		void handle_mouse_pressed(const TerrainToolContext& context, MouseButton button);
-		void handle_scroll(float delta);
-		void handle_upgrade();
-		void handle_zero_shortcut(const TerrainToolContext& context);
-		void cancel_bucket_placement();
-		void draw_world_preview(const TerrainToolContext& context, const sf::View& view) const;
-		void draw_ui(sf::RenderTarget& target) const;
-		void export_current_chunk_field(const TerrainToolContext& context) const;
+        Result<void> initialize_ui_assets();
+        void update(const TerrainToolContext& context, float dt);
+        void handle_mouse_pressed(const TerrainToolContext& context, MouseButton button);
+        void handle_scroll(float delta);
+        void handle_zero_shortcut(const TerrainToolContext& context);
+        void toggle_upgrade_menu();
+        void close_upgrade_menu();
+        void handle_upgrade_menu_click(const TerrainToolContext& context, sf::Vector2f ui_position, sf::Vector2u target_size);
+        void cancel_active_interaction();
+        void cancel_bucket_placement();
+        void destroy_graphics_resources();
+        bool upgrade_menu_open() const noexcept
+        {
+            return upgrade_menu_open_;
+        }
+        std::optional<WaterTool::PreviewState> active_water_preview(const TerrainToolContext& context) const;
+        void draw_targeting_debug_overlay(sf::RenderTarget& target, const TerrainToolContext& context) const;
+        void draw_ui(sf::RenderTarget& target) const;
+        void export_current_chunk_field(const TerrainToolContext& context) const;
 
-	private:
-		static constexpr std::size_t hotbar_slot_count{ 3u };
+      private:
+        static constexpr std::size_t hotbar_slot_count{3u};
 
-		enum class HotbarSlot : std::uint8_t
-		{
-			Digging = 0,
-			Water = 1,
-			Seeds = 2
-		};
+        bool should_suppress_world_input_after_modal(const TerrainToolContext& context);
 
-		void sync_active_tool();
-		[[nodiscard]] std::array<TerrainToolHudSlotData, hotbar_slot_count> build_hud_slots() const;
-		[[nodiscard]] TerrainToolHudSlotData build_digging_slot_data() const;
-		[[nodiscard]] TerrainToolHudSlotData build_water_slot_data() const;
-		[[nodiscard]] TerrainToolHudSlotData build_seed_slot_data() const;
-		[[nodiscard]] bool is_water_slot_selected() const;
-		[[nodiscard]] bool is_seed_slot_selected() const;
-		[[nodiscard]] sf::IntRect tool_icon_rect(std::size_t column, std::size_t row) const;
+        enum class HotbarSlot : std::uint8_t
+        {
+            Digging = 0,
+            Water = 1,
+            Seeds = 2
+        };
 
-		TerrainTargetResolver target_resolver_{};
-		TerrainSculptTool terrain_tool_{};
-		WaterTool water_tool_{};
-		SeedTool seed_tool_{};
-		IToolStrategy* active_tool_{ &terrain_tool_ };
-		HotbarSlot selected_slot_{ HotbarSlot::Digging };
-		sf::Texture tools_texture_{};
-		sf::Texture seed_icon_texture_{};
-		bool ui_assets_ready_{ false };
-	};
+        void select_slot(HotbarSlot slot);
+        TerrainTool& active_tool();
+        const TerrainTool& active_tool() const;
+        std::array<TerrainToolHudSlotData, hotbar_slot_count> build_hud_slots() const;
+        TerrainToolHudSlotData build_digging_slot_data() const;
+        TerrainToolHudSlotData build_water_slot_data() const;
+        TerrainToolHudSlotData build_seed_slot_data() const;
+        bool is_water_slot_selected() const;
+        bool is_seed_slot_selected() const;
+        sf::IntRect tool_icon_rect(std::size_t column, std::size_t row) const;
+
+        TerrainTargetResolver target_resolver_{};
+        TerrainSculptTool terrain_tool_{};
+        WaterTool water_tool_{};
+        SeedTool seed_tool_{};
+        ui::UpgradeMenu upgrade_menu_{};
+        HotbarSlot selected_slot_{HotbarSlot::Digging};
+        sf::Texture tools_texture_{};
+        sf::Texture seed_icon_texture_{};
+        sf::Font ui_font_{};
+        bool ui_assets_ready_{false};
+        bool upgrade_menu_open_{false};
+        bool require_fresh_mouse_press_after_modal_{false};
+    };
 }

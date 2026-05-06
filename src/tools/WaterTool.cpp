@@ -1,212 +1,294 @@
 #include "pch.hpp"
+
 #include "tools/WaterTool.hpp"
 
-#include "gfx/MeshBuilders.hpp"
+#include "terrain/PlanetTerrain.hpp"
 #include "tools/TerrainTargetResolver.hpp"
 
 namespace game::tools
 {
-	void WaterTool::deactivate()
-	{
-		cancel_placement();
-	}
+    namespace
+    {
+        constexpr std::array<std::uint32_t, 9> bucket_capacities{{
+            24u, 32u, 40u,
+            52u, 64u, 76u,
+            92u, 112u, 132u
+        }};
+    }
 
-	void WaterTool::update(const TerrainToolContext& /*context*/, const TerrainTargetResolver& /*resolver*/, const float /*dt*/)
-	{
-	}
+    void WaterTool::deactivate()
+    {
+        cancel_placement();
+    }
 
-	void WaterTool::handle_mouse_pressed(const TerrainToolContext& context, const TerrainTargetResolver& resolver,
-		const MouseButton button)
-	{
-		if (context.terrain == nullptr) return;
+    void WaterTool::update(const TerrainToolContext& /*context*/, const TerrainTargetResolver& /*resolver*/, const float /*dt*/)
+    {
+    }
 
-		if (button == MouseButton::Right)
-		{
-			if (!placement_mode_) begin_placement();
-			else confirm_placement(context, resolver);
-			return;
-		}
+    void WaterTool::handle_mouse_pressed(const TerrainToolContext& context, const TerrainTargetResolver& resolver, const MouseButton button)
+    {
+        if (context.terrain == nullptr) return;
 
-		if (button != MouseButton::Left) return;
-		if (placement_mode_)
-		{
-			cancel_placement();
-			return;
-		}
+        if (button == MouseButton::Right)
+        {
+            if (!placement_mode_) begin_placement();
+            else confirm_placement(context, resolver);
+            return;
+        }
 
-		collect_water(context, resolver);
-	}
+        if (button != MouseButton::Left) return;
 
-	void WaterTool::begin_placement()
-	{
-		placement_mode_ = true;
-		desired_place_amount_ = current_amount_;
-	}
+        if (placement_mode_)
+        {
+            cancel_placement();
+            return;
+        }
 
-	void WaterTool::confirm_placement(const TerrainToolContext& context, const TerrainTargetResolver& resolver)
-	{
-		if (current_amount_ == 0u || desired_place_amount_ == 0u)
-		{
-			cancel_placement();
-			return;
-		}
+        collect_water(context, resolver);
+    }
 
-		const auto world_position = resolver.water_tool_target_world_position(context);
-		if (!world_position.has_value()) return;
+    void WaterTool::begin_placement()
+    {
+        if (current_amount_ == 0u) return;
 
-		const auto placed = context.terrain->place_water(*world_position, std::min(desired_place_amount_, current_amount_));
-		if (!placed)
-		{
-			Log::warn("{}", placed.error().message);
-			return;
-		}
-		if (*placed == 0u) return;
+        placement_mode_ = true;
+        desired_place_amount_ = current_amount_;
+        invalidate_preview_cache();
+    }
 
-		current_amount_ -= std::min(current_amount_, *placed);
-		cancel_placement();
-	}
+    void WaterTool::confirm_placement(const TerrainToolContext& context, const TerrainTargetResolver& resolver)
+    {
+        if (context.terrain == nullptr || context.water == nullptr) return;
 
-	void WaterTool::collect_water(const TerrainToolContext& context, const TerrainTargetResolver& resolver)
-	{
-		const auto free_space = current_capacity() - std::min(current_amount_, current_capacity());
-		if (free_space == 0u) return;
+        if (current_amount_ == 0u || desired_place_amount_ == 0u)
+        {
+            cancel_placement();
+            return;
+        }
 
-		const auto world_position = resolver.water_tool_target_world_position(context);
-		if (!world_position.has_value()) return;
+        const auto world_position = resolver.water_placement_target_world_position(context);
+        if (!world_position.has_value()) return;
 
-		const auto picked_up = context.terrain->pickup_water(*world_position, free_space);
-		if (!picked_up)
-		{
-			Log::warn("{}", picked_up.error().message);
-			return;
-		}
+        const auto placed = context.water->place_water(*context.terrain, *world_position, std::min(desired_place_amount_, current_amount_));
+        if (!placed) return;
+        if (placed->status != water::WaterActionStatus::Applied || placed->changed_units == 0u) return;
 
-		current_amount_ = std::min(current_capacity(), current_amount_ + *picked_up);
-	}
+        current_amount_ -= std::min(current_amount_, placed->changed_units);
+        invalidate_preview_cache();
+        cancel_placement();
+    }
 
-	void WaterTool::adjust_placement_amount(const float delta)
-	{
-		if (!placement_mode_ || delta == 0.0f) return;
+    void WaterTool::collect_water(const TerrainToolContext& context, const TerrainTargetResolver& resolver)
+    {
+        if (context.terrain == nullptr || context.water == nullptr) return;
 
-		const int direction = delta > 0.0f ? 1 : -1;
-		const int next_value = std::clamp(
-			static_cast<int>(desired_place_amount_) + direction,
-			0,
-			static_cast<int>(current_amount_));
-		desired_place_amount_ = static_cast<std::uint32_t>(next_value);
-	}
+        const auto free_space = current_capacity() - std::min(current_amount_, current_capacity());
+        if (free_space == 0u) return;
 
-	void WaterTool::upgrade()
-	{
-		if (tier_index_ + 1u >= 3u) return;
-		++tier_index_;
-	}
+        const auto world_position = resolver.water_pickup_target_world_position(context);
+        if (!world_position.has_value()) return;
 
-	void WaterTool::fill_to_capacity()
-	{
-		current_amount_ = current_capacity();
-		if (placement_mode_) desired_place_amount_ = current_amount_;
-	}
+        const auto picked_up = context.water->pickup_water(*context.terrain, *world_position, free_space);
+        if (!picked_up) return;
+        if (picked_up->status != water::WaterActionStatus::Applied || picked_up->changed_units == 0u) return;
 
-	void WaterTool::cancel_placement()
-	{
-		placement_mode_ = false;
-		desired_place_amount_ = 0u;
-	}
+        current_amount_ = std::min(current_capacity(), current_amount_ + picked_up->changed_units);
+        invalidate_preview_cache();
+    }
 
-	void WaterTool::draw_world_preview(const TerrainToolContext& context, const TerrainTargetResolver& resolver,
-		const sf::View& view) const
-	{
-		if (!placement_mode_ || context.terrain == nullptr || desired_place_amount_ == 0u) return;
+    void WaterTool::adjust_placement_amount(const float delta)
+    {
+        if (!placement_mode_ || delta == 0.0f) return;
 
-		const auto target_position = resolver.water_tool_target_world_position(context);
-		if (!target_position.has_value()) return;
+        const int direction = delta > 0.0f ? 1 : -1;
+        const int next_value = std::clamp(static_cast<int>(desired_place_amount_) + direction, 0, static_cast<int>(current_amount_));
+        desired_place_amount_ = static_cast<std::uint32_t>(next_value);
+        invalidate_preview_cache();
+    }
 
-		const auto preview = context.terrain->build_water_preview_mesh(*target_position, desired_place_amount_);
-		if (!preview)
-		{
-			Log::warn("{}", preview.error().message);
-			return;
-		}
-		if (!preview->has_value() || (*preview)->future_vertices.empty() || (*preview)->future_indices.empty()) return;
+    void WaterTool::upgrade()
+    {
+        if (at_max_upgrade()) return;
 
-		gfx::Mesh current_mesh;
-		gfx::Mesh future_mesh;
+        if (level_index_ + 1u < 3u)
+        {
+            ++level_index_;
+        }
+        else
+        {
+            ++material_index_;
+            level_index_ = 0u;
+        }
 
-		const auto current_vertices = gfx::build_tinted_vertices(
-			(*preview)->current_vertices,
-			{ 232, 248, 255, 128 });
-		const auto future_vertices = gfx::build_tinted_vertices(
-			(*preview)->future_vertices,
-			{ 214, 252, 255, 96 });
+        current_amount_ = std::min(current_amount_, current_capacity());
+        invalidate_preview_cache();
+    }
 
-		if (!preview_renderable_.has_value())
-		{
-			preview_renderable_.emplace();
-			if (const auto initialize_result = preview_renderable_->initialize(); !initialize_result)
-			{
-				Log::error(initialize_result.error());
-				preview_renderable_.reset();
-				return;
-			}
-		}
-		auto& preview_renderable = *preview_renderable_;
+    void WaterTool::fill_to_capacity()
+    {
+        current_amount_ = current_capacity();
+        if (placement_mode_)
+            desired_place_amount_ = current_amount_;
+        invalidate_preview_cache();
+    }
 
-		current_mesh.set_data(current_vertices, (*preview)->current_indices);
-		future_mesh.set_data(future_vertices, (*preview)->future_indices);
+    void WaterTool::cancel_placement()
+    {
+        placement_mode_ = false;
+        desired_place_amount_ = 0u;
+        invalidate_preview_cache();
+    }
 
-		glEnable(GL_STENCIL_TEST);
-		glStencilMask(0xFF);
-		glClear(GL_STENCIL_BUFFER_BIT);
+    void WaterTool::destroy_preview_resources()
+    {
+        preview_cache_ = {};
+        ++preview_revision_;
+    }
 
-		glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-		glStencilFunc(GL_ALWAYS, 1, 0xFF);
-		glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-		if (!current_mesh.empty()) preview_renderable.draw(current_mesh, view);
+    std::optional<WaterTool::PreviewState> WaterTool::preview_state(const TerrainToolContext& context,
+                                                                    const TerrainTargetResolver& resolver) const
+    {
+        refresh_preview_cache(context, resolver);
+        if (!preview_cache_.has_preview) return std::nullopt;
 
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-		glStencilMask(0x00);
-		glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-		preview_renderable.draw(future_mesh, view);
+        return PreviewState{
+            .preview = &preview_cache_.preview,
+            .revision = preview_revision_
+        };
+    }
 
-		glStencilMask(0xFF);
-		glDisable(GL_STENCIL_TEST);
-	}
+    void WaterTool::refresh_preview_cache(const TerrainToolContext& context, const TerrainTargetResolver& resolver) const
+    {
+        if (!placement_mode_ || context.terrain == nullptr || context.water == nullptr || desired_place_amount_ == 0u)
+        {
+            preview_cache_ = {};
+            return;
+        }
 
-	bool WaterTool::is_placement_mode() const
-	{
-		return placement_mode_;
-	}
+        const auto target_position = resolver.water_placement_target_world_position(context);
+        if (!target_position.has_value())
+        {
+            preview_cache_ = {};
+            return;
+        }
 
-	std::size_t WaterTool::tier_index() const
-	{
-		return tier_index_;
-	}
+        const float cell_extent = std::min(context.terrain->terrain_cell_size().x, context.terrain->terrain_cell_size().y);
+        const bool same_target = preview_cache_.valid
+            && (preview_cache_.target_world - *target_position).lengthSquared() <= (cell_extent * 0.35f) * (cell_extent * 0.35f);
+        const bool same_amount = preview_cache_.valid && preview_cache_.amount == desired_place_amount_;
+        const bool same_terrain = preview_cache_.valid && preview_cache_.terrain_revision == context.terrain->field_revision();
+        const bool same_water = preview_cache_.valid && preview_cache_.water_revision == context.terrain->water_revision();
+        // The preview is revision-driven so scrolling or terrain edits only rebuild it when the inputs really changed.
+        if (!same_target || !same_amount || !same_terrain || !same_water)
+        {
+            const auto preview = context.water->build_preview(*context.terrain, *target_position, desired_place_amount_);
+            ++preview_revision_;
+            preview_cache_.valid = true;
+            preview_cache_.target_world = *target_position;
+            preview_cache_.amount = desired_place_amount_;
+            preview_cache_.terrain_revision = context.terrain->field_revision();
+            preview_cache_.water_revision = context.terrain->water_revision();
+            preview_cache_.has_preview = false;
 
-	std::uint32_t WaterTool::current_amount() const
-	{
-		return current_amount_;
-	}
+            if (!preview)
+            {
+                preview_cache_.valid = false;
+                return;
+            }
 
-	std::uint32_t WaterTool::current_capacity() const
-	{
-		return current_tier().capacity;
-	}
+            if (!preview->has_value()) return;
 
-	std::uint32_t WaterTool::desired_place_amount() const
-	{
-		return desired_place_amount_;
-	}
+            preview_cache_.preview = std::move(**preview);
+            preview_cache_.has_preview = true;
+        }
+    }
 
-	const WaterTool::BucketTier& WaterTool::current_tier() const
-	{
-		static constexpr std::array<BucketTier, 3> bucket_tiers{{
-			BucketTier{ 24u },
-			BucketTier{ 40u },
-			BucketTier{ 64u }
-		}};
+    bool WaterTool::is_placement_mode() const
+    {
+        return placement_mode_;
+    }
 
-		return bucket_tiers[std::min(tier_index_, bucket_tiers.size() - 1u)];
-	}
+    std::size_t WaterTool::material_index() const
+    {
+        return material_index_;
+    }
+
+    std::size_t WaterTool::level_index() const
+    {
+        return level_index_;
+    }
+
+    std::string_view WaterTool::material_name() const
+    {
+        static constexpr std::array names{ "Wood", "Copper", "Iron" };
+        return names[std::min(material_index_, names.size() - 1u)];
+    }
+
+    bool WaterTool::at_max_upgrade() const
+    {
+        return material_index_ >= 2u && level_index_ >= 2u;
+    }
+
+    WaterTool::BucketStats WaterTool::current_stats() const
+    {
+        return { .capacity = current_capacity() };
+    }
+
+    std::optional<WaterTool::BucketStats> WaterTool::next_stats() const
+    {
+        const auto tier = next_tier();
+        if (!tier.has_value()) return std::nullopt;
+        return BucketStats{ .capacity = tier->capacity };
+    }
+
+    std::uint32_t WaterTool::current_amount() const
+    {
+        return current_amount_;
+    }
+
+    std::uint32_t WaterTool::current_capacity() const
+    {
+        return current_tier().capacity;
+    }
+
+    std::uint32_t WaterTool::desired_place_amount() const
+    {
+        return desired_place_amount_;
+    }
+
+    void WaterTool::invalidate_preview_cache() const
+    {
+        preview_cache_ = {};
+        ++preview_revision_;
+    }
+
+    WaterTool::BucketTier WaterTool::current_tier() const
+    {
+        return BucketTier{
+            .capacity = bucket_capacities[std::min(flat_tier_index(), bucket_capacities.size() - 1u)]
+        };
+    }
+
+    std::optional<WaterTool::BucketTier> WaterTool::next_tier() const
+    {
+        if (at_max_upgrade()) return std::nullopt;
+
+        std::size_t next_material = material_index_;
+        std::size_t next_level = level_index_ + 1u;
+        if (next_level >= 3u)
+        {
+            next_level = 0u;
+            ++next_material;
+        }
+
+        const auto next_index = std::min<std::size_t>(next_material, 2u) * 3u + std::min<std::size_t>(next_level, 2u);
+        return BucketTier{
+            .capacity = bucket_capacities[std::min(next_index, bucket_capacities.size() - 1u)]
+        };
+    }
+
+    std::size_t WaterTool::flat_tier_index() const
+    {
+        return std::min<std::size_t>(material_index_, 2u) * 3u + std::min<std::size_t>(level_index_, 2u);
+    }
 }

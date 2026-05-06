@@ -1,0 +1,58 @@
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(rgba32f, binding = 0) uniform writeonly image2D outImage;
+
+uniform vec2 uWorldCenter;
+uniform vec2 uFieldOrigin;
+uniform vec2 uCellSize;
+uniform uint uSeed;
+uniform float uPlanetRadius;
+
+#include "terrain/noise.glsl"
+#include "terrain/surface_profile.glsl"
+
+const float shell_mask_width = 7.5;
+
+const float ridge_noise_scale = 0.055;
+const vec2 ridge_seed_offset = vec2(0.019, 0.023);
+const float ridge_strength = 4.75;
+
+const float medium_noise_scale = 0.12;
+const vec2 medium_seed_offset = vec2(0.013, 0.017);
+const float medium_strength = 1.85;
+
+const float micro_noise_scale = 0.28;
+const vec2 micro_seed_offset = vec2(0.031, 0.029);
+const float micro_strength = 0.75;
+
+void main()
+{
+    ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(outImage);
+
+    if (pixel.x >= size.x || pixel.y >= size.y) return;
+
+    vec2 world = uFieldOrigin + vec2(pixel) * uCellSize;
+    vec2 offset = world - uWorldCenter;
+    float distance_from_center = length(offset);
+    vec2 direction = distance_from_center > 1e-5 ? offset / distance_from_center : vec2(0.0, 1.0);
+
+    float target_radius = surface_radius(direction);
+    float base_density = target_radius - distance_from_center;
+    float density = base_density;
+
+    // Layer broad, medium, and fine noise into the shell.
+    float shell_mask = smoothstep(shell_mask_width, 0.0, abs(density));
+    float ridge_detail = ridged_fbm(world * ridge_noise_scale + ridge_seed_offset * uSeed);
+    float medium_detail = fbm(world * medium_noise_scale - medium_seed_offset * uSeed);
+    float micro_detail = fbm(world * micro_noise_scale + micro_seed_offset * uSeed);
+
+    density += (ridge_detail - 0.42) * ridge_strength * shell_mask;
+    density += (medium_detail - 0.5) * medium_strength * shell_mask;
+    density += (micro_detail - 0.5) * micro_strength * shell_mask;
+    density = clamp(density, -1.0, max(1.0, base_density));
+
+    imageStore(outImage, pixel, vec4(density, -abs(density), 0.0, 0.0));
+}

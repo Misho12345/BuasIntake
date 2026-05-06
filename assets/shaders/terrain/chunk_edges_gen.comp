@@ -1,0 +1,110 @@
+#version 460 core
+
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(rgba32f, binding = 0) uniform readonly image2D uField;
+
+layout(std430, binding = 1) buffer BoundaryVertices { vec2 data[]; } uBoundaryVertices;
+
+layout(std430, binding = 2) buffer HorizontalEdgeIds { int data[]; } uHorizontalEdgeIds;
+
+layout(std430, binding = 3) buffer VerticalEdgeIds { int data[]; } uVerticalEdgeIds;
+
+layout(std430, binding = 4) buffer VertexCounter
+{
+    uint count;
+    uint overflowed;
+} uVertexCounter;
+
+uniform float uIso;
+uniform int uChannelIndex;
+uniform vec2 uFieldOrigin;
+uniform vec2 uCellSize;
+uniform uint uMaxBoundaryVertices;
+
+float sample_field(ivec2 p)
+{
+    vec4 field = imageLoad(uField, p);
+
+    if (uChannelIndex == 0)
+    {
+        return field.r;
+    }
+
+    return min(-field.r, field.g);
+}
+
+vec2 grid_to_world(vec2 g)
+{
+    return uFieldOrigin + g * uCellSize;
+}
+
+void main()
+{
+    ivec2 id = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(uField);
+
+    if (id.x >= size.x || id.y >= size.y) return;
+
+    if (id.x < size.x - 1)
+    {
+        float a = sample_field(id);
+        float b = sample_field(id + ivec2(1, 0));
+
+        bool ia = a >= uIso;
+        bool ib = b >= uIso;
+
+        uint index = id.y * (size.x - 1) + id.x;
+
+        if (ia != ib)
+        {
+            float t = 0.5;
+            float d = b - a;
+            if (abs(d) > 1e-6) t = clamp((uIso - a) / d, 0.0, 1.0);
+            vec2 pos = grid_to_world(vec2(id) + vec2(t, 0.0));
+
+            uint v = atomicAdd(uVertexCounter.count, 1u);
+            if (v >= uMaxBoundaryVertices)
+            {
+                atomicExchange(uVertexCounter.overflowed, 1u);
+                uHorizontalEdgeIds.data[index] = -1;
+                return;
+            }
+
+            uBoundaryVertices.data[v] = pos;
+            uHorizontalEdgeIds.data[index] = int(v);
+        }
+        else uHorizontalEdgeIds.data[index] = -1;
+    }
+
+    if (id.y < size.y - 1)
+    {
+        float a = sample_field(id);
+        float b = sample_field(id + ivec2(0, 1));
+
+        bool ia = a >= uIso;
+        bool ib = b >= uIso;
+
+        uint index = id.y * size.x + id.x;
+
+        if (ia != ib)
+        {
+            float t = 0.5;
+            float d = b - a;
+            if (abs(d) > 1e-6) t = clamp((uIso - a) / d, 0.0, 1.0);
+            vec2 pos = grid_to_world(vec2(id) + vec2(0.0, t));
+
+            uint v = atomicAdd(uVertexCounter.count, 1u);
+            if (v >= uMaxBoundaryVertices)
+            {
+                atomicExchange(uVertexCounter.overflowed, 1u);
+                uVerticalEdgeIds.data[index] = -1;
+                return;
+            }
+
+            uBoundaryVertices.data[v] = pos;
+            uVerticalEdgeIds.data[index] = int(v);
+        }
+        else uVerticalEdgeIds.data[index] = -1;
+    }
+}

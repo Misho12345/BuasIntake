@@ -1,209 +1,368 @@
 #include "pch.hpp"
+
 #include "tools/TerrainToolController.hpp"
+
+#include "platform/InputSystem.hpp"
+#include "resources/ResourceSystem.hpp"
+#include "terrain/PlanetTerrain.hpp"
+#include "tools/ToolUpgradeModel.hpp"
 
 namespace game::tools
 {
-	Result<void> TerrainToolController::initialize_ui_assets()
-	{
-		if (ui_assets_ready_) return {};
+    Result<void> TerrainToolController::initialize_ui_assets()
+    {
+        if (ui_assets_ready_) return {};
 
-		if (!tools_texture_.loadFromFile("assets/images/tools.png"))
-		{
-			return fail("Failed to load tools sprite sheet 'assets/images/tools.png'");
-		}
-		tools_texture_.setSmooth(false);
+        if (!tools_texture_.loadFromFile("assets/images/tools.png"))
+        {
+            return fail("Failed to load tools sprite sheet 'assets/images/tools.png'");
+        }
+        tools_texture_.setSmooth(false);
 
-		if (!seed_icon_texture_.loadFromFile("assets/images/vegetation/ground_plants.png"))
-		{
-			return fail("Failed to load seed icon texture 'assets/images/vegetation/ground_plants.png'");
-		}
-		seed_icon_texture_.setSmooth(false);
+        if (!seed_icon_texture_.loadFromFile("assets/images/vegetation/ground_plants.png"))
+        {
+            return fail("Failed to load seed icon texture 'assets/images/vegetation/ground_plants.png'");
+        }
+        seed_icon_texture_.setSmooth(false);
 
-		ui_assets_ready_ = true;
-		return {};
-	}
+        if (!ui_font_.openFromFile("assets/fonts/Cinzel-SemiBold.ttf"))
+        {
+            return fail("Failed to load font 'assets/fonts/Cinzel-SemiBold.ttf'");
+        }
 
-	void TerrainToolController::update(const TerrainToolContext& context, const float dt)
-	{
-		if (context.terrain == nullptr) return;
+        ui_assets_ready_ = true;
+        return {};
+    }
 
-		sync_active_tool();
-		active_tool_->update(context, target_resolver_, dt);
-	}
+    void TerrainToolController::update(const TerrainToolContext& context, const float dt)
+    {
+        if (context.terrain == nullptr) return;
+        if (upgrade_menu_open_) return;
+        if (should_suppress_world_input_after_modal(context)) return;
 
-	void TerrainToolController::handle_mouse_pressed(const TerrainToolContext& context, const MouseButton button)
-	{
-		if (context.terrain == nullptr) return;
+        active_tool().update(context, target_resolver_, dt);
+    }
 
-		sync_active_tool();
-		active_tool_->handle_mouse_pressed(context, target_resolver_, button);
-	}
+    void TerrainToolController::handle_mouse_pressed(const TerrainToolContext& context, const MouseButton button)
+    {
+        if (context.terrain == nullptr) return;
+        if (upgrade_menu_open_) return;
+        if (should_suppress_world_input_after_modal(context)) return;
 
-	void TerrainToolController::handle_scroll(const float delta)
-	{
-		if (delta == 0.0f) return;
+        active_tool().handle_mouse_pressed(context, target_resolver_, button);
+    }
 
-		if (is_water_slot_selected() && water_tool_.is_placement_mode())
-		{
-			water_tool_.adjust_placement_amount(delta);
-			return;
-		}
+    void TerrainToolController::handle_scroll(const float delta)
+    {
+        if (delta == 0.0f) return;
+        if (upgrade_menu_open_) return;
 
-		constexpr int slot_count = hotbar_slot_count;
-		const int direction = delta > 0.0f ? 1 : -1;
-		const int current = static_cast<int>(selected_slot_);
-		selected_slot_ = static_cast<HotbarSlot>((current + direction + slot_count) % slot_count);
-		sync_active_tool();
-	}
+        // The wheel adjusts placement amount while the bucket is armed; otherwise it cycles the hotbar.
+        if (is_water_slot_selected() && water_tool_.is_placement_mode())
+        {
+            water_tool_.adjust_placement_amount(delta);
+            return;
+        }
 
-	void TerrainToolController::handle_upgrade()
-	{
-		if (is_water_slot_selected()) water_tool_.upgrade();
-		else if (!is_seed_slot_selected()) terrain_tool_.upgrade();
-	}
+        constexpr int slot_count = hotbar_slot_count;
+        const int direction = delta > 0.0f ? 1 : -1;
+        const int current = static_cast<int>(selected_slot_);
+        select_slot(static_cast<HotbarSlot>((current + direction + slot_count) % slot_count));
+    }
 
-	void TerrainToolController::handle_zero_shortcut(const TerrainToolContext& context)
-	{
-		if (is_water_slot_selected()) water_tool_.fill_to_capacity();
-		else if (is_seed_slot_selected() && context.terrain != nullptr) context.terrain->grant_seeds(10u);
-		else if (!is_seed_slot_selected()) terrain_tool_.clear_storage();
-	}
+    void TerrainToolController::handle_zero_shortcut(const TerrainToolContext& context)
+    {
+#ifndef NDEBUG
+        if (upgrade_menu_open_) return;
 
-	void TerrainToolController::cancel_bucket_placement()
-	{
-		water_tool_.cancel_placement();
-	}
+        if (is_water_slot_selected()) water_tool_.fill_to_capacity();
+        else if (is_seed_slot_selected() && context.resources != nullptr) context.resources->grant_seeds(10u);
+        else if (!is_seed_slot_selected()) terrain_tool_.clear_storage();
+#else
+        static_cast<void>(context);
+#endif
+    }
 
-	void TerrainToolController::draw_world_preview(const TerrainToolContext& context, const sf::View& view) const
-	{
-		if (!is_water_slot_selected()) return;
-		water_tool_.draw_world_preview(context, target_resolver_, view);
-	}
+    void TerrainToolController::toggle_upgrade_menu()
+    {
+        upgrade_menu_open_ = !upgrade_menu_open_;
+        cancel_active_interaction();
+        require_fresh_mouse_press_after_modal_ = true;
+    }
 
-	void TerrainToolController::draw_ui(sf::RenderTarget& target) const
-	{
-		if (!ui_assets_ready_) return;
+    void TerrainToolController::close_upgrade_menu()
+    {
+        if (upgrade_menu_open_) cancel_active_interaction();
+        upgrade_menu_open_ = false;
+        require_fresh_mouse_press_after_modal_ = true;
+    }
 
-		const auto slots = build_hud_slots();
-		TerrainToolHudRenderer::draw(target, slots);
-	}
+    bool TerrainToolController::should_suppress_world_input_after_modal(const TerrainToolContext& context)
+    {
+        if (!require_fresh_mouse_press_after_modal_) return false;
+        if (context.input == nullptr) return true;
 
-	void TerrainToolController::export_current_chunk_field(const TerrainToolContext& context) const
-	{
-		if (context.terrain == nullptr) return;
+        // Wait for a fresh mouse press so closing the menu on a held click does not immediately trigger a tool.
+        const bool left_pressed = context.input->is_pressed(MouseButton::Left);
+        const bool right_pressed = context.input->is_pressed(MouseButton::Right);
+        if (!left_pressed && !right_pressed)
+        {
+            require_fresh_mouse_press_after_modal_ = false;
+            return false;
+        }
 
-		if (const auto export_result = context.terrain->save_chunk_field_image(context.player_world_position); !export_result)
-		{
-			Log::warn("{}", export_result.error().message);
-		}
-		else
-		{
-			Log::info("Saved chunk field image to '{}'", export_result->string());
-		}
-	}
+        if (context.input->just_pressed(MouseButton::Left) || context.input->just_pressed(MouseButton::Right))
+        {
+            require_fresh_mouse_press_after_modal_ = false;
+            return false;
+        }
 
-	void TerrainToolController::sync_active_tool()
-	{
-		IToolStrategy* next_tool = &terrain_tool_;
-		if (is_water_slot_selected()) next_tool = &water_tool_;
-		else if (is_seed_slot_selected()) next_tool = &seed_tool_;
-		if (next_tool == active_tool_) return;
+        return true;
+    }
 
-		active_tool_->deactivate();
-		active_tool_ = next_tool;
-		active_tool_->activate();
-	}
+    void TerrainToolController::handle_upgrade_menu_click(const TerrainToolContext& context,
+                                                          const sf::Vector2f ui_position,
+                                                          const sf::Vector2u target_size)
+    {
+        if (!upgrade_menu_open_ || context.resources == nullptr) return;
 
-	std::array<TerrainToolHudSlotData, TerrainToolController::hotbar_slot_count> TerrainToolController::build_hud_slots() const
-	{
-		return {
-			build_digging_slot_data(),
-			build_water_slot_data(),
-			build_seed_slot_data()
-		};
-	}
+        if (ui::UpgradeMenu::button_rect(target_size, 0u).contains(ui_position) && !terrain_tool_.at_max_upgrade())
+        {
+            const auto cost = upgrade_model::digging_upgrade_cost(terrain_tool_);
+            if (!context.resources->spend(cost)) return;
+            terrain_tool_.upgrade();
+            return;
+        }
 
-	TerrainToolHudSlotData TerrainToolController::build_digging_slot_data() const
-	{
-		const float fill_ratio = terrain_tool_.capacity() == 0u ? 0.0f :
-			static_cast<float>(terrain_tool_.stored_ground()) / static_cast<float>(terrain_tool_.capacity());
+        if (ui::UpgradeMenu::button_rect(target_size, 1u).contains(ui_position) && !water_tool_.at_max_upgrade())
+        {
+            const auto cost = upgrade_model::bucket_upgrade_cost(water_tool_);
+            if (!context.resources->spend(cost)) return;
+            water_tool_.upgrade();
+        }
+    }
 
-		return {
-			.texture = &tools_texture_,
-			.icon_rect = tool_icon_rect(terrain_tool_.tier_index(), 0u),
-			.selected = selected_slot_ == HotbarSlot::Digging,
-			.show_bar = true,
-			.fill_ratio = fill_ratio,
-			.overlay_ratio = std::nullopt,
-			.bar_fill = sf::Color(224, 161, 74, 255),
-			.bar_frame = sf::Color(185, 127, 60, 240),
-			.bar_background = sf::Color(45, 31, 22, 210),
-			.show_aim_ring = false
-		};
-	}
+    void TerrainToolController::cancel_active_interaction()
+    {
+        terrain_tool_.deactivate();
+        water_tool_.deactivate();
+        seed_tool_.deactivate();
+    }
 
-	TerrainToolHudSlotData TerrainToolController::build_water_slot_data() const
-	{
-		const float fill_ratio = water_tool_.current_capacity() == 0u ? 0.0f :
-			static_cast<float>(water_tool_.current_amount()) / static_cast<float>(water_tool_.current_capacity());
-		const std::optional<float> overlay_ratio =
-			water_tool_.is_placement_mode() && water_tool_.current_capacity() > 0u
-			? std::optional<float>{
-				static_cast<float>(water_tool_.desired_place_amount()) / 
-					static_cast<float>(water_tool_.current_capacity())
-			}
-			: std::nullopt;
+    void TerrainToolController::cancel_bucket_placement()
+    {
+        water_tool_.cancel_placement();
+    }
 
-		return {
-			.texture = &tools_texture_,
-			.icon_rect = tool_icon_rect(
-				water_tool_.tier_index(),
-				water_tool_.current_amount() > 0u ? 2u : 1u),
-			.selected = selected_slot_ == HotbarSlot::Water,
-			.show_bar = true,
-			.fill_ratio = fill_ratio,
-			.overlay_ratio = overlay_ratio,
-			.bar_fill = sf::Color(76, 188, 235, 255),
-			.bar_frame = sf::Color(63, 144, 206, 240),
-			.bar_background = sf::Color(19, 34, 44, 210),
-			.show_aim_ring = water_tool_.is_placement_mode()
-		};
-	}
+    void TerrainToolController::destroy_graphics_resources()
+    {
+        water_tool_.destroy_preview_resources();
+        tools_texture_ = sf::Texture{};
+        seed_icon_texture_ = sf::Texture{};
+        ui_font_ = sf::Font{};
+        ui_assets_ready_ = false;
+    }
 
-	TerrainToolHudSlotData TerrainToolController::build_seed_slot_data() const
-	{
-		return {
-			.texture = &seed_icon_texture_,
-			.icon_rect = sf::IntRect{ { 7 * 32, 0 }, { 32, 32 } },
-			.selected = selected_slot_ == HotbarSlot::Seeds,
-			.show_bar = false,
-			.fill_ratio = 0.0f,
-			.overlay_ratio = std::nullopt,
-			.bar_fill = sf::Color::Transparent,
-			.bar_frame = sf::Color::Transparent,
-			.bar_background = sf::Color::Transparent,
-			.show_aim_ring = false
-		};
-	}
+    std::optional<WaterTool::PreviewState> TerrainToolController::active_water_preview(const TerrainToolContext& context) const
+    {
+        if (upgrade_menu_open_) return std::nullopt;
+        if (!is_water_slot_selected()) return std::nullopt;
+        return water_tool_.preview_state(context, target_resolver_);
+    }
 
-	bool TerrainToolController::is_water_slot_selected() const
-	{
-		return selected_slot_ == HotbarSlot::Water;
-	}
+    void TerrainToolController::draw_targeting_debug_overlay(sf::RenderTarget& target, const TerrainToolContext& context) const
+    {
+        if (upgrade_menu_open_) return;
 
-	bool TerrainToolController::is_seed_slot_selected() const
-	{
-		return selected_slot_ == HotbarSlot::Seeds;
-	}
+        auto ray_end = target_resolver_.clamped_tool_world_position(context);
+        const auto hit = target_resolver_.terrain_tool_hit_world_position(context);
+        if (hit.has_value()) ray_end = hit;
+        if (!ray_end.has_value()) return;
 
-	sf::IntRect TerrainToolController::tool_icon_rect(const std::size_t column, const std::size_t row) const
-	{
-		const auto texture_size = tools_texture_.getSize();
-		const int cell_width = static_cast<int>(texture_size.x / 3u);
-		const int cell_height = static_cast<int>(texture_size.y / 3u);
-		return {
-			{ static_cast<int>(column) * cell_width, static_cast<int>(row) * cell_height },
-			{ cell_width, cell_height }
-		};
-	}
+        sf::VertexArray ray{ sf::PrimitiveType::Lines, 2u };
+        ray[0].position = { context.player_world_position.x, context.player_world_position.y };
+        ray[1].position = { ray_end->x, ray_end->y };
+        ray[0].color = 0x78DCFFB4_rgba;
+        ray[1].color = 0x78DCFFB4_rgba;
+        target.draw(ray);
+
+        if (!hit.has_value()) return;
+
+        constexpr float marker_half_size = 0.16f;
+        sf::VertexArray marker{ sf::PrimitiveType::Lines, 4u };
+        marker[0].position = { hit->x - marker_half_size, hit->y - marker_half_size };
+        marker[1].position = { hit->x + marker_half_size, hit->y + marker_half_size };
+        marker[2].position = { hit->x - marker_half_size, hit->y + marker_half_size };
+        marker[3].position = { hit->x + marker_half_size, hit->y - marker_half_size };
+        for (std::size_t i = 0; i < 4u; ++i) marker[i].color = 0x50FF6EDC_rgba;
+        target.draw(marker);
+    }
+
+    void TerrainToolController::draw_ui(sf::RenderTarget& target) const
+    {
+        if (!ui_assets_ready_) return;
+
+        const auto slots = build_hud_slots();
+        TerrainToolHudRenderer::draw(target, slots);
+        if (upgrade_menu_open_)
+        {
+            upgrade_menu_.draw(
+                target,
+                ui_font_,
+                tools_texture_,
+                upgrade_model::build_menu_cards(
+                    terrain_tool_,
+                    water_tool_,
+                    [this](const std::size_t column, const std::size_t row)
+                    {
+                        return tool_icon_rect(column, row);
+                    }));
+        }
+    }
+
+    void TerrainToolController::export_current_chunk_field(const TerrainToolContext& context) const
+    {
+        if (context.terrain == nullptr) return;
+
+        if (const auto export_result = context.terrain->save_chunk_field_image(context.player_world_position); !export_result)
+        {
+            Log::warn("{}", export_result.error().message);
+        }
+        else
+        {
+            Log::info("Saved chunk field image to '{}'", export_result->string());
+        }
+    }
+
+    void TerrainToolController::select_slot(const HotbarSlot slot)
+    {
+        if (slot == selected_slot_) return;
+
+        active_tool().deactivate();
+        selected_slot_ = slot;
+        active_tool().activate();
+    }
+
+    TerrainTool& TerrainToolController::active_tool()
+    {
+        switch (selected_slot_)
+        {
+            case HotbarSlot::Digging:
+                return terrain_tool_;
+            case HotbarSlot::Water:
+                return water_tool_;
+            case HotbarSlot::Seeds:
+                return seed_tool_;
+        }
+
+        return terrain_tool_;
+    }
+
+    const TerrainTool& TerrainToolController::active_tool() const
+    {
+        switch (selected_slot_)
+        {
+            case HotbarSlot::Digging:
+                return terrain_tool_;
+            case HotbarSlot::Water:
+                return water_tool_;
+            case HotbarSlot::Seeds:
+                return seed_tool_;
+        }
+
+        return terrain_tool_;
+    }
+
+    std::array<TerrainToolHudSlotData, TerrainToolController::hotbar_slot_count> TerrainToolController::build_hud_slots() const
+    {
+        return {
+            build_digging_slot_data(),
+            build_water_slot_data(),
+            build_seed_slot_data()
+        };
+    }
+
+    TerrainToolHudSlotData TerrainToolController::build_digging_slot_data() const
+    {
+        const float fill_ratio = terrain_tool_.capacity() == 0u
+                                     ? 0.0f
+                                     : static_cast<float>(terrain_tool_.stored_ground()) / static_cast<float>(terrain_tool_.capacity());
+
+        return {
+            .texture = &tools_texture_,
+            .icon_rect = tool_icon_rect(terrain_tool_.material_index(), 0u),
+            .selected = selected_slot_ == HotbarSlot::Digging,
+            .show_bar = true,
+            .fill_ratio = fill_ratio,
+            .overlay_ratio = std::nullopt,
+            .bar_fill = 0xE0A14AFF_rgba,
+            .bar_frame = 0xB97F3CF0_rgba,
+            .bar_background = 0x2D1F16D2_rgba,
+            .show_aim_ring = false
+        };
+    }
+
+    TerrainToolHudSlotData TerrainToolController::build_water_slot_data() const
+    {
+        const float fill_ratio = water_tool_.current_capacity() == 0u ? 0.0f
+                                                                      : static_cast<float>(water_tool_.current_amount()) /
+                                                                            static_cast<float>(water_tool_.current_capacity());
+        const std::optional<float> overlay_ratio = water_tool_.is_placement_mode() && water_tool_.current_capacity() > 0u
+                                                       ? std::optional<float>{static_cast<float>(water_tool_.desired_place_amount()) /
+                                                                              static_cast<float>(water_tool_.current_capacity())}
+                                                       : std::nullopt;
+
+        return {
+            .texture = &tools_texture_,
+            .icon_rect = tool_icon_rect(water_tool_.material_index(), water_tool_.current_amount() > 0u ? 2u : 1u),
+            .selected = selected_slot_ == HotbarSlot::Water,
+            .show_bar = true,
+            .fill_ratio = fill_ratio,
+            .overlay_ratio = overlay_ratio,
+            .bar_fill = 0x4CBCEBFF_rgba,
+            .bar_frame = 0x3F90CEF0_rgba,
+            .bar_background = 0x13222CD2_rgba,
+            .show_aim_ring = water_tool_.is_placement_mode()
+        };
+    }
+
+    TerrainToolHudSlotData TerrainToolController::build_seed_slot_data() const
+    {
+        return {
+            .texture = &seed_icon_texture_,
+            .icon_rect = sf::IntRect{ { 7 * 32, 0 }, { 32, 32 } },
+            .selected = selected_slot_ == HotbarSlot::Seeds,
+            .show_bar = false,
+            .fill_ratio = 0.0f,
+            .overlay_ratio = std::nullopt,
+            .bar_fill = sf::Color::Transparent,
+            .bar_frame = sf::Color::Transparent,
+            .bar_background = sf::Color::Transparent,
+            .show_aim_ring = false
+        };
+    }
+
+    bool TerrainToolController::is_water_slot_selected() const
+    {
+        return selected_slot_ == HotbarSlot::Water;
+    }
+
+    bool TerrainToolController::is_seed_slot_selected() const
+    {
+        return selected_slot_ == HotbarSlot::Seeds;
+    }
+
+    sf::IntRect TerrainToolController::tool_icon_rect(const std::size_t column, const std::size_t row) const
+    {
+        const auto texture_size = tools_texture_.getSize();
+        const int cell_width = static_cast<int>(texture_size.x / 3u);
+        const int cell_height = static_cast<int>(texture_size.y / 3u);
+        return {
+            {
+                static_cast<int>(std::min<std::size_t>(column, 2u)) * cell_width,
+                static_cast<int>(std::min<std::size_t>(row, 2u)) * cell_height
+            },
+            { cell_width, cell_height }
+        };
+    }
 }

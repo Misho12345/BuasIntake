@@ -1,220 +1,430 @@
 #include "pch.hpp"
+
 #include "tools/TerrainSculptTool.hpp"
 
-#include "Input.hpp"
+#include "platform/InputSystem.hpp"
+#include "terrain/PlanetTerrain.hpp"
 #include "tools/TerrainTargetResolver.hpp"
 
 namespace game::tools
 {
-		namespace
-		{
-			constexpr vec2 placement_blocker_padding{ 1.15f, 0.55f };
+    namespace
+    {
+        constexpr vec2 placement_blocker_padding{1.15f, 0.55f};
 
-			std::optional<terrain::GroundBrushBlocker> make_player_ground_brush_blocker(
-				const TerrainToolContext& context)
-			{
-			if (context.terrain == nullptr || !b2Body_IsValid(context.player_body)) return std::nullopt;
+        std::optional<terrain::GroundBrushBlocker> make_player_ground_brush_blocker(const TerrainToolContext& context)
+        {
+            if (context.terrain == nullptr || !b2Body_IsValid(context.player_body))
+                return std::nullopt;
 
-			const b2AABB player_bounds = b2Body_ComputeAABB(context.player_body);
-			const vec2 up = normalize_vec2(
-				subtract_vec2(context.player_world_position, context.terrain->planet_center()),
-				{ 0.0f, 1.0f });
-			const vec2 right{ up.y, -up.x };
-			const vec2 extents = {
-				(player_bounds.upperBound.x - player_bounds.lowerBound.x) * 0.5f,
-				(player_bounds.upperBound.y - player_bounds.lowerBound.y) * 0.5f
-			};
+            const b2AABB player_bounds = b2Body_ComputeAABB(context.player_body);
+            const vec2 up = normalize(context.player_world_position - context.terrain->planet_center(), {0.0f, 1.0f});
+            const vec2 right{up.y, -up.x};
+            const vec2 extents = {(player_bounds.upperBound.x - player_bounds.lowerBound.x) * 0.5f,
+                                  (player_bounds.upperBound.y - player_bounds.lowerBound.y) * 0.5f};
 
-			return terrain::GroundBrushBlocker{
-				.center = context.player_world_position,
-				.right = right,
-				.up = up,
-				.half_extents = {
-					std::abs(right.x) * extents.x + std::abs(right.y) * extents.y + placement_blocker_padding.x,
-					std::abs(up.x) * extents.x + std::abs(up.y) * extents.y + placement_blocker_padding.y
-				}
-			};
-		}
-		}
+            // Placing ground right into the player feels bad, so placement keeps a little safety gap around them.
+            return terrain::GroundBrushBlocker{
+                .center = context.player_world_position,
+                .right = right,
+                .up = up,
+                .half_extents = {std::abs(right.x) * extents.x + std::abs(right.y) * extents.y + placement_blocker_padding.x,
+                                 std::abs(up.x) * extents.x + std::abs(up.y) * extents.y + placement_blocker_padding.y}};
+        }
+    }
 
-	void TerrainSculptTool::deactivate()
-	{
-		reset_brush_state(dig_state_);
-		reset_brush_state(place_state_);
-	}
+    void TerrainSculptTool::BrushStroke::begin(const MouseButton new_button)
+    {
+        active = true;
+        button = new_button;
+    }
 
-	void TerrainSculptTool::update(const TerrainToolContext& context, const TerrainTargetResolver& resolver,
-		const float dt)
-	{
-		if (context.terrain == nullptr) return;
+    void TerrainSculptTool::BrushStroke::reset()
+    {
+        active = false;
+        emission_accumulator = 0.0f;
+        last_stamp_world.reset();
+    }
 
-		const auto& tier = current_tier();
-		emit_brush_stamps(context, resolver, MouseButton::Left, true, tier.dig, dig_state_, dt);
-		emit_brush_stamps(context, resolver, MouseButton::Right, false, tier.place, place_state_, dt);
-	}
+    void TerrainSculptTool::deactivate()
+    {
+        dig_state_.reset();
+        place_state_.reset();
+        suppress_left_stroke_until_released_ = false;
+    }
 
-	void TerrainSculptTool::handle_mouse_pressed(const TerrainToolContext& context,
-		const TerrainTargetResolver& resolver, const MouseButton button)
-	{
-		if (button != MouseButton::Left || context.terrain == nullptr) return;
+    void TerrainSculptTool::update(const TerrainToolContext& context, const TerrainTargetResolver& resolver, const float dt)
+    {
+        if (context.terrain == nullptr)
+            return;
 
-		const auto world_position = resolver.terrain_tool_hit_world_position(context);
-		if (!world_position.has_value()) return;
+        const auto& tier = current_tier();
+        emit_brush_stamps(context, resolver, MouseButton::Left, true, tier.dig, dig_state_, dt);
+        emit_brush_stamps(context, resolver, MouseButton::Right, false, tier.place, place_state_, dt);
+    }
 
-		static_cast<void>(context.terrain->try_harvest_resource(*world_position));
-	}
+    void TerrainSculptTool::handle_mouse_pressed(const TerrainToolContext& context,
+                                                 const TerrainTargetResolver& resolver,
+                                                 const MouseButton button)
+    {
+        if (button != MouseButton::Left || context.terrain == nullptr)
+            return;
 
-	void TerrainSculptTool::upgrade()
-	{
-		if (tier_index_ + 1u >= 3u) return;
-		++tier_index_;
-	}
+        const auto world_position = resolver.terrain_tool_hit_world_position(context);
+        if (!world_position.has_value())
+            return;
 
-	void TerrainSculptTool::clear_storage()
-	{
-		stored_ground_ = 0u;
-	}
+        if (context.terrain->try_harvest_resource(*world_position))
+        {
+            // A successful harvest consumes this press so the same click does not also start digging.
+            suppress_left_stroke_until_released_ = true;
+            dig_state_.reset();
+        }
+    }
 
-	std::size_t TerrainSculptTool::tier_index() const
-	{
-		return tier_index_;
-	}
+    void TerrainSculptTool::upgrade()
+    {
+        if (at_max_upgrade())
+            return;
+        if (level_index_ + 1u < 3u)
+        {
+            ++level_index_;
+            return;
+        }
 
-	std::uint32_t TerrainSculptTool::stored_ground() const
-	{
-		return stored_ground_;
-	}
+        ++material_index_;
+        level_index_ = 0u;
+    }
 
-	std::uint32_t TerrainSculptTool::capacity() const
-	{
-		return current_tier().capacity;
-	}
+    void TerrainSculptTool::clear_storage()
+    {
+        stored_ground_ = 0u;
+    }
 
-	const TerrainSculptTool::ToolTier& TerrainSculptTool::current_tier() const
-	{
-		static constexpr std::array<ToolTier, 3> terrain_tool_tiers{{
-			ToolTier{
-				.dig = { .radius         = 1.5f, .signed_strength_per_stamp = -1.45f, .stamps_per_second = 22.0f,
-				         .spacing_factor = 0.6f, .falloff_exponent          = 1.85f },
-				.place = { .radius         = 1.5f, .signed_strength_per_stamp = 1.45f, .stamps_per_second = 22.0f,
-				           .spacing_factor = 0.6f, .falloff_exponent          = 1.85f },
-				.capacity = 6000u
-			},
-			ToolTier{
-				.dig = { .radius         = 1.92f, .signed_strength_per_stamp = -1.75f, .stamps_per_second = 38.0f,
-				         .spacing_factor = 0.42f, .falloff_exponent          = 1.65f },
-				.place = { .radius         = 1.92f, .signed_strength_per_stamp = 1.75f, .stamps_per_second = 38.0f,
-				           .spacing_factor = 0.42f, .falloff_exponent          = 1.65f },
-				.capacity = 12000u
-			},
-			ToolTier{
-				.dig = { .radius         = 2.35f, .signed_strength_per_stamp = -2.15f, .stamps_per_second = 68.0f,
-				         .spacing_factor = 0.34f, .falloff_exponent          = 1.48f },
-				.place = { .radius         = 2.35f, .signed_strength_per_stamp = 2.15f, .stamps_per_second = 68.0f,
-				           .spacing_factor = 0.34f, .falloff_exponent          = 1.48f },
-				.capacity = 22000u
-			}
-		}};
+    std::size_t TerrainSculptTool::material_index() const
+    {
+        return material_index_;
+    }
 
-		return terrain_tool_tiers[std::min(tier_index_, terrain_tool_tiers.size() - 1u)];
-	}
+    std::size_t TerrainSculptTool::level_index() const
+    {
+        return level_index_;
+    }
 
-	void TerrainSculptTool::reset_brush_state(BrushState& state)
-	{
-		state.emission_accumulator = 0.0f;
-		state.last_stamp_world.reset();
-	}
+    std::string_view TerrainSculptTool::material_name() const
+    {
+        static constexpr std::array names{"Copper", "Iron", "Gold"};
+        return names[std::min(material_index_, names.size() - 1u)];
+    }
 
-	void TerrainSculptTool::emit_brush_stamps(const TerrainToolContext& context, const TerrainTargetResolver& resolver,
-		const MouseButton button, const bool digging, const BrushConfig& config, BrushState& state, const float dt)
-	{
-		if (context.terrain == nullptr) return;
+    bool TerrainSculptTool::at_max_upgrade() const
+    {
+        return material_index_ >= 2u && level_index_ >= 2u;
+    }
 
-		const auto available_units = digging ? capacity() - std::min(stored_ground_, capacity()) : stored_ground_;
-		if (!Input::is_pressed(button) || available_units == 0u)
-		{
-			reset_brush_state(state);
-			return;
-		}
+    TerrainSculptTool::ToolStats TerrainSculptTool::current_stats() const
+    {
+        const auto& tier = current_tier();
+        return {
+            .radius = tier.dig.radius,
+            .speed = tier.dig.stamps_per_second,
+            .capacity = tier.capacity
+        };
+    }
 
-		const auto world_position = resolver.terrain_tool_hit_world_position(context);
-		if (!world_position.has_value())
-		{
-			reset_brush_state(state);
-			return;
-		}
+    std::optional<TerrainSculptTool::ToolStats> TerrainSculptTool::next_stats() const
+    {
+        if (at_max_upgrade())
+            return std::nullopt;
 
-		const auto emit_stamp = [&](const vec2 position)
-		{
-			const auto budget = digging ? capacity() - std::min(stored_ground_, capacity()) : stored_ground_;
-			if (budget == 0u) return;
+        TerrainSculptTool preview = *this;
+        preview.upgrade();
+        return preview.current_stats();
+    }
 
-			const auto blocker = digging ? std::nullopt : make_player_ground_brush_blocker(context);
-			const auto edit = terrain::TerrainGenerator::TerrainEdit::make(
-				position,
-				config.radius,
-				config.signed_strength_per_stamp,
-				config.falloff_exponent);
+    std::uint32_t TerrainSculptTool::stored_ground() const
+    {
+        return stored_ground_;
+    }
 
-			const auto units = context.terrain->apply_ground_brush(
-				edit,
-				budget,
-				blocker);
+    std::uint32_t TerrainSculptTool::capacity() const
+    {
+        return current_tier().capacity;
+    }
 
-			if (units == 0u) return;
+    const TerrainSculptTool::ToolTier& TerrainSculptTool::current_tier() const
+    {
+        static constexpr std::array<ToolTier, 9> terrain_tool_tiers{ {
+            ToolTier{
+                .dig = {
+                    .radius = 1.85f,
+                    .signed_strength_per_stamp = -1.15f,
+                    .stamps_per_second = 34.0f,
+                    .spacing_factor = 0.6f,
+                    .falloff_exponent = 1.85f
+                },
+                .place = {
+                    .radius = 1.85f,
+                    .signed_strength_per_stamp = 1.15f,
+                    .stamps_per_second = 34.0f,
+                    .spacing_factor = 0.6f,
+                    .falloff_exponent = 1.85f
+                },
+                .capacity = 6000u
+            },
+            ToolTier{
+                .dig = {
+                    .radius = 1.98f,
+                    .signed_strength_per_stamp = -1.24f,
+                    .stamps_per_second = 40.0f,
+                    .spacing_factor = 0.42f,
+                    .falloff_exponent = 1.65f
+                },
+                .place = {
+                    .radius = 1.98f,
+                    .signed_strength_per_stamp = 1.24f,
+                    .stamps_per_second = 40.0f,
+                    .spacing_factor = 0.42f,
+                    .falloff_exponent = 1.65f
+                },
+                .capacity = 8000u
+            },
+            ToolTier{
+                .dig = {
+                    .radius = 2.10f,
+                    .signed_strength_per_stamp = -1.34f,
+                    .stamps_per_second = 46.0f,
+                    .spacing_factor = 0.34f,
+                    .falloff_exponent = 1.48f
+                },
+                .place = {
+                    .radius = 2.10f,
+                    .signed_strength_per_stamp = 1.34f,
+                    .stamps_per_second = 46.0f,
+                    .spacing_factor = 0.34f,
+                    .falloff_exponent = 1.48f
+                },
+                .capacity = 10000u
+            },
+            ToolTier{
+                .dig = {
+                    .radius = 2.24f,
+                    .signed_strength_per_stamp = -1.47f,
+                    .stamps_per_second = 54.0f,
+                    .spacing_factor = 0.46f,
+                    .falloff_exponent = 1.62f
+                },
+                .place = {
+                    .radius = 2.24f,
+                    .signed_strength_per_stamp = 1.47f,
+                    .stamps_per_second = 54.0f,
+                    .spacing_factor = 0.46f,
+                    .falloff_exponent = 1.62f
+                },
+                .capacity = 13000u
+            },
+            ToolTier{
+                .dig = {
+                    .radius = 2.38f,
+                    .signed_strength_per_stamp = -1.60f,
+                    .stamps_per_second = 62.0f,
+                    .spacing_factor = 0.42f,
+                    .falloff_exponent = 1.58f
+                },
+                .place = {
+                    .radius = 2.38f,
+                    .signed_strength_per_stamp = 1.60f,
+                    .stamps_per_second = 62.0f,
+                    .spacing_factor = 0.42f,
+                    .falloff_exponent = 1.58f
+                },
+                .capacity = 16000u
+            },
+            ToolTier{
+                .dig = {
+                    .radius = 2.52f,
+                    .signed_strength_per_stamp = -1.74f,
+                    .stamps_per_second = 70.0f,
+                    .spacing_factor = 0.38f,
+                    .falloff_exponent = 1.54f
+                },
+                .place = {
+                    .radius = 2.52f,
+                    .signed_strength_per_stamp = 1.74f,
+                    .stamps_per_second = 70.0f,
+                    .spacing_factor = 0.38f,
+                    .falloff_exponent = 1.54f
+                },
+                .capacity = 19000u
+            },
+            ToolTier{
+                .dig = {
+                    .radius = 2.70f,
+                    .signed_strength_per_stamp = -1.92f,
+                    .stamps_per_second = 80.0f,
+                    .spacing_factor = 0.34f,
+                    .falloff_exponent = 1.50f
+                },
+                .place = {
+                    .radius = 2.70f,
+                    .signed_strength_per_stamp = 1.92f,
+                    .stamps_per_second = 80.0f,
+                    .spacing_factor = 0.34f,
+                    .falloff_exponent = 1.50f
+                },
+                .capacity = 23000u
+            },
+            ToolTier{
+                .dig = {
+                    .radius = 2.88f,
+                    .signed_strength_per_stamp = -2.10f,
+                    .stamps_per_second = 92.0f,
+                    .spacing_factor = 0.32f,
+                    .falloff_exponent = 1.46f
+                },
+                .place = {
+                    .radius = 2.88f,
+                    .signed_strength_per_stamp = 2.10f,
+                    .stamps_per_second = 92.0f,
+                    .spacing_factor = 0.32f,
+                    .falloff_exponent = 1.46f
+                },
+                .capacity = 27000u
+            },
+            ToolTier{
+                .dig = {
+                    .radius = 3.05f,
+                    .signed_strength_per_stamp = -2.30f,
+                    .stamps_per_second = 104.0f,
+                    .spacing_factor = 0.30f,
+                    .falloff_exponent = 1.42f
+                },
+                .place = {
+                    .radius = 3.05f,
+                    .signed_strength_per_stamp = 2.30f,
+                    .stamps_per_second = 104.0f,
+                    .spacing_factor = 0.30f,
+                    .falloff_exponent = 1.42f
+                },
+                .capacity = 32000u
+            }
+        } };
 
-			if (digging)
-			{
-				stored_ground_ = std::min(capacity(), stored_ground_ + units);
-			}
-			else
-			{
-				stored_ground_ -= std::min(stored_ground_, units);
-			}
-		};
+        return terrain_tool_tiers[std::min(flat_tier_index(), terrain_tool_tiers.size() - 1u)];
+    }
 
-		const float stamps_per_second = std::max(config.stamps_per_second, 1.0f);
-		const float interval = 1.0f / stamps_per_second;
-		state.emission_accumulator += dt;
+    std::size_t TerrainSculptTool::flat_tier_index() const
+    {
+        return std::min<std::size_t>(material_index_, 2u) * 3u + std::min<std::size_t>(level_index_, 2u);
+    }
 
-		if (!state.last_stamp_world.has_value())
-		{
-			emit_stamp(*world_position);
-			state.last_stamp_world = *world_position;
-			state.emission_accumulator = std::fmod(state.emission_accumulator, interval);
-			return;
-		}
+    void TerrainSculptTool::emit_brush_stamps(const TerrainToolContext& context,
+                                              const TerrainTargetResolver& resolver,
+                                              const MouseButton button,
+                                              const bool digging,
+                                              const BrushConfig& config,
+                                              BrushStroke& state,
+                                              const float dt)
+    {
+        if (context.terrain == nullptr)
+            return;
 
-		const auto previous_position = *state.last_stamp_world;
-		const vec2 delta{
-			world_position->x - previous_position.x,
-			world_position->y - previous_position.y
-		};
-		const float distance = delta.length();
-		const float spacing = std::max(config.radius * config.spacing_factor, 0.05f);
-		const int time_stamp_count = static_cast<int>(std::floor(state.emission_accumulator / interval));
-		const int movement_stamp_count = static_cast<int>(std::floor(distance / spacing));
-		const int stamp_count = std::max(time_stamp_count, movement_stamp_count);
+        if (digging && suppress_left_stroke_until_released_)
+        {
+            if (context.input != nullptr && context.input->is_pressed(MouseButton::Left))
+            {
+                state.reset();
+                return;
+            }
 
-		if (stamp_count <= 0) return;
+            suppress_left_stroke_until_released_ = false;
+        }
 
-		if (distance <= std::numeric_limits<float>::epsilon())
-		{
-			for (int i = 0; i < stamp_count; ++i)
-			{
-				emit_stamp(*world_position);
-			}
-		}
-		else
-		{
-			for (int i = 1; i <= stamp_count; ++i)
-			{
-				const float t = static_cast<float>(i) / static_cast<float>(stamp_count);
-				emit_stamp(lerp_vec2(previous_position, *world_position, t));
-			}
-		}
+        const auto available_units = digging ? capacity() - std::min(stored_ground_, capacity()) : stored_ground_;
+        if (context.input == nullptr || !context.input->is_pressed(button) || available_units == 0u)
+        {
+            state.reset();
+            return;
+        }
 
-		state.last_stamp_world = *world_position;
-		state.emission_accumulator = std::fmod(state.emission_accumulator, interval);
-	}
+        if (!state.active)
+            state.begin(button);
+
+        const auto world_position = resolver.terrain_tool_hit_world_position(context);
+        if (!world_position.has_value())
+        {
+            state.reset();
+            return;
+        }
+
+        const auto emit_stamp = [&](const vec2 position)
+        {
+            const auto budget = digging ? capacity() - std::min(stored_ground_, capacity()) : stored_ground_;
+            if (budget == 0u)
+                return;
+
+            const auto blocker = digging ? std::nullopt : make_player_ground_brush_blocker(context);
+            const auto edit = terrain::TerrainGenerator::TerrainEdit::make(
+                position, config.radius, config.signed_strength_per_stamp, config.falloff_exponent);
+
+            const auto units = context.terrain->apply_ground_brush(edit, budget, blocker);
+
+            if (units == 0u)
+                return;
+
+            if (digging)
+            {
+                stored_ground_ = std::min(capacity(), stored_ground_ + units);
+            }
+            else
+            {
+                stored_ground_ -= std::min(stored_ground_, units);
+            }
+        };
+
+        const float stamps_per_second = std::max(config.stamps_per_second, 1.0f);
+        const float interval = 1.0f / stamps_per_second;
+        state.emission_accumulator += dt;
+
+        if (!state.last_stamp_world.has_value())
+        {
+            emit_stamp(*world_position);
+            state.last_stamp_world = *world_position;
+            state.emission_accumulator = std::fmod(state.emission_accumulator, interval);
+            return;
+        }
+
+        const auto previous_position = *state.last_stamp_world;
+        const vec2 delta{world_position->x - previous_position.x, world_position->y - previous_position.y};
+        const float distance = delta.length();
+        const float spacing = std::max(config.radius * config.spacing_factor, 0.05f);
+        const int time_stamp_count = static_cast<int>(std::floor(state.emission_accumulator / interval));
+        const int movement_stamp_count = static_cast<int>(std::floor(distance / spacing));
+        // Mix time-based and distance-based stamping so quick drags do not leave holes in the edit.
+        // Cap the burst so a long hitch does not dump an unreasonable number of stamps in one frame.
+        static constexpr int max_stamps_per_frame = 16;
+        const int stamp_count = std::min(std::max(time_stamp_count, movement_stamp_count), max_stamps_per_frame);
+
+        if (stamp_count <= 0)
+            return;
+
+        if (distance <= std::numeric_limits<float>::epsilon())
+        {
+            for (int i = 0; i < stamp_count; ++i)
+            {
+                emit_stamp(*world_position);
+            }
+        }
+        else
+        {
+            for (int i = 1; i <= stamp_count; ++i)
+            {
+                const float t = static_cast<float>(i) / static_cast<float>(stamp_count);
+                emit_stamp(lerp(previous_position, *world_position, t));
+            }
+        }
+
+        state.last_stamp_world = *world_position;
+        state.emission_accumulator = std::fmod(state.emission_accumulator, interval);
+    }
 }

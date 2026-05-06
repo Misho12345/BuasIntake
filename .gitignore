@@ -1,3 +1,9 @@
 bin/
 .vs/
 chunk_png_save/
+*.log
+perf_runtime.log
+captures/
+screenshots/
+exports/
+temp/

@@ -4,63 +4,78 @@
 
 namespace game::gfx
 {
-	struct ShaderProgram;
+    struct ShaderProgram;
 
-	class Shader final
-	{
-	public:
-		Shader() = default;
-		~Shader() = default;
+    class Shader final
+    {
+    public:
+        Shader() = default;
+        ~Shader() = default;
 
-		Shader(const Shader&)            = delete;
-		Shader& operator=(const Shader&) = delete;
-		Shader(Shader&& other) noexcept = default;
-		Shader& operator=(Shader&& other) noexcept = default;
+        Shader(const Shader&) = delete;
+        Shader& operator=(const Shader&) = delete;
+        Shader(Shader&& other) noexcept = default;
+        Shader& operator=(Shader&& other) noexcept = default;
 
-		[[nodiscard]] static Result<Shader> from_compute_file(const fs::path& path);
-		[[nodiscard]] static Result<Shader> from_graphics_files(const fs::path& vertex_path, const fs::path& fragment_path);
-		static void clear_cache();
+        static Result<Shader> from_compute_file(const fs::path& path);
+        static Result<Shader> from_graphics_files(const fs::path& vertex_path, const fs::path& fragment_path);
+        static void clear_cache();
 
-		[[nodiscard]] Result<void> use() const;
+        Result<void> use() const;
 
-		[[nodiscard]] GLuint id() const;
-		[[nodiscard]] bool   valid() const;
+        GLuint id() const;
+        bool valid() const;
 
-		template <typename T>
-		void set_uniform(const std::string_view name, const T& value) const
-		{
-			if (const auto location = uniform_location(name); location >= 0)
-			{
-				if constexpr (std::same_as<T, float>) glUniform1f(location, value);
-				else if constexpr (std::same_as<T, vec2>) glUniform2f(location, value.x, value.y);
-				else if constexpr (std::same_as<T, vec3>) glUniform3f(location, value.x, value.y, value.z);
-				else if constexpr (std::same_as<T, vec4>) glUniform4f(location, value.x, value.y, value.z, value.w);
+        template <typename T>
+        void set_uniform(const std::string_view name, const T& value) const
+        {
+            if (const auto location = uniform_location(name); location >= 0)
+            {
+                if constexpr (std::same_as<T, float>)
+                    glUniform1f(location, value);
+                else if constexpr (std::same_as<T, vec2>)
+                    glUniform2f(location, value.x, value.y);
+                else if constexpr (std::same_as<T, vec3>)
+                    glUniform3f(location, value.x, value.y, value.z);
+                else if constexpr (std::same_as<T, vec4>)
+                    glUniform4f(location, value.x, value.y, value.z, value.w);
 
-				else if constexpr (std::same_as<T, std::int32_t>) glUniform1i(location, value);
-				else if constexpr (std::same_as<T, ivec2>) glUniform2i(location, value.x, value.y);
-				else if constexpr (std::same_as<T, ivec3>) glUniform3i(location, value.x, value.y, value.z);
-				else if constexpr (std::same_as<T, ivec4>) glUniform4i(location, value.x, value.y, value.z, value.w);
+                else if constexpr (std::same_as<T, std::int32_t>)
+                    glUniform1i(location, value);
+                else if constexpr (std::same_as<T, ivec2>)
+                    glUniform2i(location, value.x, value.y);
+                else if constexpr (std::same_as<T, ivec3>)
+                    glUniform3i(location, value.x, value.y, value.z);
+                else if constexpr (std::same_as<T, ivec4>)
+                    glUniform4i(location, value.x, value.y, value.z, value.w);
 
-				else if constexpr (std::same_as<T, std::uint32_t>) glUniform1ui(location, value);
-				else if constexpr (std::same_as<T, uvec2>) glUniform2ui(location, value.x, value.y);
-				else if constexpr (std::same_as<T, uvec3>) glUniform3ui(location, value.x, value.y, value.z);
-				else if constexpr (std::same_as<T, uvec4>) glUniform4ui(location, value.x, value.y, value.z, value.w);
+                else if constexpr (std::same_as<T, std::uint32_t>)
+                    glUniform1ui(location, value);
+                else if constexpr (std::same_as<T, uvec2>)
+                    glUniform2ui(location, value.x, value.y);
+                else if constexpr (std::same_as<T, uvec3>)
+                    glUniform3ui(location, value.x, value.y, value.z);
+                else if constexpr (std::same_as<T, uvec4>)
+                    glUniform4ui(location, value.x, value.y, value.z, value.w);
 
-				else if constexpr (std::same_as <T, mat3>) glUniformMatrix3fv(location, 1, GL_FALSE, value.array.data());
-				else if constexpr (std::same_as <T, mat4>) glUniformMatrix4fv(location, 1, GL_FALSE, value.array.data());
+                else if constexpr (std::same_as<T, mat3>)
+                    glUniformMatrix3fv(location, 1, GL_FALSE, value.array.data());
+                else if constexpr (std::same_as<T, mat4>)
+                    glUniformMatrix4fv(location, 1, GL_FALSE, value.array.data());
 
-				else static_assert(false, "Unsupported uniform type");
-			}
-		}
+                else
+                    static_assert(false, "Unsupported uniform type");
+            }
+        }
 
-	private:
-		explicit Shader(std::shared_ptr<ShaderProgram> program);
+    private:
+        explicit Shader(std::shared_ptr<ShaderProgram> program);
 
-		[[nodiscard]] static Result<GLuint> compile_stage(GLenum stage, const std::string& source, const fs::path& path);
-		[[nodiscard]] static Result<GLuint> link_program(std::span<const GLuint> shaders, std::string_view label);
+        static Result<GLuint> compile_stage(GLenum stage, const std::string& source, const fs::path& path);
+        static Result<GLuint> link_program(std::span<const GLuint> shaders, std::string_view label);
 
-		GLint uniform_location(std::string_view name) const;
+        GLint uniform_location(std::string_view name) const;
 
-		std::shared_ptr<ShaderProgram> program_{};
-	};
+        std::shared_ptr<ShaderProgram> program_{};
+    };
 }

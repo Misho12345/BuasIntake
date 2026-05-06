@@ -20,6 +20,24 @@
     <Filter Include="Source Files\tools">
       <UniqueIdentifier>{E8ED9605-D86E-42F7-B447-B80E9009F4E4}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\ui">
+      <UniqueIdentifier>{B5087B27-74E3-4A26-9EDB-A5823D6660DE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\resources">
+      <UniqueIdentifier>{5981F4CD-A50B-49A4-A6D4-D6786351C585}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\render">
+      <UniqueIdentifier>{AB6EFCD8-5A34-4C77-B073-B3794D1FBC57}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\platform">
+      <UniqueIdentifier>{AB9B4AB8-EA19-426E-A49A-6803E2AB5444}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\vegetation">
+      <UniqueIdentifier>{E5472850-26E1-4BA9-8A68-5DF82E49E2E7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\world">
+      <UniqueIdentifier>{95136D40-F7B2-4E6E-98E3-A0B44A77A0E5}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Header Files">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
@@ -39,6 +57,24 @@
     <Filter Include="Header Files\tools">
       <UniqueIdentifier>{0C936AD6-BF98-4A3F-BBA6-E2DC6D91883A}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\ui">
+      <UniqueIdentifier>{A88CA271-4AF4-4D6E-B27C-D7911F0B00AA}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\resources">
+      <UniqueIdentifier>{E6202DDE-BD32-4E6E-87E0-23D5A91A7AF7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\render">
+      <UniqueIdentifier>{E93A92E4-39A6-4EB6-8A48-3B2EB6616B91}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\platform">
+      <UniqueIdentifier>{7D88A4D8-4208-42DB-A585-08A1524C0265}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\vegetation">
+      <UniqueIdentifier>{C069D638-D505-4F9C-A120-635DBD6A2E64}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\world">
+      <UniqueIdentifier>{17D8950D-6FA4-4523-BE9D-4BE70A9B3D91}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
@@ -55,9 +91,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\Game.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\Input.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\gfx\Shader.cpp">
@@ -87,7 +120,13 @@
     <ClCompile Include="src\terrain\PlanetTerrain.cpp">
       <Filter>Source Files\terrain</Filter>
     </ClCompile>
+    <ClCompile Include="src\water\WaterInteraction.cpp">
+      <Filter>Source Files\water</Filter>
+    </ClCompile>
     <ClCompile Include="src\water\WaterRenderable.cpp">
+      <Filter>Source Files\water</Filter>
+    </ClCompile>
+    <ClCompile Include="src\water\WaterSystem.cpp">
       <Filter>Source Files\water</Filter>
     </ClCompile>
     <ClCompile Include="src\player\Player.cpp">
@@ -111,6 +150,36 @@
     <ClCompile Include="src\tools\WaterTool.cpp">
       <Filter>Source Files\tools</Filter>
     </ClCompile>
+    <ClCompile Include="src\ui\InventoryHud.cpp">
+      <Filter>Source Files\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\UpgradeMenu.cpp">
+      <Filter>Source Files\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\resources\ResourceSystem.cpp">
+      <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\ResourceRenderer.cpp">
+      <Filter>Source Files\render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\ToolPreviewRenderer.cpp">
+      <Filter>Source Files\render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\VegetationRenderer.cpp">
+      <Filter>Source Files\render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\WorldRenderer.cpp">
+      <Filter>Source Files\render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\platform\InputSystem.cpp">
+      <Filter>Source Files\platform</Filter>
+    </ClCompile>
+    <ClCompile Include="src\vegetation\VegetationSystem.cpp">
+      <Filter>Source Files\vegetation</Filter>
+    </ClCompile>
+    <ClCompile Include="src\world\World.cpp">
+      <Filter>Source Files\world</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\pch.hpp">
@@ -120,9 +189,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\GameObject.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\Input.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\gfx\Shader.hpp">
@@ -135,6 +201,9 @@
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
     <ClInclude Include="src\gfx\AlphaBlendPass.hpp">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gfx\GlHandle.hpp">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
     <ClInclude Include="src\gfx\Mesh.hpp">
@@ -164,6 +233,18 @@
     <ClInclude Include="src\terrain\TerrainGridMath.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
+    <ClInclude Include="src\terrain\TerrainGreennessSystem.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainBrushSystem.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainColliderManager.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainResourceSpawner.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
     <ClInclude Include="src\terrain\TerrainContour.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
@@ -176,7 +257,16 @@
     <ClInclude Include="src\terrain\PlanetTerrain.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
+    <ClInclude Include="src\terrain\TerrainWetnessSystem.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\water\WaterInteraction.hpp">
+      <Filter>Header Files\water</Filter>
+    </ClInclude>
     <ClInclude Include="src\water\WaterRenderable.hpp">
+      <Filter>Header Files\water</Filter>
+    </ClInclude>
+    <ClInclude Include="src\water\WaterSystem.hpp">
       <Filter>Header Files\water</Filter>
     </ClInclude>
     <ClInclude Include="src\player\Player.hpp">
@@ -197,21 +287,83 @@
     <ClInclude Include="src\tools\TerrainToolController.hpp">
       <Filter>Header Files\tools</Filter>
     </ClInclude>
+    <ClInclude Include="src\tools\ToolUpgradeModel.hpp">
+      <Filter>Header Files\tools</Filter>
+    </ClInclude>
     <ClInclude Include="src\tools\ToolStrategy.hpp">
       <Filter>Header Files\tools</Filter>
     </ClInclude>
     <ClInclude Include="src\tools\WaterTool.hpp">
       <Filter>Header Files\tools</Filter>
     </ClInclude>
+    <ClInclude Include="src\ui\InventoryHud.hpp">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\UpgradeMenu.hpp">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\resources\Inventory.hpp">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="src\resources\ResourceNode.hpp">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="src\resources\ResourceSystem.hpp">
+      <Filter>Header Files\resources</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\ResourceRenderer.hpp">
+      <Filter>Header Files\render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\InstancedSpriteBatch.hpp">
+      <Filter>Header Files\render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\ToolPreviewRenderer.hpp">
+      <Filter>Header Files\render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\VegetationRenderer.hpp">
+      <Filter>Header Files\render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\WorldRenderer.hpp">
+      <Filter>Header Files\render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\platform\InputSystem.hpp">
+      <Filter>Header Files\platform</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vegetation\Plant.hpp">
+      <Filter>Header Files\vegetation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\vegetation\VegetationSystem.hpp">
+      <Filter>Header Files\vegetation</Filter>
+    </ClInclude>
+    <ClInclude Include="src\world\World.hpp">
+      <Filter>Header Files\world</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\Log.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\Result.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\ScopedProfiler.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\core\Utils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
+    <None Include="assets\shaders\cave_gen.comp" />
     <None Include="assets\shaders\terrain_gen.comp" />
-    <None Include="assets\shaders\terrain_edit.comp" />
     <None Include="assets\shaders\chunk_mesh_gen.comp" />
     <None Include="assets\shaders\chunk_edges_gen.comp" />
+    <None Include="assets\shaders\pond_gen.comp" />
     <None Include="assets\shaders\terrain_mesh.frag" />
+    <None Include="assets\shaders\water_smooth.comp" />
     <None Include="assets\shaders\water_mesh.frag" />
     <None Include="assets\shaders\default.vert" />
+    <None Include="assets\shaders\common\field_common.glsl" />
+    <None Include="assets\shaders\common\noise_common.glsl" />
+    <None Include="assets\shaders\common\terrain_surface_common.glsl" />
   </ItemGroup>
 </Project>

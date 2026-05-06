@@ -104,7 +104,8 @@
       <AdditionalDependencies>sfml-audio-d.lib;sfml-graphics-d.lib;sfml-system-d.lib;sfml-window-d.lib;box2dd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y /i /d "$(SolutionDir)third_party\bin\$(Platform)\$(Configuration)\*" "$(OutDir)"</Command>
+      <Command>xcopy /y /i /d "$(SolutionDir)third_party\bin\$(Platform)\$(Configuration)\*" "$(OutDir)"
+xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -127,7 +128,8 @@
       <AdditionalDependencies>sfml-audio.lib;sfml-graphics.lib;sfml-system.lib;sfml-window.lib;box2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y /i /d "$(SolutionDir)third_party\bin\$(Platform)\$(Configuration)\*" "$(OutDir)"</Command>
+      <Command>xcopy /y /i /d "$(SolutionDir)third_party\bin\$(Platform)\$(Configuration)\*" "$(OutDir)"
+xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -148,7 +150,8 @@
       <AdditionalDependencies>sfml-audio-d.lib;sfml-graphics-d.lib;sfml-system-d.lib;sfml-window-d.lib;box2dd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y /i /d "$(SolutionDir)third_party\bin\$(Platform)\$(Configuration)\*" "$(OutDir)"</Command>
+      <Command>xcopy /y /i /d "$(SolutionDir)third_party\bin\$(Platform)\$(Configuration)\*" "$(OutDir)"
+xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -171,12 +174,13 @@
       <AdditionalDependencies>sfml-audio.lib;sfml-graphics.lib;sfml-system.lib;sfml-window.lib;box2d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
-      <Command>xcopy /y /i /d "$(SolutionDir)third_party\bin\$(Platform)\$(Configuration)\*" "$(OutDir)"</Command>
+      <Command>xcopy /y /i /d "$(SolutionDir)third_party\bin\$(Platform)\$(Configuration)\*" "$(OutDir)"
+xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\Input.cpp" />
     <ClCompile Include="src\Game.cpp" />
+    <ClCompile Include="src\platform\InputSystem.cpp" />
     <ClCompile Include="src\player\Player.cpp" />
     <ClCompile Include="src\tools\SeedTool.cpp" />
     <ClCompile Include="src\tools\TerrainSculptTool.cpp" />
@@ -184,6 +188,15 @@
     <ClCompile Include="src\tools\TerrainToolHudRenderer.cpp" />
     <ClCompile Include="src\tools\TerrainToolController.cpp" />
     <ClCompile Include="src\tools\WaterTool.cpp" />
+    <ClCompile Include="src\ui\InventoryHud.cpp" />
+    <ClCompile Include="src\ui\UpgradeMenu.cpp" />
+    <ClCompile Include="src\resources\ResourceSystem.cpp" />
+    <ClCompile Include="src\render\ResourceRenderer.cpp" />
+    <ClCompile Include="src\render\ToolPreviewRenderer.cpp" />
+    <ClCompile Include="src\render\VegetationRenderer.cpp" />
+    <ClCompile Include="src\render\WorldRenderer.cpp" />
+    <ClCompile Include="src\vegetation\VegetationSystem.cpp" />
+    <ClCompile Include="src\world\World.cpp" />
     <ClCompile Include="src\gfx\Mesh.cpp" />
     <ClCompile Include="src\gfx\Shader.cpp" />
     <ClCompile Include="src\gfx\Texture2D.cpp" />
@@ -199,8 +212,13 @@
     <ClCompile Include="src\terrain\TerrainContour.cpp" />
     <ClCompile Include="src\terrain\TerrainGenerator.cpp" />
     <ClCompile Include="src\terrain\PlanetTerrain.cpp" />
+    <ClCompile Include="src\terrain\TerrainGenerationFinalizer.cpp" />
     <ClCompile Include="src\terrain\TerrainRenderable.cpp" />
+    <ClCompile Include="src\terrain\TerrainSurfaceSampler.cpp" />
+    <ClCompile Include="src\terrain\TerrainWaterColliderBuilder.cpp" />
+    <ClCompile Include="src\water\WaterInteraction.cpp" />
     <ClCompile Include="src\water\WaterRenderable.cpp" />
+    <ClCompile Include="src\water\WaterSystem.cpp" />
     <ClCompile Include="third_party\src\gl.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
@@ -209,19 +227,37 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\Input.hpp" />
+    <ClInclude Include="src\core\Log.hpp" />
+    <ClInclude Include="src\core\ScopedProfiler.hpp" />
+    <ClInclude Include="src\core\Result.hpp" />
+    <ClInclude Include="src\core\Utils.hpp" />
     <ClInclude Include="src\Game.hpp" />
     <ClInclude Include="src\GameObject.hpp" />
+    <ClInclude Include="src\platform\InputSystem.hpp" />
     <ClInclude Include="src\player\Player.hpp" />
     <ClInclude Include="src\tools\SeedTool.hpp" />
     <ClInclude Include="src\tools\TerrainToolHudRenderer.hpp" />
     <ClInclude Include="src\tools\TerrainSculptTool.hpp" />
     <ClInclude Include="src\tools\TerrainTargetResolver.hpp" />
     <ClInclude Include="src\tools\TerrainToolController.hpp" />
+    <ClInclude Include="src\tools\ToolUpgradeModel.hpp" />
     <ClInclude Include="src\tools\ToolStrategy.hpp" />
     <ClInclude Include="src\tools\WaterTool.hpp" />
+    <ClInclude Include="src\ui\InventoryHud.hpp" />
+    <ClInclude Include="src\ui\UpgradeMenu.hpp" />
+    <ClInclude Include="src\resources\Inventory.hpp" />
+    <ClInclude Include="src\resources\ResourceNode.hpp" />
+    <ClInclude Include="src\resources\ResourceSystem.hpp" />
+    <ClInclude Include="src\render\ResourceRenderer.hpp" />
+    <ClInclude Include="src\render\InstancedSpriteBatch.hpp" />
+    <ClInclude Include="src\render\ToolPreviewRenderer.hpp" />
+    <ClInclude Include="src\render\VegetationRenderer.hpp" />
+    <ClInclude Include="src\render\WorldRenderer.hpp" />
+    <ClInclude Include="src\vegetation\Plant.hpp" />
+    <ClInclude Include="src\vegetation\VegetationSystem.hpp" />
     <ClInclude Include="src\gfx\ComputeDispatcher.hpp" />
     <ClInclude Include="src\gfx\AlphaBlendPass.hpp" />
+    <ClInclude Include="src\gfx\GlHandle.hpp" />
     <ClInclude Include="src\gfx\Mesh.hpp" />
     <ClInclude Include="src\gfx\MeshBuilders.hpp" />
     <ClInclude Include="src\gfx\Projection.hpp" />
@@ -229,6 +265,7 @@
     <ClInclude Include="src\gfx\SSBO.hpp" />
     <ClInclude Include="src\gfx\Texture2D.hpp" />
     <ClInclude Include="src\pch.hpp" />
+    <ClInclude Include="src\terrain\TerrainBrushSystem.hpp" />
     <ClInclude Include="src\terrain\ChunkSettings.hpp" />
     <ClInclude Include="src\terrain\TerrainConstants.hpp" />
     <ClInclude Include="src\terrain\TerrainCollider.hpp" />
@@ -236,18 +273,24 @@
     <ClInclude Include="src\terrain\TerrainContour.hpp" />
     <ClInclude Include="src\terrain\TerrainGenerator.hpp" />
     <ClInclude Include="src\terrain\TerrainGridMath.hpp" />
+    <ClInclude Include="src\terrain\TerrainGenerationFinalizer.hpp" />
+    <ClInclude Include="src\terrain\TerrainGreennessSystem.hpp" />
     <ClInclude Include="src\terrain\PlanetTerrain.hpp" />
+    <ClInclude Include="src\terrain\TerrainColliderManager.hpp" />
+    <ClInclude Include="src\terrain\TerrainResourceSpawner.hpp" />
+    <ClInclude Include="src\terrain\TerrainWetnessSystem.hpp" />
     <ClInclude Include="src\terrain\TerrainRenderable.hpp" />
+    <ClInclude Include="src\terrain\TerrainSurfaceSampler.hpp" />
+    <ClInclude Include="src\terrain\TerrainWaterColliderBuilder.hpp" />
+    <ClInclude Include="src\water\WaterInteraction.hpp" />
     <ClInclude Include="src\water\WaterRenderable.hpp" />
+    <ClInclude Include="src\water\WaterSystem.hpp" />
+    <ClInclude Include="src\world\World.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\shaders\chunk_edges_gen.comp" />
-    <None Include="assets\shaders\chunk_mesh_gen.comp" />
-    <None Include="assets\shaders\terrain_edit.comp" />
-    <None Include="assets\shaders\terrain_mesh.frag" />
-    <None Include="assets\shaders\terrain_gen.comp" />
-    <None Include="assets\shaders\water_mesh.frag" />
-    <None Include="assets\shaders\default.vert" />
+    <None Include="assets\shaders\common\field_common.glsl" />
+    <None Include="assets\shaders\common\noise_common.glsl" />
+    <None Include="assets\shaders\common\terrain_surface_common.glsl" />
     <None Include=".gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
