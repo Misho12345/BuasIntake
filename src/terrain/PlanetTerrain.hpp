@@ -168,7 +168,6 @@ namespace game::terrain
                                                   std::uint32_t desired_wet_sample_count,
                                                   bool preserve_existing_water) const;
         bool apply_water_plan(const WaterPlan& plan, std::vector<bool>& dirty_chunks, std::vector<ivec2>& changed_coords);
-        void smooth_ground_brush_terrain(const std::vector<ivec2>& changed_coords, std::vector<bool>& dirty_chunks);
         void recompute_ground_greenness(std::vector<bool>& dirty_chunks);
         void recompute_wetness_around(const std::vector<ivec2>& changed_coords, std::vector<bool>& dirty_chunks);
         static constexpr ivec2 chunk_count()

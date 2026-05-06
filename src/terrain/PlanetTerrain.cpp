@@ -321,9 +321,6 @@ namespace game::terrain
         if (pending_ground_brush_changed_coords_.empty() || pending_ground_brush_dirty_chunks_.empty())
             return;
 
-        // Brush stamps can come in fast while dragging, so batch the expensive rebuild work here once per update.
-        smooth_ground_brush_terrain(pending_ground_brush_changed_coords_, pending_ground_brush_dirty_chunks_);
-
         if (pending_ground_brush_requires_wetness_rebuild_)
         {
             recompute_wetness_around(pending_ground_brush_changed_coords_, pending_ground_brush_dirty_chunks_);
@@ -1136,109 +1133,6 @@ namespace game::terrain
         }
 
         return changed;
-    }
-
-    void PlanetTerrain::smooth_ground_brush_terrain(const std::vector<ivec2>& changed_coords, std::vector<bool>& dirty_chunks)
-    {
-        if (changed_coords.empty() || global_field_.empty())
-            return;
-
-        std::unordered_set<std::uint64_t> affected_keys;
-        affected_keys.reserve(changed_coords.size() * 9u);
-        for (const auto coord : changed_coords)
-        {
-            for (int oy = -1; oy <= 1; ++oy)
-            {
-                for (int ox = -1; ox <= 1; ++ox)
-                {
-                    const ivec2 neighbor{coord.x + ox, coord.y + oy};
-                    if (!is_valid_global_sample(neighbor))
-                        continue;
-                    affected_keys.insert(sample_key(neighbor));
-                }
-            }
-        }
-
-        struct TerrainUpdate final
-        {
-            ivec2 coord{0, 0};
-            float terrain{0.0f};
-        };
-
-        std::vector<TerrainUpdate> updates;
-        updates.reserve(affected_keys.size());
-
-        for (const auto key : affected_keys)
-        {
-            const ivec2 coord{static_cast<int>(key >> 32u), static_cast<int>(key & 0xffffffffu)};
-            if (!is_valid_global_sample(coord))
-                continue;
-            if (is_dig_protected(coord) || has_protective_water_neighbor(coord))
-                continue;
-
-            const auto sample_index = global_field_index(coord);
-            const auto& sample = global_field_[sample_index];
-            if (has_water(sample))
-                continue;
-
-            int solid_neighbors = 0;
-            int air_neighbors = 0;
-            float total = sample.terrain * 2.0f;
-            float total_weight = 2.0f;
-
-            for (int oy = -1; oy <= 1; ++oy)
-            {
-                for (int ox = -1; ox <= 1; ++ox)
-                {
-                    if (ox == 0 && oy == 0)
-                        continue;
-
-                    const ivec2 neighbor{coord.x + ox, coord.y + oy};
-                    if (!is_valid_global_sample(neighbor))
-                        continue;
-
-                    const auto& neighbor_sample = global_field_[global_field_index(neighbor)];
-                    if (has_water(neighbor_sample))
-                        continue;
-
-                    const float weight = (ox == 0 || oy == 0) ? 1.0f : 0.7f;
-                    total += neighbor_sample.terrain * weight;
-                    total_weight += weight;
-
-                    if (is_solid(neighbor_sample))
-                        ++solid_neighbors;
-                    else
-                        ++air_neighbors;
-                }
-            }
-
-            if (solid_neighbors == 0 || air_neighbors == 0)
-                continue;
-
-            const float average = total / std::max(total_weight, 1e-4f);
-            float next_terrain = std::lerp(sample.terrain, average, 0.34f);
-            next_terrain = clamp_terrain_density(next_terrain, global_sample_world_position(coord), base_chunk_settings_);
-
-            if (is_solid(sample))
-                next_terrain = std::max(next_terrain, 0.02f);
-            else
-                next_terrain = std::min(next_terrain, -0.02f);
-
-            if (std::abs(next_terrain - sample.terrain) <= 1e-4f)
-                continue;
-
-            updates.push_back({
-                .coord = coord,
-                .terrain = next_terrain
-            });
-        }
-
-        for (const auto& update : updates)
-        {
-            auto& sample = global_field_[global_field_index(update.coord)];
-            sample.terrain = update.terrain;
-            mark_chunks_covering_global_sample(update.coord, dirty_chunks);
-        }
     }
 
     void PlanetTerrain::recompute_wetness_around(const std::vector<ivec2>& changed_coords, std::vector<bool>& dirty_chunks)

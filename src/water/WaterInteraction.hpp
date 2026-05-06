@@ -42,7 +42,6 @@ namespace game::water
     std::optional<ivec2> find_water_anchor(const GridView& grid, vec2 world_position);
     std::optional<ivec2> find_water_sample(const GridView& grid, vec2 world_position);
     std::vector<ivec2> collect_water_component(const GridView& grid, ivec2 start_coord, bool include_diagonals = false);
-    std::vector<ivec2> collect_local_water_component(const GridView& grid, ivec2 start_coord, int search_radius_cells);
     std::uint32_t water_volume_at_anchor(const GridView& grid, ivec2 anchor, ivec2* plan_start = nullptr);
     std::optional<WaterPlan> build_targeted_water_plan(
         const GridView& grid,
