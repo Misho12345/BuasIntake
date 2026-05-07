@@ -73,6 +73,7 @@ namespace game::terrain
                 ivec2 coord{0, 0};
                 float falloff{0.0f};
                 float distance_to_center{0.0f};
+                bool affects_water{false};
             };
 
             Result result{};
@@ -241,7 +242,12 @@ namespace game::terrain
                     if (!local_changed)
                         continue;
 
-                    candidates.push_back({.coord = coord, .falloff = falloff, .distance_to_center = distance_to_center});
+                    candidates.push_back({
+                        .coord = coord,
+                        .falloff = falloff,
+                        .distance_to_center = distance_to_center,
+                        .affects_water = had_water || had_water_adjacent
+                    });
 
                     if (had_water || had_wetness || had_water_adjacent)
                         requires_wetness_rebuild = true;
@@ -296,12 +302,14 @@ namespace game::terrain
                     const bool water_changed = std::abs(next_water - sample.water) > 1e-6f;
                     local_changed = water_changed || local_changed;
                     sample.water = next_water;
-                    result.water_changed = result.water_changed || water_changed;
+                    result.water_changed = result.water_changed || (water_changed && candidates[i].affects_water);
                 }
 
                 if (!local_changed)
                     continue;
                 const bool is_solid_now = is_solid(sample);
+
+                result.water_changed = result.water_changed || candidates[i].affects_water;
 
                 result.changed = true;
                 if ((signed_strength < 0.0f && was_solid && !is_solid_now) || (signed_strength > 0.0f && !was_solid && is_solid_now))

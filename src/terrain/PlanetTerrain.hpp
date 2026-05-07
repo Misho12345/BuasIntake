@@ -148,7 +148,9 @@ namespace game::terrain
         void rebuild_water_blob_colliders();
         Result<void> rebuild_dirty_chunks(const std::vector<bool>& dirty_chunks,
                                           bool smooth_water = false,
-                                          bool rebuild_water = true);
+                                          bool rebuild_water = true,
+                                          bool rebuild_terrain_geometry = true,
+                                          bool refresh_terrain_visuals = true);
         void mark_chunks_covering_global_sample(ivec2 coord, std::vector<bool>& dirty_chunks) const;
         int solid_neighbor_count(ivec2 coord) const;
         bool has_water_neighbor(ivec2 coord) const;
@@ -169,7 +171,9 @@ namespace game::terrain
                                                   bool preserve_existing_water) const;
         bool apply_water_plan(const WaterPlan& plan, std::vector<bool>& dirty_chunks, std::vector<ivec2>& changed_coords);
         void recompute_ground_greenness(std::vector<bool>& dirty_chunks);
-        void recompute_wetness_around(const std::vector<ivec2>& changed_coords, std::vector<bool>& dirty_chunks);
+        void recompute_wetness_around(const std::vector<ivec2>& changed_coords,
+                                      std::vector<bool>& dirty_chunks,
+                                      bool recompute_greenness = true);
         static constexpr ivec2 chunk_count()
         {
             return {10, 10};

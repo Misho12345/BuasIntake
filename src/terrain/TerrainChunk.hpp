@@ -33,7 +33,14 @@ namespace game::terrain
         Result<void> finalize_generation();
         Result<void> rebuild_from_field(std::span<const FieldSample> field_samples,
                                         bool smooth_water = false,
-                                        bool rebuild_water = true);
+                                        bool rebuild_water = true,
+                                        bool rebuild_terrain_geometry = true);
+        Result<void> upload_rebuild_field(std::span<const FieldSample> field_samples);
+        void refresh_cached_terrain_mesh(std::span<const FieldSample> field_samples);
+        Result<void> dispatch_terrain_surface_rebuild();
+        Result<void> finalize_terrain_surface_rebuild(std::span<const FieldSample> field_samples);
+        Result<void> dispatch_water_surface_rebuild();
+        Result<void> finalize_water_surface_rebuild();
         Result<std::vector<FieldSample>> readback_field() const;
 
         ivec2 chunk_coord() const;
@@ -43,7 +50,9 @@ namespace game::terrain
       private:
         Result<TerrainContour::ScoredResult> read_scored_surface();
         Result<TerrainContour::ScoredResult> rebuild_scored_surface(std::uint32_t channel_index, float iso);
-        Result<void> rebuild_chunk_meshes(std::span<const FieldSample> field_samples, bool rebuild_water = true);
+        Result<void> rebuild_chunk_meshes(std::span<const FieldSample> field_samples,
+                                          bool rebuild_water = true,
+                                          bool rebuild_terrain_geometry = true);
 
         void build_chunk(const TerrainContour::ScoredResult& terrain_result,
                          const TerrainContour::ScoredResult& water_result,
@@ -62,6 +71,8 @@ namespace game::terrain
 
         gfx::Mesh mesh_{};
         gfx::Mesh water_mesh_{};
+        std::vector<vec2> cached_terrain_vertices_{};
+        std::vector<std::uint32_t> cached_terrain_indices_{};
 
         vec2 display_min_{};
         vec2 display_max_{};

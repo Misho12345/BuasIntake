@@ -2,6 +2,7 @@
 
 #include "TerrainChunk.hpp"
 
+#include "core/ScopedProfiler.hpp"
 #include "gfx/MeshBuilders.hpp"
 #include "terrain/TerrainGridMath.hpp"
 
@@ -163,7 +164,8 @@ namespace game::terrain
 
     Result<void> TerrainChunk::rebuild_from_field(const std::span<const FieldSample> field_samples,
                                                   const bool smooth_water,
-                                                  const bool rebuild_water)
+                                                  const bool rebuild_water,
+                                                  const bool rebuild_terrain_geometry)
     {
         TRY(generator_.upload_field(field_samples));
 
@@ -176,12 +178,64 @@ namespace game::terrain
             if (!effective_field_samples)
                 return fail(effective_field_samples.error());
 
-            TRY(rebuild_chunk_meshes(*effective_field_samples, rebuild_water));
+            TRY(rebuild_chunk_meshes(*effective_field_samples, rebuild_water, rebuild_terrain_geometry));
             return {};
         }
 
-        TRY(rebuild_chunk_meshes(field_samples, rebuild_water));
+        TRY(rebuild_chunk_meshes(field_samples, rebuild_water, rebuild_terrain_geometry));
 
+        return {};
+    }
+
+    Result<void> TerrainChunk::upload_rebuild_field(const std::span<const FieldSample> field_samples)
+    {
+        return generator_.upload_field(field_samples);
+    }
+
+    void TerrainChunk::refresh_cached_terrain_mesh(const std::span<const FieldSample> field_samples)
+    {
+        if (cached_terrain_vertices_.empty() || cached_terrain_indices_.empty())
+            return;
+
+        build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
+    }
+
+    Result<void> TerrainChunk::dispatch_terrain_surface_rebuild()
+    {
+        return generator_.dispatch_surface_rebuild(TerrainGenerator::terrain_channel_index, 0.0f);
+    }
+
+    Result<void> TerrainChunk::finalize_terrain_surface_rebuild(const std::span<const FieldSample> field_samples)
+    {
+        const core::ScopedProfiler profiler{"terrain.chunk.finalize_terrain_surface"};
+        static_cast<void>(profiler);
+
+        auto terrain_result = read_scored_surface();
+        if (!terrain_result)
+            return fail(terrain_result.error());
+
+        cached_terrain_vertices_ = terrain_result->mesh_vertices;
+        cached_terrain_indices_ = terrain_result->mesh_indices;
+        build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
+        collider_.build(terrain_result->collider_loops, terrain_result->collider_paths);
+        return {};
+    }
+
+    Result<void> TerrainChunk::dispatch_water_surface_rebuild()
+    {
+        return generator_.dispatch_surface_rebuild(TerrainGenerator::water_channel_index, 0.0f);
+    }
+
+    Result<void> TerrainChunk::finalize_water_surface_rebuild()
+    {
+        const core::ScopedProfiler profiler{"terrain.chunk.finalize_water_surface"};
+        static_cast<void>(profiler);
+
+        auto water_result = read_scored_surface();
+        if (!water_result)
+            return fail(water_result.error());
+
+        build_water_mesh(water_result->mesh_vertices, water_result->mesh_indices);
         return {};
     }
 
@@ -217,14 +271,25 @@ namespace game::terrain
         return read_scored_surface();
     }
 
-    Result<void> TerrainChunk::rebuild_chunk_meshes(const std::span<const FieldSample> field_samples, const bool rebuild_water)
+    Result<void> TerrainChunk::rebuild_chunk_meshes(const std::span<const FieldSample> field_samples,
+                                                    const bool rebuild_water,
+                                                    const bool rebuild_terrain_geometry)
     {
-        auto terrain_result = rebuild_scored_surface(TerrainGenerator::terrain_channel_index, 0.0f);
-        if (!terrain_result)
-            return fail(terrain_result.error());
+        if (rebuild_terrain_geometry)
+        {
+            auto terrain_result = rebuild_scored_surface(TerrainGenerator::terrain_channel_index, 0.0f);
+            if (!terrain_result)
+                return fail(terrain_result.error());
 
-        build_terrain_mesh(terrain_result->mesh_vertices, terrain_result->mesh_indices, field_samples);
-        collider_.build(terrain_result->collider_loops, terrain_result->collider_paths);
+            cached_terrain_vertices_ = terrain_result->mesh_vertices;
+            cached_terrain_indices_ = terrain_result->mesh_indices;
+            build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
+            collider_.build(terrain_result->collider_loops, terrain_result->collider_paths);
+        }
+        else if (!cached_terrain_vertices_.empty() && !cached_terrain_indices_.empty())
+        {
+            build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
+        }
 
         if (!rebuild_water)
             return {};
@@ -241,7 +306,9 @@ namespace game::terrain
                                    const TerrainContour::ScoredResult& water_result,
                                    const std::span<const FieldSample> field_samples)
     {
-        build_terrain_mesh(terrain_result.mesh_vertices, terrain_result.mesh_indices, field_samples);
+        cached_terrain_vertices_ = terrain_result.mesh_vertices;
+        cached_terrain_indices_ = terrain_result.mesh_indices;
+        build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
         build_water_mesh(water_result.mesh_vertices, water_result.mesh_indices);
         collider_.build(terrain_result.collider_loops, terrain_result.collider_paths);
     }
@@ -250,6 +317,9 @@ namespace game::terrain
                                           const std::vector<std::uint32_t>& indices,
                                           const std::span<const FieldSample> field_samples)
     {
+        const core::ScopedProfiler profiler{"terrain.chunk.build_terrain_mesh"};
+        static_cast<void>(profiler);
+
         std::vector<sf::Vertex> mesh_vertices;
         mesh_vertices.reserve(vertices.size());
 
@@ -284,6 +354,9 @@ namespace game::terrain
 
     void TerrainChunk::build_water_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices)
     {
+        const core::ScopedProfiler profiler{"terrain.chunk.build_water_mesh"};
+        static_cast<void>(profiler);
+
         if (vertices.empty() || indices.empty())
         {
             const std::vector<sf::Vertex> empty_vertices;

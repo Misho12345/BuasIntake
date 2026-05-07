@@ -2,6 +2,8 @@
 
 #include "TerrainCollider.hpp"
 
+#include "core/ScopedProfiler.hpp"
+
 namespace game::terrain
 {
     namespace
@@ -234,6 +236,9 @@ namespace game::terrain
                                 const std::vector<std::vector<vec2>>& paths,
                                 const std::vector<std::vector<vec2>>& water_loops)
     {
+        const core::ScopedProfiler profiler{"terrain.collider.build"};
+        static_cast<void>(profiler);
+
         if (b2Body_IsValid(terrain_body_))
         {
             b2DestroyBody(terrain_body_);

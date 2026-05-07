@@ -2,6 +2,7 @@
 
 #include "TerrainContour.hpp"
 
+#include "core/ScopedProfiler.hpp"
 #include "terrain/TerrainGridMath.hpp"
 
 namespace game::terrain
@@ -269,6 +270,9 @@ namespace game::terrain
 
     TerrainContour::ScoredResult TerrainContour::score_and_filter(TerrainGenerator::RawPipelineResult raw, const ChunkSettings& settings)
     {
+        const core::ScopedProfiler profiler{"terrain.contour.score_and_filter"};
+        static_cast<void>(profiler);
+
         ScoredResult result{};
         result.mesh_vertices = std::move(raw.mesh_vertices);
         result.mesh_indices = std::move(raw.mesh_indices);
