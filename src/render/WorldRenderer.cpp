@@ -26,9 +26,9 @@ namespace game::render
         if (!world.ready())
             return;
 
+        resource_renderer_.draw_ores(view, world.terrain(), world.resources());
         world.terrain().draw_gl(view);
         world.terrain().draw_water_gl(view);
-        resource_renderer_.draw_ores(view, world.terrain(), world.resources());
         vegetation_renderer_.draw(view, world.terrain(), world.vegetation(), world.resources());
         tool_preview_renderer_.draw_water_preview(preview_state, view);
     }

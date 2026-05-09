@@ -38,6 +38,9 @@ namespace game::terrain
             static constexpr float cave_generation_min_depth{0.14f};
             static constexpr float cave_resource_min_depth{0.18f};
             static constexpr float cave_resource_max_depth{0.56f};
+            static constexpr float ground_copper_min_depth{0.24f};
+            static constexpr float ground_iron_min_depth{0.32f};
+            static constexpr int ground_resource_spacing_radius{4};
 
             auto is_solid = [](const TerrainGenerator::FieldSample& sample) { return sample.terrain >= 0.0f; };
 
@@ -165,7 +168,7 @@ namespace game::terrain
                         continue;
                     const float alignment = cave ? attachment->floor_alignment : 0.0f;
                     const float roll = hash01(static_cast<float>(x), static_cast<float>(y), seed + 1701u);
-                    const float density = !cave ? 0.028f : (alignment > 0.95f ? 0.012f : alignment > 0.86f ? 0.032f : 0.075f);
+                    const float density = !cave ? 0.070f : (alignment > 0.95f ? 0.012f : alignment > 0.86f ? 0.032f : 0.075f);
                     if (roll > density)
                         continue;
 
@@ -184,6 +187,9 @@ namespace game::terrain
                     else if (cave && ore_roll > 0.20f)
                         kind = resources::ResourceNodeKind::CopperOre;
 
+                    if (!cave && has_occupied_neighbor(coord, ground_resource_spacing_radius))
+                        continue;
+
                     emit_node(kind, coord, choose_variant_row(coord, 19u), cave, true, attachment->anchor_world, attachment->surface_up);
                 }
             }
@@ -193,7 +199,7 @@ namespace game::terrain
                 for (int x = 1; x < static_cast<int>(global_field_size.x) - 1; ++x)
                 {
                     const ivec2 coord{x, y};
-                    if (occupied_samples.contains(sample_key(coord)) || has_occupied_neighbor(coord, 1))
+                    if (occupied_samples.contains(sample_key(coord)) || has_occupied_neighbor(coord, ground_resource_spacing_radius))
                         continue;
 
                     const auto& sample = global_field[global_field_index(coord)];
@@ -216,20 +222,22 @@ namespace game::terrain
                                        std::max(constants::hard_rock_depth_threshold - cave_generation_min_depth - 0.03f, 0.01f),
                                    0.0f,
                                    1.0f);
-                    const float density = 0.0018f + std::max(cluster_noise, 0.0f) * 0.015f + depth_factor * 0.006f;
+                    const float upper_stone_factor = 1.0f - std::clamp(depth / ground_copper_min_depth, 0.0f, 1.0f);
+                    const float density = 0.0085f + std::max(cluster_noise, 0.0f) * 0.045f + depth_factor * 0.018f +
+                                          upper_stone_factor * 0.020f;
                     const float placement_roll = hash01(static_cast<float>(x), static_cast<float>(y), seed + 5003u);
                     if (seam_noise > 0.46f || placement_roll > density)
                         continue;
 
                     const float ore_roll = hash01(static_cast<float>(x), static_cast<float>(y), seed + 5407u);
                     resources::ResourceNodeKind kind = resources::ResourceNodeKind::Rock;
-                    if (depth > 0.50f && ore_roll > 0.88f)
+                    if (depth > 0.50f && ore_roll > 0.86f)
                         kind = resources::ResourceNodeKind::DiamondOre;
-                    else if (depth > 0.38f && ore_roll > 0.68f)
+                    else if (depth > 0.38f && ore_roll > 0.62f)
                         kind = resources::ResourceNodeKind::GoldOre;
-                    else if (depth > 0.22f && ore_roll > 0.42f)
+                    else if (depth > ground_iron_min_depth && ore_roll > 0.34f)
                         kind = resources::ResourceNodeKind::IronOre;
-                    else if (ore_roll > 0.14f)
+                    else if (depth > ground_copper_min_depth && ore_roll > 0.18f)
                         kind = resources::ResourceNodeKind::CopperOre;
 
                     emit_node(kind, coord, choose_variant_row(coord, 149u), true);
