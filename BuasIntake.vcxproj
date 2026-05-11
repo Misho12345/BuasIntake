@@ -188,15 +188,18 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClCompile Include="src\tools\TerrainToolHudRenderer.cpp" />
     <ClCompile Include="src\tools\TerrainToolController.cpp" />
     <ClCompile Include="src\tools\WaterTool.cpp" />
+    <ClCompile Include="src\ui\GoalProgressHud.cpp" />
     <ClCompile Include="src\ui\InventoryHud.cpp" />
     <ClCompile Include="src\ui\UpgradeMenu.cpp" />
     <ClCompile Include="src\resources\ResourceSystem.cpp" />
+    <ClCompile Include="src\render\CameraController.cpp" />
     <ClCompile Include="src\render\ResourceRenderer.cpp" />
     <ClCompile Include="src\render\ToolPreviewRenderer.cpp" />
     <ClCompile Include="src\render\VegetationRenderer.cpp" />
     <ClCompile Include="src\render\WorldRenderer.cpp" />
     <ClCompile Include="src\vegetation\VegetationSystem.cpp" />
     <ClCompile Include="src\world\World.cpp" />
+    <ClCompile Include="src\world\PlanetRestorationGoal.cpp" />
     <ClCompile Include="src\gfx\Mesh.cpp" />
     <ClCompile Include="src\gfx\Shader.cpp" />
     <ClCompile Include="src\gfx\Texture2D.cpp" />
@@ -228,7 +231,6 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\core\Log.hpp" />
-    <ClInclude Include="src\core\ScopedProfiler.hpp" />
     <ClInclude Include="src\core\Result.hpp" />
     <ClInclude Include="src\core\Utils.hpp" />
     <ClInclude Include="src\Game.hpp" />
@@ -243,11 +245,13 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClInclude Include="src\tools\ToolUpgradeModel.hpp" />
     <ClInclude Include="src\tools\ToolStrategy.hpp" />
     <ClInclude Include="src\tools\WaterTool.hpp" />
+    <ClInclude Include="src\ui\GoalProgressHud.hpp" />
     <ClInclude Include="src\ui\InventoryHud.hpp" />
     <ClInclude Include="src\ui\UpgradeMenu.hpp" />
     <ClInclude Include="src\resources\Inventory.hpp" />
     <ClInclude Include="src\resources\ResourceNode.hpp" />
     <ClInclude Include="src\resources\ResourceSystem.hpp" />
+    <ClInclude Include="src\render\CameraController.hpp" />
     <ClInclude Include="src\render\ResourceRenderer.hpp" />
     <ClInclude Include="src\render\InstancedSpriteBatch.hpp" />
     <ClInclude Include="src\render\ToolPreviewRenderer.hpp" />
@@ -285,6 +289,7 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClInclude Include="src\water\WaterInteraction.hpp" />
     <ClInclude Include="src\water\WaterRenderable.hpp" />
     <ClInclude Include="src\water\WaterSystem.hpp" />
+    <ClInclude Include="src\world\PlanetRestorationGoal.hpp" />
     <ClInclude Include="src\world\World.hpp" />
   </ItemGroup>
   <ItemGroup>

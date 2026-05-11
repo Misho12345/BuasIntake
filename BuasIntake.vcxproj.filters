@@ -156,8 +156,14 @@
     <ClCompile Include="src\ui\UpgradeMenu.cpp">
       <Filter>Source Files\ui</Filter>
     </ClCompile>
+    <ClCompile Include="src\ui\GoalProgressHud.cpp">
+      <Filter>Source Files\ui</Filter>
+    </ClCompile>
     <ClCompile Include="src\resources\ResourceSystem.cpp">
       <Filter>Source Files\resources</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\CameraController.cpp">
+      <Filter>Source Files\render</Filter>
     </ClCompile>
     <ClCompile Include="src\render\ResourceRenderer.cpp">
       <Filter>Source Files\render</Filter>
@@ -178,6 +184,9 @@
       <Filter>Source Files\vegetation</Filter>
     </ClCompile>
     <ClCompile Include="src\world\World.cpp">
+      <Filter>Source Files\world</Filter>
+    </ClCompile>
+    <ClCompile Include="src\world\PlanetRestorationGoal.cpp">
       <Filter>Source Files\world</Filter>
     </ClCompile>
   </ItemGroup>
@@ -302,6 +311,9 @@
     <ClInclude Include="src\ui\UpgradeMenu.hpp">
       <Filter>Header Files\ui</Filter>
     </ClInclude>
+    <ClInclude Include="src\ui\GoalProgressHud.hpp">
+      <Filter>Header Files\ui</Filter>
+    </ClInclude>
     <ClInclude Include="src\resources\Inventory.hpp">
       <Filter>Header Files\resources</Filter>
     </ClInclude>
@@ -312,6 +324,9 @@
       <Filter>Header Files\resources</Filter>
     </ClInclude>
     <ClInclude Include="src\render\ResourceRenderer.hpp">
+      <Filter>Header Files\render</Filter>
+    </ClInclude>
+    <ClInclude Include="src\render\CameraController.hpp">
       <Filter>Header Files\render</Filter>
     </ClInclude>
     <ClInclude Include="src\render\InstancedSpriteBatch.hpp">
@@ -338,13 +353,13 @@
     <ClInclude Include="src\world\World.hpp">
       <Filter>Header Files\world</Filter>
     </ClInclude>
+    <ClInclude Include="src\world\PlanetRestorationGoal.hpp">
+      <Filter>Header Files\world</Filter>
+    </ClInclude>
     <ClInclude Include="src\core\Log.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\Result.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="src\core\ScopedProfiler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\Utils.hpp">

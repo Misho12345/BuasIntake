@@ -6,17 +6,28 @@
 
 namespace game::platform
 {
+    InputSystem& InputSystem::instance()
+    {
+        static InputSystem input;
+        return input;
+    }
+
     void InputSystem::begin_frame()
     {
-        key_pressed_events_.fill(false);
-        key_released_events_.fill(false);
-        mouse_pressed_events_.fill(false);
-        mouse_released_events_.fill(false);
-        mouse_wheel_delta_ = 0.0f;
+        InputSystem& input = instance();
+
+        input.key_pressed_events_.fill(false);
+        input.key_released_events_.fill(false);
+
+        input.mouse_pressed_events_.fill(false);
+        input.mouse_released_events_.fill(false);
+
+        input.mouse_wheel_delta_ = 0.0f;
     }
 
     InputSystem::UpdateResult InputSystem::update(sf::Window& window)
     {
+        InputSystem& input = instance();
         UpdateResult result{};
 
         while (const auto event = window.pollEvent())
@@ -37,12 +48,16 @@ namespace game::platform
 
             if (event->is<sf::Event::FocusLost>())
             {
-                current_ = {};
-                key_pressed_events_.fill(false);
-                key_released_events_.fill(false);
-                mouse_pressed_events_.fill(false);
-                mouse_released_events_.fill(false);
-                mouse_wheel_delta_ = 0.0f;
+                input.current_ = {};
+
+                input.key_pressed_events_.fill(false);
+                input.key_released_events_.fill(false);
+
+                input.mouse_pressed_events_.fill(false);
+                input.mouse_released_events_.fill(false);
+
+                input.mouse_wheel_delta_ = 0.0f;
+
                 continue;
             }
 
@@ -50,9 +65,10 @@ namespace game::platform
             {
                 if (const auto index = key_index(key->code); index.has_value())
                 {
-                    current_.pressed_keys[*index] = true;
-                    key_pressed_events_[*index] = true;
+                    input.current_.pressed_keys[*index] = true;
+                    input.key_pressed_events_[*index] = true;
                 }
+
                 continue;
             }
 
@@ -60,9 +76,10 @@ namespace game::platform
             {
                 if (const auto index = key_index(key->code); index.has_value())
                 {
-                    current_.pressed_keys[*index] = false;
-                    key_released_events_[*index] = true;
+                    input.current_.pressed_keys[*index] = false;
+                    input.key_released_events_[*index] = true;
                 }
+
                 continue;
             }
 
@@ -70,9 +87,10 @@ namespace game::platform
             {
                 if (const auto index = mouse_button_index(btn->button); index.has_value())
                 {
-                    current_.pressed_mouse_buttons[*index] = true;
-                    mouse_pressed_events_[*index] = true;
+                    input.current_.pressed_mouse_buttons[*index] = true;
+                    input.mouse_pressed_events_[*index] = true;
                 }
+
                 continue;
             }
 
@@ -80,61 +98,68 @@ namespace game::platform
             {
                 if (const auto index = mouse_button_index(btn->button); index.has_value())
                 {
-                    current_.pressed_mouse_buttons[*index] = false;
-                    mouse_released_events_[*index] = true;
+                    input.current_.pressed_mouse_buttons[*index] = false;
+                    input.mouse_released_events_[*index] = true;
                 }
+
                 continue;
             }
 
             if (const auto* scroll = event->getIf<sf::Event::MouseWheelScrolled>())
             {
-                mouse_wheel_delta_ += scroll->delta;
+                input.mouse_wheel_delta_ += scroll->delta;
             }
         }
 
         return result;
     }
 
-    bool InputSystem::is_pressed(const Key key) const
+    bool InputSystem::is_pressed(const Key key)
     {
+        const InputSystem& input = instance();
         const auto index = key_index(key);
         if (!index.has_value()) return false;
-        return current_.pressed_keys[*index];
+        return input.current_.pressed_keys[*index];
     }
 
-    bool InputSystem::is_pressed(const MouseButton button) const
+    bool InputSystem::is_pressed(const MouseButton button)
     {
+        const InputSystem& input = instance();
         const auto index = mouse_button_index(button);
         if (!index.has_value()) return false;
-        return current_.pressed_mouse_buttons[*index];
+        return input.current_.pressed_mouse_buttons[*index];
     }
 
-    bool InputSystem::just_pressed(const Key key) const
+    bool InputSystem::just_pressed(const Key key)
     {
+        const InputSystem& input = instance();
         const auto index = key_index(key);
         if (!index.has_value()) return false;
-        return key_pressed_events_[*index];
+        return input.key_pressed_events_[*index];
     }
 
-    bool InputSystem::just_pressed(const MouseButton button) const
+    bool InputSystem::just_pressed(const MouseButton button)
     {
+        const InputSystem& input = instance();
         const auto index = mouse_button_index(button);
         if (!index.has_value()) return false;
-        return mouse_pressed_events_[*index];
+        return input.mouse_pressed_events_[*index];
     }
 
-    bool InputSystem::released(const Key key) const
+    bool InputSystem::released(const Key key)
     {
+        const InputSystem& input = instance();
         const auto index = key_index(key);
         if (!index.has_value()) return false;
-        return key_released_events_[*index];
+        return input.key_released_events_[*index];
     }
 
-    bool InputSystem::released(const MouseButton button) const
+    bool InputSystem::released(const MouseButton button)
     {
+        const InputSystem& input = instance();
         const auto index = mouse_button_index(button);
         if (!index.has_value()) return false;
-        return mouse_released_events_[*index];
+        return input.mouse_released_events_[*index];
     }
 
     std::optional<std::size_t> InputSystem::key_index(const Key key) noexcept
