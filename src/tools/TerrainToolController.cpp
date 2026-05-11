@@ -70,19 +70,6 @@ namespace game::tools
         select_slot(static_cast<HotbarSlot>((current + direction + slot_count) % slot_count));
     }
 
-    void TerrainToolController::handle_zero_shortcut(const TerrainToolContext& context)
-    {
-#ifndef NDEBUG
-        if (upgrade_menu_open_) return;
-
-        if (is_water_slot_selected()) water_tool_.fill_to_capacity();
-        else if (is_seed_slot_selected() && context.resources != nullptr) context.resources->grant_seeds(10u);
-        else if (!is_seed_slot_selected()) terrain_tool_.clear_storage();
-#else
-        static_cast<void>(context);
-#endif
-    }
-
     void TerrainToolController::toggle_upgrade_menu()
     {
         upgrade_menu_open_ = !upgrade_menu_open_;
@@ -170,34 +157,6 @@ namespace game::tools
         return water_tool_.preview_state(context, target_resolver_);
     }
 
-    void TerrainToolController::draw_targeting_debug_overlay(sf::RenderTarget& target, const TerrainToolContext& context) const
-    {
-        if (upgrade_menu_open_) return;
-
-        auto ray_end = target_resolver_.clamped_tool_world_position(context);
-        const auto hit = target_resolver_.terrain_tool_hit_world_position(context);
-        if (hit.has_value()) ray_end = hit;
-        if (!ray_end.has_value()) return;
-
-        sf::VertexArray ray{ sf::PrimitiveType::Lines, 2u };
-        ray[0].position = { context.player_world_position.x, context.player_world_position.y };
-        ray[1].position = { ray_end->x, ray_end->y };
-        ray[0].color = 0x78DCFFB4_rgba;
-        ray[1].color = 0x78DCFFB4_rgba;
-        target.draw(ray);
-
-        if (!hit.has_value()) return;
-
-        constexpr float marker_half_size = 0.16f;
-        sf::VertexArray marker{ sf::PrimitiveType::Lines, 4u };
-        marker[0].position = { hit->x - marker_half_size, hit->y - marker_half_size };
-        marker[1].position = { hit->x + marker_half_size, hit->y + marker_half_size };
-        marker[2].position = { hit->x - marker_half_size, hit->y + marker_half_size };
-        marker[3].position = { hit->x + marker_half_size, hit->y - marker_half_size };
-        for (std::size_t i = 0; i < 4u; ++i) marker[i].color = 0x50FF6EDC_rgba;
-        target.draw(marker);
-    }
-
     void TerrainToolController::draw_ui(sf::RenderTarget& target) const
     {
         if (!ui_assets_ready_) return;
@@ -217,20 +176,6 @@ namespace game::tools
                     {
                         return tool_icon_rect(column, row);
                     }));
-        }
-    }
-
-    void TerrainToolController::export_current_chunk_field(const TerrainToolContext& context) const
-    {
-        if (context.terrain == nullptr) return;
-
-        if (const auto export_result = context.terrain->save_chunk_field_image(context.player_world_position); !export_result)
-        {
-            Log::warn("{}", export_result.error().message);
-        }
-        else
-        {
-            Log::info("Saved chunk field image to '{}'", export_result->string());
         }
     }
 

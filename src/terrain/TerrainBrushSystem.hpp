@@ -154,6 +154,13 @@ namespace game::terrain
 
         static bool point_inside_brush_blocker(const vec2 point, const GroundBrushBlocker& blocker, const vec2 padding)
         {
+            if (blocker.radius > 0.0f)
+            {
+                const vec2 delta = point - blocker.center;
+                const float padded_radius = blocker.radius + std::max(padding.x, padding.y);
+                return delta.lengthSquared() <= padded_radius * padded_radius;
+            }
+
             const vec2 delta = point - blocker.center;
             const float local_x = delta.dot(blocker.right);
             const float local_y = delta.dot(blocker.up);

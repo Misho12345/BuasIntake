@@ -2,7 +2,6 @@
 
 #include "PlanetTerrain.hpp"
 
-#include "core/ScopedProfiler.hpp"
 #include "resources/ResourceSystem.hpp"
 #include "terrain/TerrainConstants.hpp"
 #include "terrain/TerrainGenerationFinalizer.hpp"
@@ -58,14 +57,6 @@ namespace game::terrain
         float dry_water_density(const PlanetTerrain::FieldSample& sample)
         {
             return -std::abs(sample.terrain);
-        }
-
-        std::uint8_t normalized_channel(const float value, const float min_value, const float max_value)
-        {
-            if (std::abs(max_value - min_value) <= 1e-6f)
-                return 127u;
-            const float normalized = std::clamp((value - min_value) / (max_value - min_value), 0.0f, 1.0f);
-            return static_cast<std::uint8_t>(std::lround(normalized * 255.0f));
         }
 
         std::uint64_t sample_key(const ivec2 coord)
@@ -294,6 +285,7 @@ namespace game::terrain
     void PlanetTerrain::flush_pending_edits()
     {
         flush_pending_ground_brush_changes();
+        flush_deferred_ground_brush_wetness();
     }
 
     void PlanetTerrain::rebuild_after_vegetation_change()
@@ -317,9 +309,18 @@ namespace game::terrain
         if (pending_ground_brush_changed_coords_.empty() || pending_ground_brush_dirty_chunks_.empty())
             return;
 
+        if (pending_ground_brush_rebuild_delay_frames_ > 0)
+        {
+            --pending_ground_brush_rebuild_delay_frames_;
+            return;
+        }
+
         if (pending_ground_brush_requires_wetness_rebuild_)
         {
-            recompute_wetness_around(pending_ground_brush_changed_coords_, pending_ground_brush_dirty_chunks_);
+            deferred_ground_brush_wetness_coords_.insert(deferred_ground_brush_wetness_coords_.end(),
+                                                         pending_ground_brush_changed_coords_.begin(),
+                                                         pending_ground_brush_changed_coords_.end());
+            deferred_ground_brush_wetness_delay_frames_ = 2;
         }
 
         if (const auto rebuild_result = rebuild_dirty_chunks(pending_ground_brush_dirty_chunks_, false, pending_ground_brush_changed_water_);
@@ -332,6 +333,29 @@ namespace game::terrain
         std::fill(pending_ground_brush_dirty_chunks_.begin(), pending_ground_brush_dirty_chunks_.end(), false);
         pending_ground_brush_changed_water_ = false;
         pending_ground_brush_requires_wetness_rebuild_ = false;
+        pending_ground_brush_rebuild_delay_frames_ = 0;
+    }
+
+    void PlanetTerrain::flush_deferred_ground_brush_wetness()
+    {
+        if (deferred_ground_brush_wetness_coords_.empty())
+            return;
+        if (!pending_ground_brush_changed_coords_.empty())
+            return;
+        if (deferred_ground_brush_wetness_delay_frames_ > 0)
+        {
+            --deferred_ground_brush_wetness_delay_frames_;
+            return;
+        }
+
+        std::vector<bool> dirty_chunks(chunks_.size(), false);
+        recompute_wetness_around(deferred_ground_brush_wetness_coords_, dirty_chunks, true);
+        if (const auto rebuild_result = rebuild_dirty_chunks(dirty_chunks, false, false, false, true); !rebuild_result)
+        {
+            Log::error(rebuild_result.error());
+        }
+
+        deferred_ground_brush_wetness_coords_.clear();
     }
 
     bool PlanetTerrain::is_surface_exposed_world(const vec2 world_position, const float clearance_distance) const
@@ -454,11 +478,9 @@ namespace game::terrain
                                                     const std::uint32_t unit_budget,
                                                     const std::optional<GroundBrushBlocker>& blocker)
     {
-        const core::ScopedProfiler profiler{"terrain.apply_ground_brush"};
-        static_cast<void>(profiler);
-
         if (global_field_.empty() || unit_budget == 0u) return 0u;
         if (pending_ground_brush_dirty_chunks_.empty()) pending_ground_brush_dirty_chunks_.assign(chunks_.size(), false);
+        const bool had_pending_changes = !pending_ground_brush_changed_coords_.empty();
 
         const auto result = apply_terrain_edit_to_global_field(
             edit, pending_ground_brush_dirty_chunks_, pending_ground_brush_changed_coords_, unit_budget, blocker);
@@ -471,67 +493,9 @@ namespace game::terrain
         if (result.water_changed) ++water_revision_;
         pending_ground_brush_changed_water_ = pending_ground_brush_changed_water_ || result.water_changed;
         pending_ground_brush_requires_wetness_rebuild_ = pending_ground_brush_requires_wetness_rebuild_ || result.requires_wetness_rebuild;
+        if (!had_pending_changes)
+            pending_ground_brush_rebuild_delay_frames_ = 1;
         return result.units;
-    }
-
-    Result<fs::path> PlanetTerrain::save_chunk_field_image(const vec2 world_position) const
-    {
-        if (global_field_.empty()) return fail("Cannot export chunk field: global terrain field is empty");
-
-        const auto chunk_coord = chunk_index_from_world(world_position);
-        const auto field_samples = extract_chunk_field(chunk_coord);
-        const auto padded_size = padded_field_size(base_chunk_settings_);
-        if (field_samples.empty() || padded_size.x == 0 || padded_size.y == 0)
-        {
-            return fail("Cannot export chunk ({}, {}): field data is empty", chunk_coord.x, chunk_coord.y);
-        }
-
-        float terrain_min = std::numeric_limits<float>::infinity();
-        float terrain_max = -std::numeric_limits<float>::infinity();
-        float water_min = std::numeric_limits<float>::infinity();
-        float water_max = -std::numeric_limits<float>::infinity();
-
-        for (const auto& sample : field_samples)
-        {
-            terrain_min = std::min(terrain_min, sample.terrain);
-            terrain_max = std::max(terrain_max, sample.terrain);
-            water_min = std::min(water_min, sample.water);
-            water_max = std::max(water_max, sample.water);
-        }
-
-        sf::Image image({padded_size.x, padded_size.y}, sf::Color::Black);
-        for (std::uint32_t y = 0; y < padded_size.y; ++y)
-        {
-            for (std::uint32_t x = 0; x < padded_size.x; ++x)
-            {
-                const auto& sample = field_samples[static_cast<std::size_t>(y) * padded_size.x + x];
-                image.setPixel({x, padded_size.y - 1u - y},
-                               {normalized_channel(sample.terrain, terrain_min, terrain_max),
-                                normalized_channel(sample.water, water_min, water_max),
-                                normalized_channel(sample.wetness, 0.0f, 1.0f),
-                                static_cast<std::uint8_t>(sample.water > 0.0f || sample.terrain >= 0.0f ? 255u : 0u)});
-            }
-        }
-
-        const auto timestamp =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        const fs::path output_dir = fs::path{"chunk_png_save"};
-        std::error_code directory_error;
-        fs::create_directories(output_dir, directory_error);
-        if (directory_error)
-        {
-            return fail("Failed to create export directory '{}': {}", output_dir.string(), directory_error.message());
-        }
-
-        const auto base_name = std::format("chunk_{}_{}_{}", chunk_coord.x, chunk_coord.y, timestamp);
-        const fs::path image_path = output_dir / (base_name + ".png");
-
-        if (!image.saveToFile(image_path.string()))
-        {
-            return fail("Failed to save chunk field image '{}'", image_path.string());
-        }
-
-        return image_path;
     }
 
     void PlanetTerrain::generate_caves_resources_and_plants()
@@ -770,9 +734,6 @@ namespace game::terrain
                                                      const bool rebuild_terrain_geometry,
                                                      const bool refresh_terrain_visuals)
     {
-        const core::ScopedProfiler profiler{"terrain.rebuild_dirty_chunks"};
-        static_cast<void>(profiler);
-
         const bool any_dirty = std::ranges::any_of(dirty_chunks, [](const bool dirty) { return dirty; });
         if (!any_dirty)
             return {};
@@ -783,165 +744,123 @@ namespace game::terrain
             std::vector<FieldSample> field_samples{};
         };
 
+        std::vector<PendingChunkRebuild> pending_chunks;
+        pending_chunks.reserve(chunks_.size());
+        for (std::size_t i = 0; i < chunks_.size(); ++i)
         {
-            const core::ScopedProfiler step_profiler{"terrain.rebuild.extract_chunk_fields"};
-            static_cast<void>(step_profiler);
+            if (!dirty_chunks[i])
+                continue;
 
-            std::vector<PendingChunkRebuild> pending_chunks;
-            pending_chunks.reserve(chunks_.size());
-            for (std::size_t i = 0; i < chunks_.size(); ++i)
+            pending_chunks.push_back({
+                .chunk_index = i,
+                .field_samples = extract_chunk_field(chunks_[i].chunk_coord())
+            });
+        }
+
+        if (smooth_water)
+        {
+            for (auto& pending : pending_chunks)
             {
-                if (!dirty_chunks[i])
-                    continue;
-
-                pending_chunks.push_back({
-                    .chunk_index = i,
-                    .field_samples = extract_chunk_field(chunks_[i].chunk_coord())
-                });
-            }
-
-            if (smooth_water)
-            {
-                const core::ScopedProfiler step_profiler{"terrain.rebuild.smooth_water_chunks"};
-                static_cast<void>(step_profiler);
-
-                for (auto& pending : pending_chunks)
+                auto rebuild_result = chunks_[pending.chunk_index].rebuild_from_field(
+                    pending.field_samples, true, rebuild_water, rebuild_terrain_geometry);
+                if (!rebuild_result)
                 {
-                    auto rebuild_result = chunks_[pending.chunk_index].rebuild_from_field(
-                        pending.field_samples, true, rebuild_water, rebuild_terrain_geometry);
-                    if (!rebuild_result)
-                    {
-                        return fail("Failed to rebuild chunk ({}, {}): {}",
-                                    chunks_[pending.chunk_index].chunk_coord().x,
-                                    chunks_[pending.chunk_index].chunk_coord().y,
-                                    rebuild_result.error().message);
-                    }
-
-                    auto synced_field = chunks_[pending.chunk_index].readback_field();
-                    if (!synced_field)
-                    {
-                        return fail("Failed to read back smoothed water field for chunk ({}, {}): {}",
-                                    chunks_[pending.chunk_index].chunk_coord().x,
-                                    chunks_[pending.chunk_index].chunk_coord().y,
-                                    synced_field.error().message);
-                    }
-                    sync_chunk_field_to_global(chunks_[pending.chunk_index].chunk_coord(), *synced_field);
+                    return fail("Failed to rebuild chunk ({}, {}): {}",
+                                chunks_[pending.chunk_index].chunk_coord().x,
+                                chunks_[pending.chunk_index].chunk_coord().y,
+                                rebuild_result.error().message);
                 }
 
-                if (rebuild_water)
+                auto synced_field = chunks_[pending.chunk_index].readback_field();
+                if (!synced_field)
                 {
-                    const core::ScopedProfiler collider_profiler{"terrain.rebuild.water_blob_colliders"};
-                    static_cast<void>(collider_profiler);
-                    rebuild_water_blob_colliders();
+                    return fail("Failed to read back smoothed water field for chunk ({}, {}): {}",
+                                chunks_[pending.chunk_index].chunk_coord().x,
+                                chunks_[pending.chunk_index].chunk_coord().y,
+                                synced_field.error().message);
                 }
-                return {};
-            }
-
-            {
-                const core::ScopedProfiler step_profiler{"terrain.rebuild.upload_fields"};
-                static_cast<void>(step_profiler);
-
-                for (auto& pending : pending_chunks)
-                {
-                    if (auto upload_result = chunks_[pending.chunk_index].upload_rebuild_field(pending.field_samples); !upload_result)
-                    {
-                        return fail("Failed to rebuild chunk ({}, {}): {}",
-                                    chunks_[pending.chunk_index].chunk_coord().x,
-                                    chunks_[pending.chunk_index].chunk_coord().y,
-                                    upload_result.error().message);
-                    }
-                }
-            }
-
-            if (rebuild_terrain_geometry)
-            {
-                {
-                    const core::ScopedProfiler step_profiler{"terrain.rebuild.dispatch_terrain_surfaces"};
-                    static_cast<void>(step_profiler);
-
-                    for (auto& pending : pending_chunks)
-                    {
-                        if (auto dispatch_result = chunks_[pending.chunk_index].dispatch_terrain_surface_rebuild(); !dispatch_result)
-                        {
-                            return fail("Failed to dispatch terrain rebuild for chunk ({}, {}): {}",
-                                        chunks_[pending.chunk_index].chunk_coord().x,
-                                        chunks_[pending.chunk_index].chunk_coord().y,
-                                        dispatch_result.error().message);
-                        }
-                    }
-                }
-
-                {
-                    const core::ScopedProfiler step_profiler{"terrain.rebuild.finalize_terrain_surfaces"};
-                    static_cast<void>(step_profiler);
-
-                    for (auto& pending : pending_chunks)
-                    {
-                        if (auto finalize_result = chunks_[pending.chunk_index].finalize_terrain_surface_rebuild(pending.field_samples);
-                            !finalize_result)
-                        {
-                            return fail("Failed to finalize terrain rebuild for chunk ({}, {}): {}",
-                                        chunks_[pending.chunk_index].chunk_coord().x,
-                                        chunks_[pending.chunk_index].chunk_coord().y,
-                                        finalize_result.error().message);
-                        }
-                    }
-                }
-            }
-            else if (refresh_terrain_visuals)
-            {
-                const core::ScopedProfiler step_profiler{"terrain.rebuild.refresh_cached_terrain_meshes"};
-                static_cast<void>(step_profiler);
-
-                for (auto& pending : pending_chunks)
-                {
-                    chunks_[pending.chunk_index].refresh_cached_terrain_mesh(pending.field_samples);
-                }
+                sync_chunk_field_to_global(chunks_[pending.chunk_index].chunk_coord(), *synced_field);
             }
 
             if (rebuild_water)
             {
+                rebuild_water_blob_colliders();
+            }
+            return {};
+        }
+
+        for (auto& pending : pending_chunks)
+        {
+            if (auto upload_result = chunks_[pending.chunk_index].upload_rebuild_field(pending.field_samples); !upload_result)
+            {
+                return fail("Failed to rebuild chunk ({}, {}): {}",
+                            chunks_[pending.chunk_index].chunk_coord().x,
+                            chunks_[pending.chunk_index].chunk_coord().y,
+                            upload_result.error().message);
+            }
+        }
+
+        if (rebuild_terrain_geometry)
+        {
+            for (auto& pending : pending_chunks)
+            {
+                if (auto dispatch_result = chunks_[pending.chunk_index].dispatch_terrain_surface_rebuild(); !dispatch_result)
                 {
-                    const core::ScopedProfiler step_profiler{"terrain.rebuild.dispatch_water_surfaces"};
-                    static_cast<void>(step_profiler);
-
-                    for (auto& pending : pending_chunks)
-                    {
-                        if (auto dispatch_result = chunks_[pending.chunk_index].dispatch_water_surface_rebuild(); !dispatch_result)
-                        {
-                            return fail("Failed to dispatch water rebuild for chunk ({}, {}): {}",
-                                        chunks_[pending.chunk_index].chunk_coord().x,
-                                        chunks_[pending.chunk_index].chunk_coord().y,
-                                        dispatch_result.error().message);
-                        }
-                    }
-                }
-
-                {
-                    const core::ScopedProfiler step_profiler{"terrain.rebuild.finalize_water_surfaces"};
-                    static_cast<void>(step_profiler);
-
-                    for (auto& pending : pending_chunks)
-                    {
-                        if (auto finalize_result = chunks_[pending.chunk_index].finalize_water_surface_rebuild(); !finalize_result)
-                        {
-                            return fail("Failed to finalize water rebuild for chunk ({}, {}): {}",
-                                        chunks_[pending.chunk_index].chunk_coord().x,
-                                        chunks_[pending.chunk_index].chunk_coord().y,
-                                        finalize_result.error().message);
-                        }
-                    }
-                }
-
-                {
-                    const core::ScopedProfiler step_profiler{"terrain.rebuild.water_blob_colliders"};
-                    static_cast<void>(step_profiler);
-                    rebuild_water_blob_colliders();
+                    return fail("Failed to dispatch terrain rebuild for chunk ({}, {}): {}",
+                                chunks_[pending.chunk_index].chunk_coord().x,
+                                chunks_[pending.chunk_index].chunk_coord().y,
+                                dispatch_result.error().message);
                 }
             }
 
-            return {};
+            for (auto& pending : pending_chunks)
+            {
+                if (auto finalize_result = chunks_[pending.chunk_index].finalize_terrain_surface_rebuild(pending.field_samples);
+                    !finalize_result)
+                {
+                    return fail("Failed to finalize terrain rebuild for chunk ({}, {}): {}",
+                                chunks_[pending.chunk_index].chunk_coord().x,
+                                chunks_[pending.chunk_index].chunk_coord().y,
+                                finalize_result.error().message);
+                }
+            }
         }
+        else if (refresh_terrain_visuals)
+        {
+            for (auto& pending : pending_chunks)
+            {
+                chunks_[pending.chunk_index].refresh_cached_terrain_mesh(pending.field_samples);
+            }
+        }
+
+        if (rebuild_water)
+        {
+            for (auto& pending : pending_chunks)
+            {
+                if (auto dispatch_result = chunks_[pending.chunk_index].dispatch_water_surface_rebuild(); !dispatch_result)
+                {
+                    return fail("Failed to dispatch water rebuild for chunk ({}, {}): {}",
+                                chunks_[pending.chunk_index].chunk_coord().x,
+                                chunks_[pending.chunk_index].chunk_coord().y,
+                                dispatch_result.error().message);
+                }
+            }
+
+            for (auto& pending : pending_chunks)
+            {
+                if (auto finalize_result = chunks_[pending.chunk_index].finalize_water_surface_rebuild(); !finalize_result)
+                {
+                    return fail("Failed to finalize water rebuild for chunk ({}, {}): {}",
+                                chunks_[pending.chunk_index].chunk_coord().x,
+                                chunks_[pending.chunk_index].chunk_coord().y,
+                                finalize_result.error().message);
+                }
+            }
+
+            rebuild_water_blob_colliders();
+        }
+
+        return {};
     }
 
     void PlanetTerrain::mark_chunks_covering_global_sample(const ivec2 coord, std::vector<bool>& dirty_chunks) const
@@ -1159,7 +1078,7 @@ namespace game::terrain
         ++water_revision_;
         ++geometry_revision_;
         recompute_wetness_around(changed_coords, dirty_chunks, false);
-        TRY(rebuild_dirty_chunks(dirty_chunks, false, true, false, false));
+        TRY(rebuild_dirty_chunks(dirty_chunks, false, true, false, true));
         return true;
     }
 
@@ -1270,9 +1189,6 @@ namespace game::terrain
                                                  std::vector<bool>& dirty_chunks,
                                                  const bool recompute_greenness)
     {
-        const core::ScopedProfiler profiler{"terrain.recompute_wetness_around"};
-        static_cast<void>(profiler);
-
         // Wetness only needs to be refreshed around changed water, not across the whole planet every time.
         terrain_wetness::recompute_around(
             global_field_,

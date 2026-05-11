@@ -208,19 +208,24 @@ namespace game::terrain
             }
 
             const float min_cell_extent = std::min(terrain_cell_size.x, terrain_cell_size.y);
-            static constexpr int discovery_radius_cells = 96;
+            static constexpr int max_wetness_radius_cells = 96;
             const auto changed_bounds = clamp_sample_bounds(changed_min, changed_max, global_field_size);
-            const auto discovery_bounds = expand_sample_bounds(changed_bounds, discovery_radius_cells, global_field_size);
+            const auto affected_bounds = expand_sample_bounds(changed_bounds, max_wetness_radius_cells, global_field_size);
+            const auto component_discovery_bounds =
+                expand_sample_bounds(affected_bounds, max_wetness_radius_cells, global_field_size);
 
             bool has_water_in_discovery = false;
             bool has_wetness_in_discovery = false;
-            for (int y = discovery_bounds.min.y; y <= discovery_bounds.max.y && (!has_water_in_discovery || !has_wetness_in_discovery); ++y)
+            for (int y = component_discovery_bounds.min.y;
+                 y <= component_discovery_bounds.max.y && (!has_water_in_discovery || !has_wetness_in_discovery);
+                 ++y)
             {
-                for (int x = discovery_bounds.min.x; x <= discovery_bounds.max.x; ++x)
+                for (int x = component_discovery_bounds.min.x; x <= component_discovery_bounds.max.x; ++x)
                 {
                     const auto& sample = global_field[field_index({x, y})];
                     has_water_in_discovery = has_water_in_discovery || has_water(sample);
-                    has_wetness_in_discovery = has_wetness_in_discovery || sample.wetness > 1e-6f;
+                    has_wetness_in_discovery =
+                        has_wetness_in_discovery || (bounds_contains(affected_bounds, {x, y}) && sample.wetness > 1e-6f);
                     if (has_water_in_discovery && has_wetness_in_discovery)
                         break;
                 }
@@ -231,9 +236,9 @@ namespace game::terrain
                 if (!has_wetness_in_discovery)
                     return;
 
-                for (int y = discovery_bounds.min.y; y <= discovery_bounds.max.y; ++y)
+                for (int y = affected_bounds.min.y; y <= affected_bounds.max.y; ++y)
                 {
-                    for (int x = discovery_bounds.min.x; x <= discovery_bounds.max.x; ++x)
+                    for (int x = affected_bounds.min.x; x <= affected_bounds.max.x; ++x)
                     {
                         const ivec2 coord{x, y};
                         auto& sample = global_field[field_index(coord)];
@@ -250,9 +255,9 @@ namespace game::terrain
 
             const auto components = collect_wetness_components(global_field,
                                                                global_field_size,
-                                                               discovery_bounds,
+                                                               component_discovery_bounds,
                                                                min_cell_extent,
-                                                               discovery_radius_cells,
+                                                               max_wetness_radius_cells,
                                                                std::forward<CollectWaterComponent>(collect_water_component));
 
             if (components.empty())
@@ -260,9 +265,9 @@ namespace game::terrain
                 if (!has_wetness_in_discovery)
                     return;
 
-                for (int y = discovery_bounds.min.y; y <= discovery_bounds.max.y; ++y)
+                for (int y = affected_bounds.min.y; y <= affected_bounds.max.y; ++y)
                 {
-                    for (int x = discovery_bounds.min.x; x <= discovery_bounds.max.x; ++x)
+                    for (int x = affected_bounds.min.x; x <= affected_bounds.max.x; ++x)
                     {
                         const ivec2 coord{x, y};
                         auto& sample = global_field[field_index(coord)];
@@ -276,8 +281,6 @@ namespace game::terrain
                 }
                 return;
             }
-
-            const TerrainSampleBounds affected_bounds = discovery_bounds;
 
             const int affected_width = affected_bounds.max.x - affected_bounds.min.x + 1;
             const int affected_height = affected_bounds.max.y - affected_bounds.min.y + 1;
@@ -305,8 +308,11 @@ namespace game::terrain
             
             for (const auto& component : components)
             {
-                const auto propagation_bounds = intersect_sample_bounds(
-                    expand_sample_bounds(component.water_bounds, component.radius_cells, global_field_size), discovery_bounds);
+                const auto component_influence_bounds = expand_sample_bounds(component.water_bounds, component.radius_cells, global_field_size);
+                if (!sample_bounds_intersect(component_influence_bounds, affected_bounds))
+                    continue;
+
+                const auto propagation_bounds = intersect_sample_bounds(component_influence_bounds, affected_bounds);
                 const int propagation_width = propagation_bounds.max.x - propagation_bounds.min.x + 1;
                 const int propagation_height = propagation_bounds.max.y - propagation_bounds.min.y + 1;
                 std::vector<float> best_distances(static_cast<std::size_t>(propagation_width) *

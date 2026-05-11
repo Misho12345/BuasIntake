@@ -19,8 +19,7 @@ namespace game
         std::string message{};
     };
 
-    template <typename T>
-        requires (!std::same_as<T, Error>)
+    template <typename T> requires (!std::same_as<T, Error>)
     using Result = std::expected<T, Error>;
 
     inline std::unexpected<Error> fail(Error error)

@@ -26,20 +26,14 @@ namespace game::gfx
 
         ~ScopedAlphaBlendPass()
         {
-            if (blend_enabled_)
-                glEnable(GL_BLEND);
-            else
-                glDisable(GL_BLEND);
+            if (blend_enabled_) glEnable(GL_BLEND);
+            else glDisable(GL_BLEND);
 
-            if (depth_test_enabled_)
-                glEnable(GL_DEPTH_TEST);
-            else
-                glDisable(GL_DEPTH_TEST);
+            if (depth_test_enabled_) glEnable(GL_DEPTH_TEST);
+            else glDisable(GL_DEPTH_TEST);
 
-            if (cull_face_enabled_)
-                glEnable(GL_CULL_FACE);
-            else
-                glDisable(GL_CULL_FACE);
+            if (cull_face_enabled_) glEnable(GL_CULL_FACE);
+            else glDisable(GL_CULL_FACE);
 
             glBlendFuncSeparate(blend_src_rgb_, blend_dst_rgb_, blend_src_alpha_, blend_dst_alpha_);
             glUseProgram(0);
@@ -54,6 +48,7 @@ namespace game::gfx
         GLboolean blend_enabled_{ GL_FALSE };
         GLboolean depth_test_enabled_{ GL_FALSE };
         GLboolean cull_face_enabled_{ GL_FALSE };
+
         GLint blend_src_rgb_{ GL_ONE };
         GLint blend_dst_rgb_{ GL_ZERO };
         GLint blend_src_alpha_{ GL_ONE };

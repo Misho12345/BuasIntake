@@ -16,8 +16,7 @@ namespace game::gfx
         ~SSBO()
         {
             unmap_if_needed();
-            if (id_ != 0)
-                glDeleteBuffers(1, &id_);
+            if (id_ != 0) glDeleteBuffers(1, &id_);
         }
 
         SSBO(const SSBO&) = delete;
@@ -28,23 +27,20 @@ namespace game::gfx
               usage_{ other.usage_ },
               size_bytes_{ std::exchange(other.size_bytes_, 0) },
               mapped_ptr_{ std::exchange(other.mapped_ptr_, nullptr) },
-              immutable_storage_{ std::exchange(other.immutable_storage_, false) }
-        {
-        }
+              immutable_storage_{ std::exchange(other.immutable_storage_, false) } { }
 
         SSBO& operator=(SSBO&& other) noexcept
         {
-            if (this == &other)
-                return *this;
+            if (this == &other) return *this;
             unmap_if_needed();
-            if (id_ != 0)
-                glDeleteBuffers(1, &id_);
+            if (id_ != 0) glDeleteBuffers(1, &id_);
 
             id_ = std::exchange(other.id_, 0);
             usage_ = other.usage_;
             size_bytes_ = std::exchange(other.size_bytes_, 0);
             mapped_ptr_ = std::exchange(other.mapped_ptr_, nullptr);
             immutable_storage_ = std::exchange(other.immutable_storage_, false);
+
             return *this;
         }
 

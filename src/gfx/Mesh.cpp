@@ -31,12 +31,9 @@ namespace game::gfx
 
     Mesh::~Mesh()
     {
-        if (ebo_ != 0)
-            glDeleteBuffers(1, &ebo_);
-        if (vbo_ != 0)
-            glDeleteBuffers(1, &vbo_);
-        if (vao_ != 0)
-            glDeleteVertexArrays(1, &vao_);
+        if (ebo_ != 0) glDeleteBuffers(1, &ebo_);
+        if (vbo_ != 0) glDeleteBuffers(1, &vbo_);
+        if (vao_ != 0) glDeleteVertexArrays(1, &vao_);
     }
 
     Mesh::Mesh(Mesh&& other) noexcept
@@ -68,9 +65,16 @@ namespace game::gfx
         index_count_ = static_cast<GLsizei>(indices.size());
 
         glNamedBufferData(
-            vbo_, static_cast<GLsizeiptr>(vertices.size_bytes()), vertices.empty() ? nullptr : vertices.data(), GL_STATIC_DRAW);
+            vbo_, 
+            static_cast<GLsizeiptr>(vertices.size_bytes()), 
+            vertices.empty() ? nullptr : vertices.data(), 
+            GL_STATIC_DRAW);
 
-        glNamedBufferData(ebo_, static_cast<GLsizeiptr>(indices.size_bytes()), indices.empty() ? nullptr : indices.data(), GL_STATIC_DRAW);
+        glNamedBufferData(
+            ebo_, 
+            static_cast<GLsizeiptr>(indices.size_bytes()), 
+            indices.empty() ? nullptr : indices.data(), 
+            GL_STATIC_DRAW);
     }
 
     void Mesh::draw() const

@@ -50,6 +50,7 @@ inline sf::Time operator""_us(const unsigned long long val)
     return sf::microseconds(static_cast<std::int64_t>(val));
 }
 
+
 inline sf::Color operator""_rgb(const unsigned long long val)
 {
     return {static_cast<std::uint8_t>(val >> 16 & 0xFF), static_cast<std::uint8_t>(val >> 8 & 0xFF), static_cast<std::uint8_t>(val & 0xFF)};
@@ -67,6 +68,7 @@ namespace game
 {
     inline constexpr float pi = std::numbers::pi_v<float>;
     inline constexpr float tau = pi * 2.0f;
+
 
     inline vec2 operator+(const vec2& lhs, const vec2& rhs)
     {
@@ -92,6 +94,7 @@ namespace game
     {
         return {value.x / scalar, value.y / scalar};
     }
+
 
     inline vec2& operator+=(vec2& lhs, const vec2& rhs)
     {
@@ -121,15 +124,9 @@ namespace game
         return value;
     }
 
-    inline b2Vec2 to_b2(const vec2& value)
-    {
-        return { value.x, value.y };
-    }
 
-    inline vec2 from_b2(const b2Vec2 value)
-    {
-        return { value.x, value.y };
-    }
+    inline b2Vec2 to_b2(const vec2& value) { return { value.x, value.y }; }
+    inline vec2 from_b2(const b2Vec2 value) { return { value.x, value.y }; }
 
     inline vec2 normalize(const vec2& value, const vec2& fallback = { 0.0f, 1.0f })
     {

@@ -5,13 +5,10 @@ layout(local_size_x = 16, local_size_y = 16) in;
 layout(rgba32f, binding = 0) uniform readonly image2D uField;
 
 layout(std430, binding = 1) readonly buffer BoundaryVertices { vec2 data[]; } uBoundaryVertices;
-
 layout(std430, binding = 2) readonly buffer HorizontalEdgeIds { int data[]; } uHorizontalEdgeIds;
-
 layout(std430, binding = 3) readonly buffer VerticalEdgeIds { int data[]; } uVerticalEdgeIds;
 
 layout(std430, binding = 4) buffer MeshVertices { vec2 data[]; } uMeshVertices;
-
 layout(std430, binding = 5) buffer MeshIndices { uint data[]; } uMeshIndices;
 
 struct BoundaryEdge

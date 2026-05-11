@@ -17,7 +17,6 @@ namespace game::tools
         void handle_mouse_pressed(const TerrainToolContext& context, const TerrainTargetResolver& resolver, MouseButton button) override;
 
         void upgrade();
-        void clear_storage();
 
         struct ToolStats final
         {
@@ -77,6 +76,7 @@ namespace game::tools
         std::size_t material_index_{ 0u };
         std::size_t level_index_{ 0u };
         std::uint32_t stored_ground_{ 0u };
+        float placement_lift_cooldown_{ 0.0f };
         bool suppress_left_stroke_until_released_{ false };
         BrushStroke dig_state_{};
         BrushStroke place_state_{};

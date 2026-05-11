@@ -55,7 +55,6 @@ namespace game::resources
         bool can_afford(const ResourceInventory& cost) const noexcept;
         bool spend(const ResourceInventory& cost);
         void grant(const ResourceInventory& reward);
-        void grant_seeds(std::uint32_t amount);
         void update(float dt);
         void validate() const;
 

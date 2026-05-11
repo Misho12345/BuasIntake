@@ -53,8 +53,8 @@ namespace game::render
 
         if (preview_revision_ != preview_state->revision)
         {
-            const auto current_vertices = gfx::build_tinted_vertices(preview.current_vertices, {232, 248, 255, 128});
-            const auto future_vertices = gfx::build_tinted_vertices(preview.future_vertices, {214, 252, 255, 96});
+            const auto current_vertices = gfx::build_tinted_vertices(preview.current_vertices, 0xE8F8FF80_rgba);
+            const auto future_vertices = gfx::build_tinted_vertices(preview.future_vertices, 0xD6FCFF60_rgba);
 
             current_mesh_->set_data(current_vertices, preview.current_indices);
             future_mesh_->set_data(future_vertices, preview.future_indices);

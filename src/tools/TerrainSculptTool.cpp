@@ -10,7 +10,33 @@ namespace game::tools
 {
     namespace
     {
-        constexpr vec2 placement_blocker_padding{1.15f, 0.55f};
+        constexpr float placement_blocker_padding_radius = 0.10f;
+        constexpr float placement_lift_padding = 0.10f;
+        constexpr float placement_lift_horizontal_padding = 0.18f;
+        constexpr float placement_lift_cooldown_seconds = 0.08f;
+        constexpr float placement_ceiling_clearance = 0.06f;
+
+        struct PlacementLiftRayContext final
+        {
+            b2BodyId ignored_body{b2_nullBodyId};
+            bool hit{false};
+            float fraction{1.0f};
+        };
+
+        float placement_lift_ray_cast_callback(const b2ShapeId shape_id,
+                                               const b2Vec2 /*point*/,
+                                               const b2Vec2 /*normal*/,
+                                               const float fraction,
+                                               void* context)
+        {
+            auto& ray_context = *static_cast<PlacementLiftRayContext*>(context);
+            if (B2_ID_EQUALS(b2Shape_GetBody(shape_id), ray_context.ignored_body) || b2Shape_IsSensor(shape_id))
+                return -1.0f;
+
+            ray_context.hit = true;
+            ray_context.fraction = fraction;
+            return fraction;
+        }
 
         std::optional<terrain::GroundBrushBlocker> make_player_ground_brush_blocker(const TerrainToolContext& context)
         {
@@ -22,14 +48,100 @@ namespace game::tools
             const vec2 right{up.y, -up.x};
             const vec2 extents = {(player_bounds.upperBound.x - player_bounds.lowerBound.x) * 0.5f,
                                   (player_bounds.upperBound.y - player_bounds.lowerBound.y) * 0.5f};
+            const float player_radius = std::max(extents.y, extents.x + placement_blocker_padding_radius);
 
             // Placing ground right into the player feels bad, so placement keeps a little safety gap around them.
             return terrain::GroundBrushBlocker{
                 .center = context.player_world_position,
                 .right = right,
                 .up = up,
-                .half_extents = {std::abs(right.x) * extents.x + std::abs(right.y) * extents.y + placement_blocker_padding.x,
-                                 std::abs(up.x) * extents.x + std::abs(up.y) * extents.y + placement_blocker_padding.y}};
+                .half_extents = {0.0f, 0.0f},
+                .radius = player_radius};
+        }
+
+        vec2 adjusted_ground_placement_position(const TerrainToolContext& context, const vec2 placement_position, const float brush_radius)
+        {
+            if (context.terrain == nullptr || !b2Body_IsValid(context.player_body))
+                return placement_position;
+
+            const b2AABB player_bounds = b2Body_ComputeAABB(context.player_body);
+            const vec2 up = normalize(context.player_world_position - context.terrain->planet_center(), {0.0f, 1.0f});
+            const vec2 right{up.y, -up.x};
+            const vec2 extents = {(player_bounds.upperBound.x - player_bounds.lowerBound.x) * 0.5f,
+                                  (player_bounds.upperBound.y - player_bounds.lowerBound.y) * 0.5f};
+            const vec2 delta = placement_position - context.player_world_position;
+            const float lateral_offset = std::abs(delta.dot(right));
+            const float up_offset = delta.dot(up);
+
+            if (lateral_offset > extents.x + placement_lift_horizontal_padding)
+                return placement_position;
+            if (up_offset > 0.05f)
+                return placement_position;
+
+            const vec2 feet_position = context.player_world_position - up * extents.y;
+            return feet_position - up * brush_radius;
+        }
+
+        void lift_player_for_ground_placement(const TerrainToolContext& context,
+                                              const vec2 placement_position,
+                                              const float brush_radius,
+                                              float& lift_cooldown)
+        {
+            if (context.terrain == nullptr || !b2Body_IsValid(context.player_body))
+                return;
+            if (lift_cooldown > 0.0f)
+                return;
+
+            const b2AABB player_bounds = b2Body_ComputeAABB(context.player_body);
+            const vec2 up = normalize(context.player_world_position - context.terrain->planet_center(), {0.0f, 1.0f});
+            const vec2 right{up.y, -up.x};
+            const vec2 extents = {(player_bounds.upperBound.x - player_bounds.lowerBound.x) * 0.5f,
+                                  (player_bounds.upperBound.y - player_bounds.lowerBound.y) * 0.5f};
+            const vec2 delta = placement_position - context.player_world_position;
+            const float lateral_offset = std::abs(delta.dot(right));
+            const float up_offset = delta.dot(up);
+            const float horizontal_limit = extents.x + placement_lift_horizontal_padding;
+
+            if (lateral_offset > horizontal_limit)
+                return;
+            if (up_offset > 0.05f)
+                return;
+            if (up_offset < -(extents.y + placement_lift_padding) * 1.5f)
+                return;
+
+            const float base_clearance = extents.y + placement_lift_padding + up_offset;
+            const float radius_lift = std::max(brush_radius * 0.30f, 0.0f);
+            const float max_lift = std::max(extents.y * 0.62f, brush_radius * 0.28f);
+            const float lift_distance = std::clamp(std::max(base_clearance, radius_lift), 0.0f, max_lift);
+            if (lift_distance <= 1e-4f)
+                return;
+
+            const vec2 current_position = from_b2(b2Body_GetPosition(context.player_body));
+            const vec2 top_origin = current_position + up * extents.y;
+            PlacementLiftRayContext ray_context{.ignored_body = context.player_body};
+            const float ray_distance = lift_distance + placement_ceiling_clearance;
+            const b2QueryFilter filter = b2DefaultQueryFilter();
+            b2World_CastRay(context.world,
+                            to_b2(top_origin),
+                            to_b2(up * ray_distance),
+                            filter,
+                            placement_lift_ray_cast_callback,
+                            &ray_context);
+
+            float capped_lift_distance = lift_distance;
+            if (ray_context.hit)
+            {
+                capped_lift_distance = std::max(ray_distance * ray_context.fraction - placement_ceiling_clearance, 0.0f);
+            }
+            if (capped_lift_distance <= 1e-4f)
+                return;
+
+            const vec2 next_position = current_position + up * capped_lift_distance;
+            const auto current_rotation = b2Body_GetRotation(context.player_body);
+
+            b2Body_SetLinearVelocity(context.player_body, {.x = 0.0f, .y = 0.0f});
+            b2Body_SetTransform(context.player_body, to_b2(next_position), current_rotation);
+            lift_cooldown = placement_lift_cooldown_seconds;
         }
     }
 
@@ -57,6 +169,8 @@ namespace game::tools
     {
         if (context.terrain == nullptr)
             return;
+
+        placement_lift_cooldown_ = std::max(placement_lift_cooldown_ - dt, 0.0f);
 
         const auto& tier = current_tier();
         emit_brush_stamps(context, resolver, MouseButton::Left, true, tier.dig, dig_state_, dt);
@@ -94,11 +208,6 @@ namespace game::tools
 
         ++material_index_;
         level_index_ = 0u;
-    }
-
-    void TerrainSculptTool::clear_storage()
-    {
-        stored_ground_ = 0u;
     }
 
     std::size_t TerrainSculptTool::material_index() const
@@ -364,8 +473,9 @@ namespace game::tools
                 return;
 
             const auto blocker = digging ? std::nullopt : make_player_ground_brush_blocker(context);
+            const vec2 effective_position = digging ? position : adjusted_ground_placement_position(context, position, config.radius);
             const auto edit = terrain::TerrainGenerator::TerrainEdit::make(
-                position, config.radius, config.signed_strength_per_stamp, config.falloff_exponent);
+                effective_position, config.radius, config.signed_strength_per_stamp, config.falloff_exponent);
 
             const auto units = context.terrain->apply_ground_brush(edit, budget, blocker);
 
@@ -379,6 +489,7 @@ namespace game::tools
             else
             {
                 stored_ground_ -= std::min(stored_ground_, units);
+                lift_player_for_ground_placement(context, effective_position, config.radius, placement_lift_cooldown_);
             }
         };
 

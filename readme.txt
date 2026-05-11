@@ -23,12 +23,6 @@ Left mouse button in upgrade menu: Buy an upgrade if enough resources are availa
 Escape: Close the upgrade menu or cancel the active interaction.
 Ctrl + mouse wheel: Zoom the camera.
 
-Debug-only Keys
----------------
-P: Export the current terrain chunk field image.
-0: Fill or clear the selected debug tool state.
-9: Teleport the player back to the initial spawn position.
-
 Main Systems
 ------------
 Terrain generation starts on the GPU. A compute shader builds the planet density field, cave and pond passes modify it, and a smoothing pass cleans up water values. Marching-squares shaders then extract terrain and water meshes from the field. The CPU reads back the field so gameplay code can query terrain, water, resources, and plant placement.

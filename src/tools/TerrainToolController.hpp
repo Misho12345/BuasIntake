@@ -28,7 +28,6 @@ namespace game::tools
         void update(const TerrainToolContext& context, float dt);
         void handle_mouse_pressed(const TerrainToolContext& context, MouseButton button);
         void handle_scroll(float delta);
-        void handle_zero_shortcut(const TerrainToolContext& context);
         void toggle_upgrade_menu();
         void close_upgrade_menu();
         void handle_upgrade_menu_click(const TerrainToolContext& context, sf::Vector2f ui_position, sf::Vector2u target_size);
@@ -40,9 +39,7 @@ namespace game::tools
             return upgrade_menu_open_;
         }
         std::optional<WaterTool::PreviewState> active_water_preview(const TerrainToolContext& context) const;
-        void draw_targeting_debug_overlay(sf::RenderTarget& target, const TerrainToolContext& context) const;
         void draw_ui(sf::RenderTarget& target) const;
-        void export_current_chunk_field(const TerrainToolContext& context) const;
 
       private:
         static constexpr std::size_t hotbar_slot_count{3u};

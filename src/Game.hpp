@@ -42,31 +42,40 @@ namespace game
 
         void initialize_impl(GameSettings settings);
         void run_impl();
+
         void update(float dt);
         void handle_frame_input();
         void handle_scroll_input();
         bool handle_global_shortcuts();
         void handle_modal_input();
         void handle_gameplay_input();
+
         Result<void> initialize_window();
         Result<void> initialize_graphics();
         Result<void> initialize_world_state();
+
         void destroy_world();
         void destroy_graphics();
+
         void render_opengl();
         void render_sfml();
+
         Result<void> create_world();
+
         void fixed_update(float dt);
         void variable_update(float dt);
         void update_win_condition();
         void sync_camera_to_player(float dt);
         void update_terrain_editing(float dt);
-        void export_current_chunk_field();
+
         void handle_tool_mouse_pressed(MouseButton button);
         void handle_resize(uvec2 size);
         void apply_viewport(uvec2 size) const;
+
         sf::View make_ui_view() const;
+
         std::optional<tools::TerrainToolContext> terrain_tool_context();
+
         vec2 mouse_world_position() const;
         bool is_player_move_input_active() const;
 

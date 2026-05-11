@@ -16,6 +16,7 @@ namespace game::terrain
         vec2 right{ 1.0f, 0.0f };
         vec2 up{ 0.0f, 1.0f };
         vec2 half_extents{ 0.0f, 0.0f };
+        float radius{ 0.0f };
     };
 
     class TerrainGenerator final

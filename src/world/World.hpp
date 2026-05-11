@@ -29,7 +29,6 @@ namespace game::world
         const resources::ResourceSystem& resources() const noexcept { return resources_; }
         vegetation::VegetationSystem& vegetation() noexcept { return vegetation_; }
         const vegetation::VegetationSystem& vegetation() const noexcept { return vegetation_; }
-        vec2 initial_spawn_position() const noexcept { return initial_spawn_position_; }
 
     private:
         b2WorldId physics_world_{ b2_nullWorldId };
@@ -38,6 +37,5 @@ namespace game::world
         water::WaterSystem water_{};
         std::optional<terrain::PlanetTerrain> terrain_{ std::nullopt };
         player::Player player_{};
-        vec2 initial_spawn_position_{ 0.0f, 0.0f };
     };
 }

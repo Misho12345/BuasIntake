@@ -2,7 +2,6 @@
 
 #include "render/ResourceRenderer.hpp"
 
-#include "core/ScopedProfiler.hpp"
 #include "gfx/AlphaBlendPass.hpp"
 #include "resources/ResourceSystem.hpp"
 #include "terrain/PlanetTerrain.hpp"
@@ -15,18 +14,12 @@ namespace game::render
         {
             switch (kind)
             {
-                case resources::ResourceKind::Rock:
-                    return 0.0f;
-                case resources::ResourceKind::IronOre:
-                    return 1.0f;
-                case resources::ResourceKind::CopperOre:
-                    return 2.0f;
-                case resources::ResourceKind::GoldOre:
-                    return 3.0f;
-                case resources::ResourceKind::DiamondOre:
-                    return 4.0f;
-                case resources::ResourceKind::DeadPlant:
-                    return -1.0f;
+                case resources::ResourceKind::Rock: return 0.0f;
+                case resources::ResourceKind::IronOre: return 1.0f;
+                case resources::ResourceKind::CopperOre: return 2.0f;
+                case resources::ResourceKind::GoldOre: return 3.0f;
+                case resources::ResourceKind::DiamondOre: return 4.0f;
+                case resources::ResourceKind::DeadPlant: return -1.0f;
             }
 
             return -1.0f;
@@ -40,11 +33,14 @@ namespace game::render
         if (ore_batch_.valid())
             return {};
 
-        static constexpr std::array ore_paths{"assets/images/ores/rock.png",
-                                              "assets/images/ores/iron_ore.png",
-                                              "assets/images/ores/copper_ore.png",
-                                              "assets/images/ores/gold_ore.png",
-                                              "assets/images/ores/diamond_ore.png"};
+        static constexpr std::array ore_paths
+    	{
+	        "assets/images/ores/rock.png",
+	        "assets/images/ores/iron_ore.png",
+	        "assets/images/ores/copper_ore.png",
+	        "assets/images/ores/gold_ore.png",
+	        "assets/images/ores/diamond_ore.png"
+        };
 
         TRY(ore_batch_.initialize(ore_paths, 32u));
         last_nodes_revision_ = std::numeric_limits<std::uint64_t>::max();
@@ -61,9 +57,6 @@ namespace game::render
 
     Result<void> ResourceRenderer::rebuild_ore_instances(const terrain::PlanetTerrain& terrain, const resources::ResourceSystem& resources)
     {
-        const core::ScopedProfiler profiler{"render.rebuild_ore_instances"};
-        static_cast<void>(profiler);
-
         if (!ore_batch_.valid())
             return fail("Resource renderer assets are not initialized");
 
@@ -72,19 +65,20 @@ namespace game::render
 
         for (const auto& resource : resources.nodes())
         {
-            if (resource.kind == resources::ResourceKind::DeadPlant)
-                continue;
-            if (!terrain.is_valid_global_sample(resource.coord))
-                continue;
+            if (resource.kind == resources::ResourceKind::DeadPlant) continue;
+            if (!terrain.is_valid_global_sample(resource.coord)) continue;
 
             const auto& sample = terrain.global_sample(resource.coord);
-            if (sample.terrain < 0.0f)
-                continue;
+            if (sample.terrain < 0.0f) continue;
 
-            const vec2 world_position =
-                resource.surface_attached ? resource.anchor_world : terrain.global_sample_world_position(resource.coord);
-            const vec2 up = resource.surface_up.lengthSquared() > 1e-6f ? normalize(resource.surface_up * -1.0f)
-                                                                        : normalize(world_position - terrain.planet_center());
+            const vec2 world_position = resource.surface_attached
+	                                        ? resource.anchor_world
+	                                        : terrain.global_sample_world_position(resource.coord);
+
+            const vec2 up = resource.surface_up.lengthSquared() > 1e-6f
+	                            ? normalize(resource.surface_up * -1.0f)
+	                            : normalize(world_position - terrain.planet_center());
+
             const bool exposed = terrain.is_sample_exposed_to_air(resource.coord);
 
             float world_height = 1.96f;
@@ -95,16 +89,19 @@ namespace game::render
                 radial_offset = world_height * (exposed ? 0.46f : 0.38f);
             }
 
-            cached_instances_.push_back(
-                {.center_world = world_position,
-                 .up = up,
-                 .world_height = world_height,
-                 .radial_offset = radial_offset,
-                 .texture_layer = texture_layer_for(resource.kind),
-                 .tile_column = resource.cave_variant ? static_cast<float>((resource.variant * 5u + 3u) % 8u) : 0.0f,
-                 .tile_row =
-                     resource.cave_variant ? static_cast<float>(16u + resource.variant % 16u) : static_cast<float>(resource.variant % 16u),
-                 .angle_offset = 0.0f});
+            cached_instances_.push_back({
+	            .center_world  = world_position,
+	            .up            = up,
+	            .world_height  = world_height,
+	            .radial_offset = radial_offset,
+	            .texture_layer = texture_layer_for(resource.kind),
+	            .tile_column   = resource.cave_variant ? static_cast<float>((resource.variant * 5u + 3u) % 8u) : 0.0f,
+	            .tile_row      =
+	            resource.cave_variant
+		            ? static_cast<float>(16u + resource.variant % 16u)
+		            : static_cast<float>(resource.variant % 16u),
+	            .angle_offset = 0.0f
+            });
         }
 
         last_nodes_revision_ = resources.nodes_revision();
@@ -112,9 +109,10 @@ namespace game::render
         return {};
     }
 
-    void ResourceRenderer::draw_ores(const sf::View& view,
-                                     const terrain::PlanetTerrain& terrain,
-                                     const resources::ResourceSystem& resources)
+    void ResourceRenderer::draw_ores(
+	    const sf::View&                  view,
+	    const terrain::PlanetTerrain&    terrain,
+	    const resources::ResourceSystem& resources)
     {
         if (const auto init_result = initialize_assets(); !init_result)
         {
@@ -133,13 +131,15 @@ namespace game::render
 
         if (cached_instances_.empty()) return;
 
+		[[maybe_unused]]
         const gfx::ScopedAlphaBlendPass blend_pass{};
-        static_cast<void>(blend_pass);
-        if (!ore_instances_uploaded_)
+        
+    	if (!ore_instances_uploaded_)
         {
             ore_batch_.upload_instances(cached_instances_);
             ore_instances_uploaded_ = true;
         }
+
         ore_batch_.draw(view);
     }
 }

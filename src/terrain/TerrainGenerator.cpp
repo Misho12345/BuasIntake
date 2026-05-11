@@ -2,7 +2,6 @@
 
 #include "TerrainGenerator.hpp"
 
-#include "core/ScopedProfiler.hpp"
 #include "gfx/ComputeDispatcher.hpp"
 #include "terrain/TerrainGridMath.hpp"
 
@@ -244,9 +243,6 @@ namespace game::terrain
 
     Result<void> TerrainGenerator::dispatch_surface_rebuild(const std::uint32_t channel_index, const float iso)
     {
-        const core::ScopedProfiler profiler{"terrain.generator.dispatch_surface_rebuild"};
-        static_cast<void>(profiler);
-
         reset_surface_buffers();
 
         const auto layout = field_layout();
@@ -273,9 +269,6 @@ namespace game::terrain
 
     Result<void> TerrainGenerator::upload_field(const std::span<const FieldSample> field_samples)
     {
-        const core::ScopedProfiler profiler{"terrain.generator.upload_field"};
-        static_cast<void>(profiler);
-
         if (!field_texture_.valid())
         {
             return fail("TerrainGenerator field texture is not initialized");
@@ -464,9 +457,6 @@ namespace game::terrain
 
     Result<void> TerrainGenerator::wait_for_completion()
     {
-        const core::ScopedProfiler profiler{"terrain.generator.wait_for_completion"};
-        static_cast<void>(profiler);
-
         if (!pending_readback_ || completion_fence_ == nullptr)
             return {};
 
@@ -487,9 +477,6 @@ namespace game::terrain
 
     Result<TerrainGenerator::RawPipelineResult> TerrainGenerator::consume_readback()
     {
-        const core::ScopedProfiler profiler{"terrain.generator.consume_readback"};
-        static_cast<void>(profiler);
-
         RawPipelineResult result{};
         if (!pending_readback_)
             return result;

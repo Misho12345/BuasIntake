@@ -18,7 +18,6 @@ namespace game::world
         }
 
         const auto spawn = terrain_->spawn_point_from_top_center(player_config.capsule_half_height + player_config.spawn_air_clearance);
-        initial_spawn_position_ = spawn;
         if (const auto player_result = player_.create(physics_world_, spawn, terrain_->planet_center(), player_config); !player_result)
         {
             terrain_.reset();
@@ -36,7 +35,6 @@ namespace game::world
         vegetation_ = vegetation::VegetationSystem{};
         water_ = water::WaterSystem{};
         physics_world_ = b2_nullWorldId;
-        initial_spawn_position_ = {0.0f, 0.0f};
     }
 
     void World::update(const float dt)

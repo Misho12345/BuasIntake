@@ -2,7 +2,6 @@
 
 #include "TerrainChunk.hpp"
 
-#include "core/ScopedProfiler.hpp"
 #include "gfx/MeshBuilders.hpp"
 #include "terrain/TerrainGridMath.hpp"
 
@@ -207,9 +206,6 @@ namespace game::terrain
 
     Result<void> TerrainChunk::finalize_terrain_surface_rebuild(const std::span<const FieldSample> field_samples)
     {
-        const core::ScopedProfiler profiler{"terrain.chunk.finalize_terrain_surface"};
-        static_cast<void>(profiler);
-
         auto terrain_result = read_scored_surface();
         if (!terrain_result)
             return fail(terrain_result.error());
@@ -228,9 +224,6 @@ namespace game::terrain
 
     Result<void> TerrainChunk::finalize_water_surface_rebuild()
     {
-        const core::ScopedProfiler profiler{"terrain.chunk.finalize_water_surface"};
-        static_cast<void>(profiler);
-
         auto water_result = read_scored_surface();
         if (!water_result)
             return fail(water_result.error());
@@ -317,9 +310,6 @@ namespace game::terrain
                                           const std::vector<std::uint32_t>& indices,
                                           const std::span<const FieldSample> field_samples)
     {
-        const core::ScopedProfiler profiler{"terrain.chunk.build_terrain_mesh"};
-        static_cast<void>(profiler);
-
         std::vector<sf::Vertex> mesh_vertices;
         mesh_vertices.reserve(vertices.size());
 
@@ -354,9 +344,6 @@ namespace game::terrain
 
     void TerrainChunk::build_water_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices)
     {
-        const core::ScopedProfiler profiler{"terrain.chunk.build_water_mesh"};
-        static_cast<void>(profiler);
-
         if (vertices.empty() || indices.empty())
         {
             const std::vector<sf::Vertex> empty_vertices;

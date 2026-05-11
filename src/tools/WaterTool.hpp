@@ -19,7 +19,6 @@ namespace game::tools
 
         void adjust_placement_amount(float delta);
         void upgrade();
-        void fill_to_capacity();
         void cancel_placement();
         void destroy_preview_resources();
 

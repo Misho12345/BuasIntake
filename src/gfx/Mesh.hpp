@@ -16,7 +16,6 @@ namespace game::gfx
         Mesh& operator=(Mesh&& other) noexcept;
 
         void set_data(std::span<const sf::Vertex> vertices, std::span<const std::uint32_t> indices);
-
         void draw() const;
 
         bool empty() const;

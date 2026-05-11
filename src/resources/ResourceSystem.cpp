@@ -107,11 +107,6 @@ namespace game::resources
         add_count(InventoryItem::Seeds, static_cast<std::int32_t>(reward.seeds));
     }
 
-    void ResourceSystem::grant_seeds(const std::uint32_t amount)
-    {
-        add_count(InventoryItem::Seeds, static_cast<std::int32_t>(amount));
-    }
-
     void ResourceSystem::update(const float dt)
     {
         for (auto& entry : feedback_)

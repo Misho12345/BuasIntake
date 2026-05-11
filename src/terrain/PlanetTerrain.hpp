@@ -63,7 +63,6 @@ namespace game::terrain
                                          const std::optional<GroundBrushBlocker>& blocker = std::nullopt);
         Result<void> try_harvest_resource(vec2 world_position);
         Result<void> plant_seed(vec2 world_position);
-        Result<fs::path> save_chunk_field_image(vec2 world_position) const;
 
         vec2 chunk_size() const;
         vec2 terrain_cell_size() const;
@@ -135,6 +134,7 @@ namespace game::terrain
         TerrainGenerationFieldView make_generation_field_view();
         std::vector<FieldSample> extract_chunk_field(ivec2 chunk_coord) const;
         void flush_pending_ground_brush_changes();
+        void flush_deferred_ground_brush_wetness();
         bool is_surface_exposed_world(vec2 world_position, float clearance_distance) const;
         std::optional<SurfaceAttachment> exposed_surface_attachment(ivec2 coord) const;
         void refresh_surface_attachments_around(const std::vector<ivec2>& changed_coords);
@@ -198,6 +198,9 @@ namespace game::terrain
         std::vector<bool> pending_ground_brush_dirty_chunks_{};
         bool pending_ground_brush_changed_water_{false};
         bool pending_ground_brush_requires_wetness_rebuild_{false};
+        int pending_ground_brush_rebuild_delay_frames_{0};
+        std::vector<ivec2> deferred_ground_brush_wetness_coords_{};
+        int deferred_ground_brush_wetness_delay_frames_{0};
         std::uint64_t field_revision_{0u};
         std::uint64_t water_revision_{0u};
         std::uint64_t geometry_revision_{0u};

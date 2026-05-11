@@ -219,19 +219,6 @@ namespace game::player
         ground_normal_ = {0.0f, 1.0f};
     }
 
-    void Player::teleport(const vec2 world_position, const vec2 planet_center)
-    {
-        if (!valid())
-            return;
-
-        const float target_angle = dir_to_angle(normalize(world_position - planet_center));
-        b2Body_SetLinearVelocity(object_.body, {.x = 0.0f, .y = 0.0f});
-        b2Body_SetAngularVelocity(object_.body, 0.0f);
-        b2Body_SetTransform(object_.body, to_b2(world_position), b2MakeRot(target_angle));
-        reset_ground_state(normalize(world_position - planet_center));
-        object_.sync_from_physics();
-    }
-
     void Player::refresh_grounded_state(const vec2 planet_center)
     {
         grounded_ = false;

@@ -5,9 +5,10 @@
 
 namespace game::gfx
 {
-    inline std::vector<sf::Vertex> build_tinted_vertices(const std::span<const vec2> positions,
-                                                         const sf::Color color,
-                                                         const sf::Vector2f tex_coords = { 0.0f, 0.0f })
+    inline std::vector<sf::Vertex> build_tinted_vertices(
+        const std::span<const vec2> positions,
+	    const sf::Color color,
+	    const sf::Vector2f tex_coords = { 0.0f, 0.0f })
     {
         std::vector<sf::Vertex> vertices;
         vertices.reserve(positions.size());

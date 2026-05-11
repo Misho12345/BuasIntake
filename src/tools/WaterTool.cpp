@@ -124,14 +124,6 @@ namespace game::tools
         invalidate_preview_cache();
     }
 
-    void WaterTool::fill_to_capacity()
-    {
-        current_amount_ = current_capacity();
-        if (placement_mode_)
-            desired_place_amount_ = current_amount_;
-        invalidate_preview_cache();
-    }
-
     void WaterTool::cancel_placement()
     {
         placement_mode_ = false;

@@ -4,6 +4,8 @@
 
 namespace game
 {
+    using platform::InputSystem;
+
     namespace
     {
 #ifndef NDEBUG
@@ -92,11 +94,13 @@ namespace game
         game.window_.close();
     }
 
+
     Game& Game::instance()
     {
         static Game game;
         return game;
     }
+
 
     void Game::initialize_impl(GameSettings settings)
     {
@@ -117,44 +121,44 @@ namespace game
             return;
         }
 
-        if (const auto graphics_result = initialize_graphics(); !graphics_result)
+        if (const auto result = initialize_graphics(); !result)
         {
-            Log::error(graphics_result.error());
+            Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto ui_result = terrain_tools_.initialize_ui_assets(); !ui_result)
+        if (const auto result = terrain_tools_.initialize_ui_assets(); !result)
         {
-            Log::error(ui_result.error());
+            Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto hud_result = inventory_hud_.initialize_assets(); !hud_result)
+        if (const auto result = inventory_hud_.initialize_assets(); !result)
         {
-            Log::error(hud_result.error());
+            Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto world_renderer_result = world_renderer_.initialize_assets(); !world_renderer_result)
+        if (const auto result = world_renderer_.initialize_assets(); !result)
         {
-            Log::error(world_renderer_result.error());
+            Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto goal_hud_result = goal_hud_.initialize_assets(); !goal_hud_result)
+        if (const auto result = goal_hud_.initialize_assets(); !result)
         {
-            Log::error(goal_hud_result.error());
+            Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto world_result = initialize_world_state(); !world_result)
+        if (const auto result = initialize_world_state(); !result)
         {
-            Log::error(world_result.error());
+            Log::error(result.error());
             failed_ = true;
         }
     }
@@ -165,8 +169,12 @@ namespace game
 
         while (window_.isOpen())
         {
-            platform::InputSystem::begin_frame();
-            const auto [should_close, resized, new_size] = platform::InputSystem::update(window_);
+            InputSystem::begin_frame();
+            const auto [
+                should_close, 
+                resized, 
+                new_size
+            ] = InputSystem::update(window_);
 
             if (should_close) break;
             if (resized) handle_resize(new_size);
@@ -178,13 +186,13 @@ namespace game
             window_.clear(settings_.clear_color);
 
             render_opengl();
-
             window_.resetGLStates();
             render_sfml();
 
             window_.display();
         }
     }
+
 
     void Game::update(const float dt)
     {
@@ -261,6 +269,7 @@ namespace game
         return {};
     }
 
+
     void Game::destroy_world()
     {
         world_state_.destroy();
@@ -284,9 +293,10 @@ namespace game
         gl_loaded_ = false;
     }
 
+
     void Game::render_opengl()
     {
-        // Draw the GL world first; the SFML pass that follows resets shared GL state.
+        // draw the GL world first; the SFML pass that follows resets shared GL state
         if (const auto context = terrain_tool_context(); context.has_value())
         {
             world_renderer_.draw(world_state_, terrain_tools_.active_water_preview(*context), camera_.view());
@@ -299,9 +309,6 @@ namespace game
     void Game::render_sfml()
     {
         window_.setView(camera_.view());
-        // The player and aim overlay stay on the SFML path so they can draw cleanly on top of the GL world.
-        if (const auto context = terrain_tool_context(); context.has_value()) terrain_tools_.draw_targeting_debug_overlay(window_, *context);
-
         if (world_state_.ready()) world_state_.player().draw_sf(window_);
 
         window_.setView(make_ui_view());
@@ -309,6 +316,7 @@ namespace game
         terrain_tools_.draw_ui(window_);
         if (world_state_.ready()) goal_hud_.draw(window_, restoration_goal_);
     }
+
 
     Result<void> Game::create_world()
     {
@@ -325,8 +333,7 @@ namespace game
             return;
 
         handle_scroll_input();
-        if (handle_global_shortcuts())
-            return;
+        if (handle_global_shortcuts()) return;
 
         if (terrain_tools_.upgrade_menu_open())
         {
@@ -339,10 +346,10 @@ namespace game
 
     void Game::handle_scroll_input()
     {
-        if (const float scroll_delta = platform::InputSystem::mouse_wheel_delta(); scroll_delta != 0.0f)
+        if (const float scroll_delta = InputSystem::mouse_wheel_delta(); scroll_delta != 0.0f)
         {
-            // Plain scroll swaps tools; Ctrl + scroll is reserved for camera zoom.
-            if (platform::InputSystem::is_pressed(Key::LControl) || platform::InputSystem::is_pressed(Key::RControl))
+            // Plain scroll swaps tools; Ctrl + scroll is for camera zoom
+            if (InputSystem::is_pressed(Key::LControl) || InputSystem::is_pressed(Key::RControl))
             {
                 camera_.zoom_by_scroll(scroll_delta);
                 camera_.update_view_size(window_.getSize());
@@ -354,35 +361,13 @@ namespace game
 
     bool Game::handle_global_shortcuts()
     {
-#ifndef NDEBUG
-        if (platform::InputSystem::just_pressed(Key::P)) export_current_chunk_field();
-#endif
-
-        if (platform::InputSystem::just_pressed(Key::E))
+        if (InputSystem::just_pressed(Key::E))
         {
             terrain_tools_.toggle_upgrade_menu();
             return true;
         }
 
-#ifndef NDEBUG
-        if (platform::InputSystem::just_pressed(Key::Num0))
-        {
-            if (const auto context = terrain_tool_context(); context.has_value())
-                terrain_tools_.handle_zero_shortcut(*context);
-        }
-
-        if (platform::InputSystem::just_pressed(Key::Num9))
-        {
-            if (world_state_.ready())
-            {
-                world_state_.player().teleport(world_state_.initial_spawn_position(), world_state_.terrain().planet_center());
-                physics_accumulator_ = 0.0f;
-                camera_.reset_follow();
-            }
-        }
-#endif
-
-        if (platform::InputSystem::just_pressed(Key::Escape))
+        if (InputSystem::just_pressed(Key::Escape))
         {
             terrain_tools_.close_upgrade_menu();
             terrain_tools_.cancel_active_interaction();
@@ -394,7 +379,7 @@ namespace game
 
     void Game::handle_modal_input()
     {
-        if (platform::InputSystem::just_pressed(MouseButton::Left))
+        if (InputSystem::just_pressed(MouseButton::Left))
         {
             if (const auto context = terrain_tool_context(); context.has_value())
             {
@@ -407,11 +392,10 @@ namespace game
 
     void Game::handle_gameplay_input()
     {
-        if (platform::InputSystem::just_pressed(MouseButton::Left))
-            handle_tool_mouse_pressed(MouseButton::Left);
-        if (platform::InputSystem::just_pressed(MouseButton::Right))
-            handle_tool_mouse_pressed(MouseButton::Right);
+        if (InputSystem::just_pressed(MouseButton::Left))  handle_tool_mouse_pressed(MouseButton::Left);
+        if (InputSystem::just_pressed(MouseButton::Right)) handle_tool_mouse_pressed(MouseButton::Right);
     }
+
 
     void Game::fixed_update(const float dt)
     {
@@ -429,7 +413,7 @@ namespace game
 
         auto refresh_player_state = [&player, &terrain, planet_center]
         {
-            // Sample contacts around each physics step so jump and swim state stays in sync with terrain edits.
+            // sample contacts around each physics step so jump and swim state stays in sync with terrain edits.
             player.refresh_grounded_state(planet_center);
             player.set_in_water(player.is_in_water() || terrain.contains_water_volume(player.world_position()));
         };
@@ -439,7 +423,7 @@ namespace game
         while (physics_accumulator_ >= fixed_step)
         {
             const bool in_water = player.is_in_water();
-            player.prepare_for_physics_step(fixed_step, planet_center, in_water, platform::InputSystem::instance());
+            player.prepare_for_physics_step(fixed_step, planet_center, in_water, InputSystem::instance());
             b2World_Step(world_, fixed_step, sub_steps);
             refresh_player_state();
             physics_accumulator_ -= fixed_step;
@@ -451,8 +435,7 @@ namespace game
 
     void Game::variable_update(const float dt)
     {
-        if (!restoration_goal_.completed())
-            update_terrain_editing(dt);
+        if (!restoration_goal_.completed()) update_terrain_editing(dt);
         world_state_.update(dt);
         update_win_condition();
         sync_camera_to_player(dt);
@@ -478,11 +461,6 @@ namespace game
         if (const auto context = terrain_tool_context(); context.has_value()) terrain_tools_.update(*context, dt);
     }
 
-    void Game::export_current_chunk_field()
-    {
-        if (const auto context = terrain_tool_context(); context.has_value()) terrain_tools_.export_current_chunk_field(*context);
-    }
-
     void Game::handle_tool_mouse_pressed(const MouseButton button)
     {
         if (const auto context = terrain_tool_context(); context.has_value()) terrain_tools_.handle_mouse_pressed(*context, button);
@@ -498,7 +476,6 @@ namespace game
     void Game::apply_viewport(const uvec2 size) const
     {
         if (size.x == 0 || size.y == 0) return;
-
         glViewport(0, 0, static_cast<std::int32_t>(size.x), static_cast<std::int32_t>(size.y));
     }
 
@@ -511,7 +488,7 @@ namespace game
             .terrain = &world_state_.terrain(),
             .resources = &world_state_.resources(),
             .water = &world_state_.water(),
-            .input = &platform::InputSystem::instance(),
+            .input = &InputSystem::instance(),
             .player_body = world_state_.player().body(),
             .player_world_position = world_state_.player().world_position(),
             .mouse_world_position = mouse_world_position()
@@ -534,7 +511,7 @@ namespace game
 
     bool Game::is_player_move_input_active() const
     {
-        return world_state_.ready() && world_state_.player().is_move_input_active(platform::InputSystem::instance());
+        return world_state_.ready() && world_state_.player().is_move_input_active(InputSystem::instance());
     }
 
 }

@@ -2,7 +2,6 @@
 
 #include "render/VegetationRenderer.hpp"
 
-#include "core/ScopedProfiler.hpp"
 #include "gfx/AlphaBlendPass.hpp"
 #include "resources/ResourceSystem.hpp"
 #include "terrain/PlanetTerrain.hpp"
@@ -161,9 +160,6 @@ namespace game::render
                                                        const vegetation::VegetationSystem& vegetation,
                                                        const resources::ResourceSystem& resources)
     {
-        const core::ScopedProfiler profiler{"render.rebuild_vegetation_instances"};
-        static_cast<void>(profiler);
-
         for (auto& instances : cached_instances_by_batch_)
             instances.clear();
         cached_low_cover_live32_instances_.clear();

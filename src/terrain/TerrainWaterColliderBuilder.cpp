@@ -2,7 +2,6 @@
 
 #include "terrain/TerrainWaterColliderBuilder.hpp"
 
-#include "core/ScopedProfiler.hpp"
 #include "terrain/TerrainContour.hpp"
 #include "terrain/TerrainWetnessSystem.hpp"
 
@@ -185,9 +184,6 @@ namespace game::terrain
 
     void TerrainWaterColliderBuilder::rebuild(TerrainColliderManager& collider_manager, const water::GridView& grid)
     {
-        const core::ScopedProfiler profiler{"terrain.water_colliders.rebuild"};
-        static_cast<void>(profiler);
-
         collider_manager.clear_water_colliders();
         if (grid.field_samples.empty() || grid.field_size.x < 2u || grid.field_size.y < 2u)
             return;

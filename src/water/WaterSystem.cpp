@@ -2,7 +2,6 @@
 
 #include "water/WaterSystem.hpp"
 
-#include "core/ScopedProfiler.hpp"
 #include "terrain/PlanetTerrain.hpp"
 
 namespace game::water
@@ -24,9 +23,6 @@ namespace game::water
                                                         const vec2 world_position,
                                                         const std::uint32_t volume_cap) const
     {
-        const core::ScopedProfiler profiler{ "water.place_water" };
-        static_cast<void>(profiler);
-
         if (volume_cap == 0u)
         {
             return WaterActionResult{ .status = WaterActionStatus::EmptyAmount };
@@ -58,9 +54,6 @@ namespace game::water
                                                         const vec2 world_position,
                                                         const std::uint32_t volume_cap) const
     {
-        const core::ScopedProfiler profiler{ "water.pickup_water" };
-        static_cast<void>(profiler);
-
         if (volume_cap == 0u)
         {
             return WaterActionResult{ .status = WaterActionStatus::EmptyAmount };
@@ -89,9 +82,6 @@ namespace game::water
                                                                        const vec2 world_position,
                                                                        const std::uint32_t volume_cap) const
     {
-        const core::ScopedProfiler profiler{ "water.build_preview" };
-        static_cast<void>(profiler);
-
         const auto plan = terrain.build_targeted_water_plan(world_position, volume_cap, false);
         if (!plan.has_value()) return std::nullopt;
 
