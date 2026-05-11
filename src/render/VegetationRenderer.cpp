@@ -261,8 +261,8 @@ namespace game::render
             }
         }
 
+		[[maybe_unused]]
         const gfx::ScopedAlphaBlendPass blend_pass{};
-        static_cast<void>(blend_pass);
 
         auto filter_visible_instances = [&](std::span<const SpriteInstance> source, std::vector<SpriteInstance>& visible_instances)
         {

@@ -129,7 +129,7 @@ public:
     /// \return `true` if resizing has been successful, `false` if it failed
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool resize(Vector2u size, const ContextSettings& settings = {});
+    bool resize(Vector2u size, const ContextSettings& settings = {});
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the maximum anti-aliasing level supported by the system
@@ -137,7 +137,7 @@ public:
     /// \return The maximum anti-aliasing level supported by the system
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static unsigned int getMaximumAntiAliasingLevel();
+    static unsigned int getMaximumAntiAliasingLevel();
 
     ////////////////////////////////////////////////////////////
     /// \brief Enable or disable texture smoothing
@@ -160,7 +160,7 @@ public:
     /// \see `setSmooth`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isSmooth() const;
+    bool isSmooth() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Enable or disable texture repeating
@@ -183,7 +183,7 @@ public:
     /// \see `setRepeated`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isRepeated() const;
+    bool isRepeated() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Generate a mipmap using the current texture data
@@ -199,7 +199,7 @@ public:
     /// \return `true` if mipmap generation was successful, `false` if unsuccessful
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool generateMipmap();
+    bool generateMipmap();
 
     ////////////////////////////////////////////////////////////
     /// \brief Activate or deactivate the render-texture for rendering
@@ -216,7 +216,7 @@ public:
     /// \return `true` if operation was successful, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool setActive(bool active = true) override;
+    bool setActive(bool active = true) override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Update the contents of the target texture
@@ -238,7 +238,7 @@ public:
     /// \return Size in pixels
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2u getSize() const override;
+    Vector2u getSize() const override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell if the render-texture will use sRGB encoding when drawing on it
@@ -249,7 +249,7 @@ public:
     /// \return `true` if the render-texture use sRGB encoding, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isSrgb() const override;
+    bool isSrgb() const override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get a read-only reference to the target texture
@@ -265,7 +265,7 @@ public:
     /// \return Const reference to the texture
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Texture& getTexture() const;
+    const Texture& getTexture() const;
 
 private:
     ////////////////////////////////////////////////////////////

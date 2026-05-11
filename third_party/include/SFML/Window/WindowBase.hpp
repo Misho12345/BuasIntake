@@ -201,7 +201,7 @@ public:
     /// \return `true` if the window is open, `false` if it has been closed
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isOpen() const;
+    bool isOpen() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Pop the next event from the front of the FIFO event queue, if any, and return it
@@ -223,7 +223,7 @@ public:
     /// \see `waitEvent`, `handleEvents`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::optional<Event> pollEvent();
+    std::optional<Event> pollEvent();
 
     ////////////////////////////////////////////////////////////
     /// \brief Wait for an event and return it
@@ -249,7 +249,7 @@ public:
     /// \see `pollEvent`, `handleEvents`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::optional<Event> waitEvent(Time timeout = Time::Zero);
+    std::optional<Event> waitEvent(Time timeout = Time::Zero);
 
     ////////////////////////////////////////////////////////////
     /// \brief Handle all pending events
@@ -337,7 +337,7 @@ public:
     /// \see `setPosition`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2i getPosition() const;
+    Vector2i getPosition() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the position of the window on screen
@@ -364,7 +364,7 @@ public:
     /// \see `setSize`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2u getSize() const;
+    Vector2u getSize() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the size of the rendering region of the window
@@ -532,7 +532,7 @@ public:
     /// \see `requestFocus`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool hasFocus() const;
+    bool hasFocus() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the OS-specific handle of the window
@@ -546,7 +546,7 @@ public:
     /// \return System handle of the window
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] WindowHandle getNativeHandle() const;
+    WindowHandle getNativeHandle() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Create a Vulkan rendering surface
@@ -558,7 +558,7 @@ public:
     /// \return `true` if surface creation was successful, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool createVulkanSurface(const VkInstance&            instance,
+    bool createVulkanSurface(const VkInstance&            instance,
                                            VkSurfaceKHR&                surface,
                                            const VkAllocationCallbacks* allocator = nullptr);
 

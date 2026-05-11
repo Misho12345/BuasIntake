@@ -79,7 +79,7 @@ enum class Wheel
 /// \return `true` if the button is pressed, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool isButtonPressed(Button button);
+SFML_WINDOW_API bool isButtonPressed(Button button);
 
 ////////////////////////////////////////////////////////////
 /// \brief Get the current position of the mouse in desktop coordinates
@@ -90,7 +90,7 @@ enum class Wheel
 /// \return Current position of the mouse
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API Vector2i getPosition();
+SFML_WINDOW_API Vector2i getPosition();
 
 ////////////////////////////////////////////////////////////
 /// \brief Get the current position of the mouse in window coordinates
@@ -103,7 +103,7 @@ enum class Wheel
 /// \return Current position of the mouse
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API Vector2i getPosition(const WindowBase& relativeTo);
+SFML_WINDOW_API Vector2i getPosition(const WindowBase& relativeTo);
 
 ////////////////////////////////////////////////////////////
 /// \brief Set the current position of the mouse in desktop coordinates

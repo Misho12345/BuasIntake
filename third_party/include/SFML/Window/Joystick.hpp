@@ -82,7 +82,7 @@ struct SFML_WINDOW_API Identification
 /// \return `true` if the joystick is connected, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool isConnected(unsigned int joystick);
+SFML_WINDOW_API bool isConnected(unsigned int joystick);
 
 ////////////////////////////////////////////////////////////
 /// \brief Return the number of buttons supported by a joystick
@@ -94,7 +94,7 @@ struct SFML_WINDOW_API Identification
 /// \return Number of buttons supported by the joystick
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API unsigned int getButtonCount(unsigned int joystick);
+SFML_WINDOW_API unsigned int getButtonCount(unsigned int joystick);
 
 ////////////////////////////////////////////////////////////
 /// \brief Check if a joystick supports a given axis
@@ -107,7 +107,7 @@ struct SFML_WINDOW_API Identification
 /// \return `true` if the joystick supports the axis, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool hasAxis(unsigned int joystick, Axis axis);
+SFML_WINDOW_API bool hasAxis(unsigned int joystick, Axis axis);
 
 ////////////////////////////////////////////////////////////
 /// \brief Check if a joystick button is pressed
@@ -120,7 +120,7 @@ struct SFML_WINDOW_API Identification
 /// \return `true` if the button is pressed, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool isButtonPressed(unsigned int joystick, unsigned int button);
+SFML_WINDOW_API bool isButtonPressed(unsigned int joystick, unsigned int button);
 
 ////////////////////////////////////////////////////////////
 /// \brief Get the current position of a joystick axis
@@ -133,7 +133,7 @@ struct SFML_WINDOW_API Identification
 /// \return Current position of the axis, in range [-100 .. 100]
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API float getAxisPosition(unsigned int joystick, Axis axis);
+SFML_WINDOW_API float getAxisPosition(unsigned int joystick, Axis axis);
 
 ////////////////////////////////////////////////////////////
 /// \brief Get the joystick information
@@ -143,7 +143,7 @@ struct SFML_WINDOW_API Identification
 /// \return Structure containing joystick information.
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API Identification getIdentification(unsigned int joystick);
+SFML_WINDOW_API Identification getIdentification(unsigned int joystick);
 
 ////////////////////////////////////////////////////////////
 /// \brief Update the states of all joysticks

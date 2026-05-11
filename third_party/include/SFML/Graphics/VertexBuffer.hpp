@@ -137,7 +137,7 @@ public:
     /// \return `true` if creation was successful
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool create(std::size_t vertexCount);
+    bool create(std::size_t vertexCount);
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the vertex count
@@ -145,7 +145,7 @@ public:
     /// \return Number of vertices in the vertex buffer
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::size_t getVertexCount() const;
+    std::size_t getVertexCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Update the whole buffer from an array of vertices
@@ -165,7 +165,7 @@ public:
     /// \return `true` if the update was successful
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool update(const Vertex* vertices);
+    bool update(const Vertex* vertices);
 
     ////////////////////////////////////////////////////////////
     /// \brief Update a part of the buffer from an array of vertices
@@ -198,7 +198,7 @@ public:
     /// \return `true` if the update was successful
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool update(const Vertex* vertices, std::size_t vertexCount, unsigned int offset);
+    bool update(const Vertex* vertices, std::size_t vertexCount, unsigned int offset);
 
     ////////////////////////////////////////////////////////////
     /// \brief Copy the contents of another buffer into this buffer
@@ -208,7 +208,7 @@ public:
     /// \return `true` if the copy was successful
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool update(const VertexBuffer& vertexBuffer);
+    bool update(const VertexBuffer& vertexBuffer);
 
     ////////////////////////////////////////////////////////////
     /// \brief Overload of assignment operator
@@ -238,7 +238,7 @@ public:
     /// \return OpenGL handle of the vertex buffer or 0 if not yet created
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getNativeHandle() const;
+    unsigned int getNativeHandle() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the type of primitives to draw
@@ -259,7 +259,7 @@ public:
     /// \return Primitive type
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] PrimitiveType getPrimitiveType() const;
+    PrimitiveType getPrimitiveType() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the usage specifier of this vertex buffer
@@ -284,7 +284,7 @@ public:
     /// \return Usage specifier
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Usage getUsage() const;
+    Usage getUsage() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Bind a vertex buffer for rendering
@@ -319,7 +319,7 @@ public:
     /// \return `true` if vertex buffers are supported, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static bool isAvailable();
+    static bool isAvailable();
 
 private:
     ////////////////////////////////////////////////////////////

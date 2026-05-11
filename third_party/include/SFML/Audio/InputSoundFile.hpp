@@ -121,7 +121,7 @@ public:
     /// \return `true` if the file was successfully opened
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool openFromFile(const std::filesystem::path& filename);
+    bool openFromFile(const std::filesystem::path& filename);
 
     ////////////////////////////////////////////////////////////
     /// \brief Open a sound file in memory for reading
@@ -135,7 +135,7 @@ public:
     /// \return `true` if the file was successfully opened
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool openFromMemory(const void* data, std::size_t sizeInBytes);
+    bool openFromMemory(const void* data, std::size_t sizeInBytes);
 
     ////////////////////////////////////////////////////////////
     /// \brief Open a sound file from a custom stream for reading
@@ -148,7 +148,7 @@ public:
     /// \return `true` if the file was successfully opened
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool openFromStream(InputStream& stream);
+    bool openFromStream(InputStream& stream);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the total number of audio samples in the file
@@ -156,7 +156,7 @@ public:
     /// \return Number of samples
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::uint64_t getSampleCount() const;
+    std::uint64_t getSampleCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the number of channels used by the sound
@@ -164,7 +164,7 @@ public:
     /// \return Number of channels (1 = mono, 2 = stereo)
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getChannelCount() const;
+    unsigned int getChannelCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the sample rate of the sound
@@ -172,7 +172,7 @@ public:
     /// \return Sample rate, in samples per second
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getSampleRate() const;
+    unsigned int getSampleRate() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the map of position in sample frame to sound channel
@@ -185,7 +185,7 @@ public:
     /// \see `getSampleRate`, `getChannelCount`, `getDuration`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const std::vector<SoundChannel>& getChannelMap() const;
+    const std::vector<SoundChannel>& getChannelMap() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the total duration of the sound file
@@ -196,7 +196,7 @@ public:
     /// \return Duration of the sound file
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Time getDuration() const;
+    Time getDuration() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the read offset of the file in time
@@ -204,7 +204,7 @@ public:
     /// \return Time position
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Time getTimeOffset() const;
+    Time getTimeOffset() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the read offset of the file in samples
@@ -212,7 +212,7 @@ public:
     /// \return Sample position
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::uint64_t getSampleOffset() const;
+    std::uint64_t getSampleOffset() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the current read position to the given sample offset
@@ -256,7 +256,7 @@ public:
     /// \return Number of samples actually read (may be less than \a maxCount)
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::uint64_t read(std::int16_t* samples, std::uint64_t maxCount);
+    std::uint64_t read(std::int16_t* samples, std::uint64_t maxCount);
 
     ////////////////////////////////////////////////////////////
     /// \brief Close the current file

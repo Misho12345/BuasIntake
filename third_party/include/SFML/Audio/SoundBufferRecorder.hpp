@@ -65,7 +65,7 @@ public:
     /// \return Read-only access to the sound buffer
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const SoundBuffer& getBuffer() const;
+    const SoundBuffer& getBuffer() const;
 
 protected:
     ////////////////////////////////////////////////////////////
@@ -74,7 +74,7 @@ protected:
     /// \return `true` to start the capture, or `false` to abort it
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool onStart() override;
+    bool onStart() override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Process a new chunk of recorded samples
@@ -85,7 +85,7 @@ protected:
     /// \return `true` to continue the capture, or `false` to stop it
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool onProcessSamples(const std::int16_t* samples, std::size_t sampleCount) override;
+    bool onProcessSamples(const std::int16_t* samples, std::size_t sampleCount) override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Stop capturing audio data

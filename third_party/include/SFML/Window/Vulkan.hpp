@@ -78,7 +78,7 @@ namespace Vulkan
 /// \return `true` if Vulkan is supported, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool isAvailable(bool requireGraphics = true);
+SFML_WINDOW_API bool isAvailable(bool requireGraphics = true);
 
 ////////////////////////////////////////////////////////////
 /// \brief Get the address of a Vulkan function
@@ -88,7 +88,7 @@ namespace Vulkan
 /// \return Address of the Vulkan function, 0 on failure
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API VulkanFunctionPointer getFunction(const char* name);
+SFML_WINDOW_API VulkanFunctionPointer getFunction(const char* name);
 
 ////////////////////////////////////////////////////////////
 /// \brief Get Vulkan instance extensions required for graphics
@@ -96,7 +96,7 @@ namespace Vulkan
 /// \return Vulkan instance extensions required for graphics
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API const std::vector<const char*>& getGraphicsRequiredInstanceExtensions();
+SFML_WINDOW_API const std::vector<const char*>& getGraphicsRequiredInstanceExtensions();
 } // namespace Vulkan
 
 } // namespace sf

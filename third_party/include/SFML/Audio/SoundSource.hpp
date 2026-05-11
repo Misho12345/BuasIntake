@@ -440,7 +440,7 @@ public:
     /// \see `setPitch`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getPitch() const;
+    float getPitch() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the pan of the sound
@@ -450,7 +450,7 @@ public:
     /// \see `setPan`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getPan() const;
+    float getPan() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the volume of the sound
@@ -460,7 +460,7 @@ public:
     /// \see `setVolume`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getVolume() const;
+    float getVolume() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell whether spatialization of the sound is enabled
@@ -470,7 +470,7 @@ public:
     /// \see `setSpatializationEnabled`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isSpatializationEnabled() const;
+    bool isSpatializationEnabled() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the 3D position of the sound in the audio scene
@@ -480,7 +480,7 @@ public:
     /// \see `setPosition`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector3f getPosition() const;
+    Vector3f getPosition() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the 3D direction of the sound in the audio scene
@@ -490,7 +490,7 @@ public:
     /// \see `setDirection`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector3f getDirection() const;
+    Vector3f getDirection() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the cone properties of the sound in the audio scene
@@ -500,7 +500,7 @@ public:
     /// \see `setCone`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Cone getCone() const;
+    Cone getCone() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the 3D velocity of the sound in the audio scene
@@ -510,7 +510,7 @@ public:
     /// \see `setVelocity`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector3f getVelocity() const;
+    Vector3f getVelocity() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the doppler factor of the sound
@@ -520,7 +520,7 @@ public:
     /// \see `setDopplerFactor`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getDopplerFactor() const;
+    float getDopplerFactor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the directional attenuation factor of the sound
@@ -530,7 +530,7 @@ public:
     /// \see `setDirectionalAttenuationFactor`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getDirectionalAttenuationFactor() const;
+    float getDirectionalAttenuationFactor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell whether the sound's position is relative to the
@@ -541,7 +541,7 @@ public:
     /// \see `setRelativeToListener`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isRelativeToListener() const;
+    bool isRelativeToListener() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the minimum distance of the sound
@@ -551,7 +551,7 @@ public:
     /// \see `setMinDistance`, `getAttenuation`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getMinDistance() const;
+    float getMinDistance() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the maximum distance of the sound
@@ -561,7 +561,7 @@ public:
     /// \see `setMaxDistance`, `getAttenuation`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getMaxDistance() const;
+    float getMaxDistance() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the minimum gain of the sound
@@ -571,7 +571,7 @@ public:
     /// \see `setMinGain`, `getAttenuation`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getMinGain() const;
+    float getMinGain() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the maximum gain of the sound
@@ -581,7 +581,7 @@ public:
     /// \see `setMaxGain`, `getAttenuation`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getMaxGain() const;
+    float getMaxGain() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the attenuation factor of the sound
@@ -591,7 +591,7 @@ public:
     /// \see `setAttenuation`, `getMinDistance`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getAttenuation() const;
+    float getAttenuation() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Overload of assignment operator
@@ -644,7 +644,7 @@ public:
     /// \return Current status of the sound
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual Status getStatus() const = 0;
+    virtual Status getStatus() const = 0;
 
 protected:
     ////////////////////////////////////////////////////////////
@@ -662,7 +662,7 @@ private:
     /// \return The sound object
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual void* getSound() const = 0;
+    virtual void* getSound() const = 0;
 };
 
 // NOLINTEND(readability-make-member-function-const)

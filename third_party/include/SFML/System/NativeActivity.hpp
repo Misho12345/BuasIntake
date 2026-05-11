@@ -53,6 +53,6 @@ namespace sf
 /// \sfplatform{Android,SFML/System/NativeActivity.hpp}
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_SYSTEM_API ANativeActivity* getNativeActivity();
+SFML_SYSTEM_API ANativeActivity* getNativeActivity();
 
 } // namespace sf

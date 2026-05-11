@@ -15,8 +15,8 @@ namespace game::render
         void update_view_size(uvec2 size);
         void sync_to_player(const world::World& world, float dt, bool move_input_active);
 
-        [[nodiscard]] const sf::View& view() const noexcept { return view_; }
-        [[nodiscard]] vec2 mouse_world_position(const sf::RenderWindow& window) const;
+        const sf::View& view() const noexcept { return view_; }
+        vec2 mouse_world_position(const sf::RenderWindow& window) const;
 
     private:
         struct Settings final
@@ -31,7 +31,7 @@ namespace game::render
             float rotation_deadzone_radians{ 0.0065f };
         };
 
-        [[nodiscard]] vec2 player_up_dir(const world::World& world) const;
+        vec2 player_up_dir(const world::World& world) const;
 
         Settings settings_{};
         sf::View view_{};

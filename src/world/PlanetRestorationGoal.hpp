@@ -11,9 +11,9 @@ namespace game::world
     public:
         bool update(const World& world);
 
-        [[nodiscard]] bool completed() const noexcept { return completed_; }
-        [[nodiscard]] float progress() const noexcept;
-        [[nodiscard]] float green_surface_coverage() const noexcept { return green_surface_coverage_; }
+        bool completed() const noexcept { return completed_; }
+        float progress() const noexcept;
+        float green_surface_coverage() const noexcept { return green_surface_coverage_; }
 
     private:
         static constexpr float required_green_surface_coverage_{ 0.82f };

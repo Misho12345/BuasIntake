@@ -151,7 +151,7 @@ public:
     /// \see `getSize`, `setCenter`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f getCenter() const;
+    Vector2f getCenter() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the size of the view
@@ -161,7 +161,7 @@ public:
     /// \see `getCenter`, `setSize`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f getSize() const;
+    Vector2f getSize() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the current orientation of the view
@@ -171,7 +171,7 @@ public:
     /// \see `setRotation`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Angle getRotation() const;
+    Angle getRotation() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the target viewport rectangle of the view
@@ -181,7 +181,7 @@ public:
     /// \see `setViewport`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const FloatRect& getViewport() const;
+    const FloatRect& getViewport() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the scissor rectangle of the view
@@ -191,7 +191,7 @@ public:
     /// \see `setScissor`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const FloatRect& getScissor() const;
+    const FloatRect& getScissor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Move the view relative to its current position
@@ -240,7 +240,7 @@ public:
     /// \see `getInverseTransform`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Transform& getTransform() const;
+    const Transform& getTransform() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the inverse projection transform of the view
@@ -252,7 +252,7 @@ public:
     /// \see `getTransform`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Transform& getInverseTransform() const;
+    const Transform& getInverseTransform() const;
 
 private:
     ////////////////////////////////////////////////////////////

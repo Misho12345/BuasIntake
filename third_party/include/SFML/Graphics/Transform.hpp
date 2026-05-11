@@ -86,7 +86,7 @@ public:
     /// \return Pointer to a 4x4 matrix
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] constexpr const float* getMatrix() const;
+    constexpr const float* getMatrix() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the inverse of the transform
@@ -97,7 +97,7 @@ public:
     /// \return A new transform which is the inverse of self
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] constexpr Transform getInverse() const;
+    constexpr Transform getInverse() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Transform a 2D point
@@ -113,7 +113,7 @@ public:
     /// \return Transformed point
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] constexpr Vector2f transformPoint(Vector2f point) const;
+    constexpr Vector2f transformPoint(Vector2f point) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Transform a rectangle
@@ -129,7 +129,7 @@ public:
     /// \return Transformed rectangle
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] constexpr FloatRect transformRect(const FloatRect& rectangle) const;
+    constexpr FloatRect transformRect(const FloatRect& rectangle) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Combine the current transform with another one
@@ -288,7 +288,7 @@ private:
 /// \return New combined transform
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Transform operator*(const Transform& left, const Transform& right);
+constexpr Transform operator*(const Transform& left, const Transform& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates sf::Transform
@@ -316,7 +316,7 @@ constexpr Transform& operator*=(Transform& left, const Transform& right);
 /// \return New transformed point
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Vector2f operator*(const Transform& left, Vector2f right);
+constexpr Vector2f operator*(const Transform& left, Vector2f right);
 
 ////////////////////////////////////////////////////////////
 /// \relates sf::Transform
@@ -331,7 +331,7 @@ constexpr Transform& operator*=(Transform& left, const Transform& right);
 /// \return `true` if the transforms are equal, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr bool operator==(const Transform& left, const Transform& right);
+constexpr bool operator==(const Transform& left, const Transform& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates sf::Transform
@@ -345,7 +345,7 @@ constexpr Transform& operator*=(Transform& left, const Transform& right);
 /// \return `true` if the transforms are not equal, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr bool operator!=(const Transform& left, const Transform& right);
+constexpr bool operator!=(const Transform& left, const Transform& right);
 
 } // namespace sf
 

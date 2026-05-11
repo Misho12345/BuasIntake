@@ -78,7 +78,7 @@ public:
     /// \return Properties of the loaded sound if the file was successfully opened
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual std::optional<Info> open(InputStream& stream) = 0;
+    virtual std::optional<Info> open(InputStream& stream) = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the current read position to the given sample offset
@@ -104,7 +104,7 @@ public:
     /// \return Number of samples actually read (may be less than \a maxCount)
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual std::uint64_t read(std::int16_t* samples, std::uint64_t maxCount) = 0;
+    virtual std::uint64_t read(std::int16_t* samples, std::uint64_t maxCount) = 0;
 };
 
 } // namespace sf
@@ -131,13 +131,13 @@ public:
 /// {
 /// public:
 ///
-///     [[nodiscard]] static bool check(sf::InputStream& stream)
+///     static bool check(sf::InputStream& stream)
 ///     {
 ///         // typically, read the first few header bytes and check fields that identify the format
 ///         // return true if the reader can handle the format
 ///     }
 ///
-///     [[nodiscard]] std::optional<sf::SoundFileReader::Info> open(sf::InputStream& stream) override
+///     std::optional<sf::SoundFileReader::Info> open(sf::InputStream& stream) override
 ///     {
 ///         // read the sound file header and fill the sound attributes
 ///         // (channel count, sample count and sample rate)

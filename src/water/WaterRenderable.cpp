@@ -29,8 +29,8 @@ namespace game::water
     {
         if (mesh.empty() || !shader_.valid()) return;
 
+		[[maybe_unused]]
         const gfx::ScopedAlphaBlendPass blend_pass{};
-        static_cast<void>(blend_pass);
 
         if (const auto use_result = shader_.use(); !use_result)
         {
@@ -41,6 +41,7 @@ namespace game::water
         shader_.set_uniform("uProjection", gfx::make_projection(view));
         shader_.set_uniform("uTime", shared_water_animation_time());
         mesh.draw();
+
         glUseProgram(0);
     }
 }

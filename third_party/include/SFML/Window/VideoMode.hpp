@@ -66,7 +66,7 @@ public:
     /// \return Current desktop video mode
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static VideoMode getDesktopMode();
+    static VideoMode getDesktopMode();
 
     ////////////////////////////////////////////////////////////
     /// \brief Retrieve all the video modes supported in fullscreen mode
@@ -82,7 +82,7 @@ public:
     /// \return Array containing all the supported fullscreen modes
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static const std::vector<VideoMode>& getFullscreenModes();
+    static const std::vector<VideoMode>& getFullscreenModes();
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell whether or not the video mode is valid
@@ -94,7 +94,7 @@ public:
     /// \return `true` if the video mode is valid for fullscreen mode
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isValid() const;
+    bool isValid() const;
 
     ////////////////////////////////////////////////////////////
     // Member data
@@ -113,7 +113,7 @@ public:
 /// \return `true` if modes are equal
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool operator==(const VideoMode& left, const VideoMode& right);
+SFML_WINDOW_API bool operator==(const VideoMode& left, const VideoMode& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates VideoMode
@@ -125,7 +125,7 @@ public:
 /// \return `true` if modes are different
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool operator!=(const VideoMode& left, const VideoMode& right);
+SFML_WINDOW_API bool operator!=(const VideoMode& left, const VideoMode& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates VideoMode
@@ -137,7 +137,7 @@ public:
 /// \return `true` if `left` is lesser than `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool operator<(const VideoMode& left, const VideoMode& right);
+SFML_WINDOW_API bool operator<(const VideoMode& left, const VideoMode& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates VideoMode
@@ -149,7 +149,7 @@ public:
 /// \return `true` if `left` is greater than `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool operator>(const VideoMode& left, const VideoMode& right);
+SFML_WINDOW_API bool operator>(const VideoMode& left, const VideoMode& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates VideoMode
@@ -161,7 +161,7 @@ public:
 /// \return `true` if `left` is lesser or equal than `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool operator<=(const VideoMode& left, const VideoMode& right);
+SFML_WINDOW_API bool operator<=(const VideoMode& left, const VideoMode& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates VideoMode
@@ -173,7 +173,7 @@ public:
 /// \return `true` if `left` is greater or equal than `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool operator>=(const VideoMode& left, const VideoMode& right);
+SFML_WINDOW_API bool operator>=(const VideoMode& left, const VideoMode& right);
 
 } // namespace sf
 

@@ -74,7 +74,7 @@ public:
     /// \return Number of vertices in the array
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::size_t getVertexCount() const;
+    std::size_t getVertexCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get a read-write access to a vertex by its index
@@ -90,7 +90,7 @@ public:
     /// \see `getVertexCount`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vertex& operator[](std::size_t index);
+    Vertex& operator[](std::size_t index);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get a read-only access to a vertex by its index
@@ -106,7 +106,7 @@ public:
     /// \see `getVertexCount`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Vertex& operator[](std::size_t index) const;
+    const Vertex& operator[](std::size_t index) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Clear the vertex array
@@ -162,7 +162,7 @@ public:
     /// \return Primitive type
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] PrimitiveType getPrimitiveType() const;
+    PrimitiveType getPrimitiveType() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Compute the bounding rectangle of the vertex array
@@ -173,7 +173,7 @@ public:
     /// \return Bounding rectangle of the vertex array
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getBounds() const;
+    FloatRect getBounds() const;
 
 private:
     ////////////////////////////////////////////////////////////

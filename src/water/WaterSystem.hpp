@@ -37,10 +37,12 @@ namespace game::water
     public:
         Result<WaterActionResult> place_water(terrain::PlanetTerrain& terrain, vec2 world_position, std::uint32_t volume_cap = 25u) const;
         Result<WaterActionResult> pickup_water(terrain::PlanetTerrain& terrain, vec2 world_position, std::uint32_t volume_cap = 25u) const;
-        Result<std::optional<WaterPreviewMesh>> build_preview(
+        
+    	Result<std::optional<WaterPreviewMesh>> build_preview(
             const terrain::PlanetTerrain& terrain,
             vec2 world_position,
             std::uint32_t volume_cap) const;
+
         void update_active_colliders(terrain::PlanetTerrain& terrain, vec2 player_position) const;
         void validate() const noexcept {}
     };

@@ -88,7 +88,7 @@ public:
     /// \return `true` if the file was successfully opened
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool openFromFile(const std::filesystem::path&     filename,
+    bool openFromFile(const std::filesystem::path&     filename,
                                     unsigned int                     sampleRate,
                                     unsigned int                     channelCount,
                                     const std::vector<SoundChannel>& channelMap);

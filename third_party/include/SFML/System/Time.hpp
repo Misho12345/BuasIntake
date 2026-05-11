@@ -64,7 +64,7 @@ public:
     /// \see `asMilliseconds`, `asMicroseconds`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] constexpr float asSeconds() const;
+    constexpr float asSeconds() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the time value as a number of milliseconds
@@ -74,7 +74,7 @@ public:
     /// \see `asSeconds`, `asMicroseconds`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] constexpr std::int32_t asMilliseconds() const;
+    constexpr std::int32_t asMilliseconds() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the time value as a number of microseconds
@@ -84,7 +84,7 @@ public:
     /// \see `asSeconds`, `asMilliseconds`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] constexpr std::int64_t asMicroseconds() const;
+    constexpr std::int64_t asMicroseconds() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the time value as a `std::chrono::duration`
@@ -92,7 +92,7 @@ public:
     /// \return Time in microseconds
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] constexpr std::chrono::microseconds toDuration() const;
+    constexpr std::chrono::microseconds toDuration() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Implicit conversion to `std::chrono::duration`
@@ -127,7 +127,7 @@ private:
 /// \see `milliseconds`, `microseconds`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time seconds(float amount);
+constexpr Time seconds(float amount);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -140,7 +140,7 @@ private:
 /// \see `seconds`, `microseconds`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time milliseconds(std::int32_t amount);
+constexpr Time milliseconds(std::int32_t amount);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -153,7 +153,7 @@ private:
 /// \see `seconds`, `milliseconds`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time microseconds(std::int64_t amount);
+constexpr Time microseconds(std::int64_t amount);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -165,7 +165,7 @@ private:
 /// \return `true` if both time values are equal
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr bool operator==(Time left, Time right);
+constexpr bool operator==(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -177,7 +177,7 @@ private:
 /// \return `true` if both time values are different
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr bool operator!=(Time left, Time right);
+constexpr bool operator!=(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -189,7 +189,7 @@ private:
 /// \return `true` if `left` is lesser than `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr bool operator<(Time left, Time right);
+constexpr bool operator<(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -201,7 +201,7 @@ private:
 /// \return `true` if `left` is greater than `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr bool operator>(Time left, Time right);
+constexpr bool operator>(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -213,7 +213,7 @@ private:
 /// \return `true` if `left` is lesser or equal than `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr bool operator<=(Time left, Time right);
+constexpr bool operator<=(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -225,7 +225,7 @@ private:
 /// \return `true` if `left` is greater or equal than `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr bool operator>=(Time left, Time right);
+constexpr bool operator>=(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -236,7 +236,7 @@ private:
 /// \return Opposite of the time value
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator-(Time right);
+constexpr Time operator-(Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -248,7 +248,7 @@ private:
 /// \return Sum of the two times values
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator+(Time left, Time right);
+constexpr Time operator+(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -272,7 +272,7 @@ constexpr Time& operator+=(Time& left, Time right);
 /// \return Difference of the two times values
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator-(Time left, Time right);
+constexpr Time operator-(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -296,7 +296,7 @@ constexpr Time& operator-=(Time& left, Time right);
 /// \return `left` multiplied by `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator*(Time left, float right);
+constexpr Time operator*(Time left, float right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -308,7 +308,7 @@ constexpr Time& operator-=(Time& left, Time right);
 /// \return `left` multiplied by `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator*(Time left, std::int64_t right);
+constexpr Time operator*(Time left, std::int64_t right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -320,7 +320,7 @@ constexpr Time& operator-=(Time& left, Time right);
 /// \return `left` multiplied by `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator*(float left, Time right);
+constexpr Time operator*(float left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -332,7 +332,7 @@ constexpr Time& operator-=(Time& left, Time right);
 /// \return `left` multiplied by `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator*(std::int64_t left, Time right);
+constexpr Time operator*(std::int64_t left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -368,7 +368,7 @@ constexpr Time& operator*=(Time& left, std::int64_t right);
 /// \return `left` divided by `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator/(Time left, float right);
+constexpr Time operator/(Time left, float right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -380,7 +380,7 @@ constexpr Time& operator*=(Time& left, std::int64_t right);
 /// \return `left` divided by `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator/(Time left, std::int64_t right);
+constexpr Time operator/(Time left, std::int64_t right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -416,7 +416,7 @@ constexpr Time& operator/=(Time& left, std::int64_t right);
 /// \return `left` divided by `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr float operator/(Time left, Time right);
+constexpr float operator/(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time
@@ -428,7 +428,7 @@ constexpr Time& operator/=(Time& left, std::int64_t right);
 /// \return `left` modulo `right`
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] constexpr Time operator%(Time left, Time right);
+constexpr Time operator%(Time left, Time right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Time

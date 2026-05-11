@@ -134,7 +134,7 @@ struct SFML_GRAPHICS_API BlendMode
 /// \return `true` if blending modes are equal, `false` if they are different
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_GRAPHICS_API bool operator==(const BlendMode& left, const BlendMode& right);
+SFML_GRAPHICS_API bool operator==(const BlendMode& left, const BlendMode& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates BlendMode
@@ -146,7 +146,7 @@ struct SFML_GRAPHICS_API BlendMode
 /// \return `true` if blending modes are different, `false` if they are equal
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_GRAPHICS_API bool operator!=(const BlendMode& left, const BlendMode& right);
+SFML_GRAPHICS_API bool operator!=(const BlendMode& left, const BlendMode& right);
 
 ////////////////////////////////////////////////////////////
 // Commonly used blending modes

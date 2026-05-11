@@ -336,7 +336,7 @@ public:
     /// \see `loadFromMemory`, `loadFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromFile(const std::filesystem::path& filename, Type type);
+    bool loadFromFile(const std::filesystem::path& filename, Type type);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load both the vertex and fragment shaders from files
@@ -357,7 +357,7 @@ public:
     /// \see `loadFromMemory`, `loadFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromFile(const std::filesystem::path& vertexShaderFilename,
+    bool loadFromFile(const std::filesystem::path& vertexShaderFilename,
                                     const std::filesystem::path& fragmentShaderFilename);
 
     ////////////////////////////////////////////////////////////
@@ -380,7 +380,7 @@ public:
     /// \see `loadFromMemory`, `loadFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromFile(const std::filesystem::path& vertexShaderFilename,
+    bool loadFromFile(const std::filesystem::path& vertexShaderFilename,
                                     const std::filesystem::path& geometryShaderFilename,
                                     const std::filesystem::path& fragmentShaderFilename);
 
@@ -402,7 +402,7 @@ public:
     /// \see `loadFromFile`, `loadFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromMemory(std::string_view shader, Type type);
+    bool loadFromMemory(std::string_view shader, Type type);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load both the vertex and fragment shaders from source codes in memory
@@ -423,7 +423,7 @@ public:
     /// \see `loadFromFile`, `loadFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromMemory(std::string_view vertexShader, std::string_view fragmentShader);
+    bool loadFromMemory(std::string_view vertexShader, std::string_view fragmentShader);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the vertex, geometry and fragment shaders from source codes in memory
@@ -445,7 +445,7 @@ public:
     /// \see `loadFromFile`, `loadFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromMemory(std::string_view vertexShader,
+    bool loadFromMemory(std::string_view vertexShader,
                                       std::string_view geometryShader,
                                       std::string_view fragmentShader);
 
@@ -467,7 +467,7 @@ public:
     /// \see `loadFromFile`, `loadFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromStream(InputStream& stream, Type type);
+    bool loadFromStream(InputStream& stream, Type type);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load both the vertex and fragment shaders from custom streams
@@ -488,7 +488,7 @@ public:
     /// \see `loadFromFile`, `loadFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromStream(InputStream& vertexShaderStream, InputStream& fragmentShaderStream);
+    bool loadFromStream(InputStream& vertexShaderStream, InputStream& fragmentShaderStream);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the vertex, geometry and fragment shaders from custom streams
@@ -510,7 +510,7 @@ public:
     /// \see `loadFromFile`, `loadFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool loadFromStream(InputStream& vertexShaderStream,
+    bool loadFromStream(InputStream& vertexShaderStream,
                                       InputStream& geometryShaderStream,
                                       InputStream& fragmentShaderStream);
 
@@ -788,7 +788,7 @@ public:
     /// \return OpenGL handle of the shader or 0 if not yet loaded
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getNativeHandle() const;
+    unsigned int getNativeHandle() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Bind a shader for rendering
@@ -823,7 +823,7 @@ public:
     /// \return `true` if shaders are supported, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static bool isAvailable();
+    static bool isAvailable();
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell whether or not the system supports geometry shaders
@@ -842,7 +842,7 @@ public:
     /// \return `true` if geometry shaders are supported, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static bool isGeometryAvailable();
+    static bool isGeometryAvailable();
 
 private:
     ////////////////////////////////////////////////////////////
@@ -858,7 +858,7 @@ private:
     /// \return `true` on success, `false` if any error happened
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool compile(std::string_view vertexShaderCode,
+    bool compile(std::string_view vertexShaderCode,
                                std::string_view geometryShaderCode,
                                std::string_view fragmentShaderCode);
 

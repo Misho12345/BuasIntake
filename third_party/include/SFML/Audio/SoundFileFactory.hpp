@@ -72,7 +72,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <typename T>
-    [[nodiscard]] static bool isReaderRegistered();
+    static bool isReaderRegistered();
 
     ////////////////////////////////////////////////////////////
     /// \brief Register a new writer
@@ -97,7 +97,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <typename T>
-    [[nodiscard]] static bool isWriterRegistered();
+    static bool isWriterRegistered();
 
     ////////////////////////////////////////////////////////////
     /// \brief Instantiate the right reader for the given file on disk
@@ -109,7 +109,7 @@ public:
     /// \see `createReaderFromMemory`, `createReaderFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static std::unique_ptr<SoundFileReader> createReaderFromFilename(const std::filesystem::path& filename);
+    static std::unique_ptr<SoundFileReader> createReaderFromFilename(const std::filesystem::path& filename);
 
     ////////////////////////////////////////////////////////////
     /// \brief Instantiate the right codec for the given file in memory
@@ -122,7 +122,7 @@ public:
     /// \see `createReaderFromFilename`, `createReaderFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static std::unique_ptr<SoundFileReader> createReaderFromMemory(const void* data, std::size_t sizeInBytes);
+    static std::unique_ptr<SoundFileReader> createReaderFromMemory(const void* data, std::size_t sizeInBytes);
 
     ////////////////////////////////////////////////////////////
     /// \brief Instantiate the right codec for the given file in stream
@@ -134,7 +134,7 @@ public:
     /// \see `createReaderFromFilename`, `createReaderFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static std::unique_ptr<SoundFileReader> createReaderFromStream(InputStream& stream);
+    static std::unique_ptr<SoundFileReader> createReaderFromStream(InputStream& stream);
 
     ////////////////////////////////////////////////////////////
     /// \brief Instantiate the right writer for the given file on disk
@@ -144,7 +144,7 @@ public:
     /// \return A new sound file writer that can write given file, or null if no writer can handle it
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static std::unique_ptr<SoundFileWriter> createWriterFromFilename(const std::filesystem::path& filename);
+    static std::unique_ptr<SoundFileWriter> createWriterFromFilename(const std::filesystem::path& filename);
 
 private:
     ////////////////////////////////////////////////////////////
@@ -162,8 +162,8 @@ private:
     ////////////////////////////////////////////////////////////
     // Static member functions
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static ReaderFactoryMap& getReaderFactoryMap();
-    [[nodiscard]] static WriterFactoryMap& getWriterFactoryMap();
+    static ReaderFactoryMap& getReaderFactoryMap();
+    static WriterFactoryMap& getWriterFactoryMap();
 };
 
 } // namespace sf

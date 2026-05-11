@@ -176,7 +176,7 @@ public:
     /// \see `openFromMemory`, `openFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool openFromFile(const std::filesystem::path& filename);
+    bool openFromFile(const std::filesystem::path& filename);
 
     ////////////////////////////////////////////////////////////
     /// \brief Open a music from an audio file in memory
@@ -199,7 +199,7 @@ public:
     /// \see `openFromFile`, `openFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool openFromMemory(const void* data, std::size_t sizeInBytes);
+    bool openFromMemory(const void* data, std::size_t sizeInBytes);
 
     ////////////////////////////////////////////////////////////
     /// \brief Open a music from an audio file in a custom stream
@@ -220,7 +220,7 @@ public:
     /// \see `openFromFile`, `openFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool openFromStream(InputStream& stream);
+    bool openFromStream(InputStream& stream);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the total duration of the music
@@ -228,7 +228,7 @@ public:
     /// \return Music duration
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Time getDuration() const;
+    Time getDuration() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the positions of the of the sound's looping sequence
@@ -245,7 +245,7 @@ public:
     /// \see `setLoopPoints`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] TimeSpan getLoopPoints() const;
+    TimeSpan getLoopPoints() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Sets the beginning and duration of the sound's looping sequence using `sf::Time`
@@ -281,7 +281,7 @@ protected:
     /// \return `true` to continue playback, `false` to stop
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool onGetData(Chunk& data) override;
+    bool onGetData(Chunk& data) override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the current playing position in the stream source
@@ -312,7 +312,7 @@ private:
     /// \return The number of samples elapsed at the given time
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::uint64_t timeToSamples(Time position) const;
+    std::uint64_t timeToSamples(Time position) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Helper to convert a sample position to an `sf::Time`
@@ -322,7 +322,7 @@ private:
     /// \return The Time position of the given sample
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Time samplesToTime(std::uint64_t samples) const;
+    Time samplesToTime(std::uint64_t samples) const;
 
     ////////////////////////////////////////////////////////////
     // Member data

@@ -260,7 +260,7 @@ public:
     /// \see `setString`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const String& getString() const;
+    const String& getString() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the text's font
@@ -273,7 +273,7 @@ public:
     /// \see `setFont`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Font& getFont() const;
+    const Font& getFont() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the character size
@@ -283,7 +283,7 @@ public:
     /// \see `setCharacterSize`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getCharacterSize() const;
+    unsigned int getCharacterSize() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the size of the letter spacing factor
@@ -293,7 +293,7 @@ public:
     /// \see `setLetterSpacing`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getLetterSpacing() const;
+    float getLetterSpacing() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the size of the line spacing factor
@@ -303,7 +303,7 @@ public:
     /// \see `setLineSpacing`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getLineSpacing() const;
+    float getLineSpacing() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the text's style
@@ -313,7 +313,7 @@ public:
     /// \see `setStyle`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::uint32_t getStyle() const;
+    std::uint32_t getStyle() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the fill color of the text
@@ -323,7 +323,7 @@ public:
     /// \see `setFillColor`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Color getFillColor() const;
+    Color getFillColor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the outline color of the text
@@ -333,7 +333,7 @@ public:
     /// \see `setOutlineColor`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Color getOutlineColor() const;
+    Color getOutlineColor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the outline thickness of the text
@@ -343,7 +343,7 @@ public:
     /// \see `setOutlineThickness`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getOutlineThickness() const;
+    float getOutlineThickness() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the position of the `index`-th character
@@ -360,7 +360,7 @@ public:
     /// \return Position of the character
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f findCharacterPos(std::size_t index) const;
+    Vector2f findCharacterPos(std::size_t index) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the local bounding rectangle of the entity
@@ -374,7 +374,7 @@ public:
     /// \return Local bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getLocalBounds() const;
+    FloatRect getLocalBounds() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the global bounding rectangle of the entity
@@ -388,7 +388,7 @@ public:
     /// \return Global bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getGlobalBounds() const;
+    FloatRect getGlobalBounds() const;
 
 private:
     ////////////////////////////////////////////////////////////

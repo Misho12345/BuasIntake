@@ -83,7 +83,7 @@ namespace game::terrain
         {
             return geometry_revision_;
         }
-        [[nodiscard]] float green_surface_coverage() const;
+        float green_surface_coverage() const;
         vec2 spawn_point_from_top_center(float height_offset) const;
         bool is_valid_global_sample(ivec2 coord) const;
         const FieldSample& global_sample(ivec2 coord) const

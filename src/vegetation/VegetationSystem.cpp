@@ -62,9 +62,10 @@ namespace game::vegetation
         ++revision_;
     }
 
-    Result<void> VegetationSystem::plant_seed(const terrain::PlanetTerrain& terrain,
-                                              resources::ResourceSystem& resources,
-                                              const vec2 world_position)
+    Result<void> VegetationSystem::plant_seed(
+	    const terrain::PlanetTerrain& terrain,
+	    resources::ResourceSystem&    resources,
+	    const vec2                    world_position)
     {
         if (resources.inventory().count(resources::InventoryItem::Seeds) == 0u) return fail("Cannot plant seed: inventory is empty");
         if (plant_samples_.empty()) return fail("Cannot plant seed: terrain field is not initialized");
@@ -72,9 +73,13 @@ namespace game::vegetation
         const auto seed_coord = find_plantable_seed_coord(terrain, world_position);
         if (!seed_coord.has_value()) return fail("No valid planting spot is within reach");
 
-        const auto coord = *seed_coord;
+        const auto coord      = *seed_coord;
         const auto field_size = terrain.global_field_size();
-        const auto index = static_cast<std::size_t>(coord.y) * static_cast<std::size_t>(field_size.x) + static_cast<std::size_t>(coord.x);
+        const auto index      =
+		        static_cast<std::size_t>(coord.y) *
+		        static_cast<std::size_t>(field_size.x) +
+		        static_cast<std::size_t>(coord.x);
+
         const auto family = choose_plant_family(terrain, coord);
         const auto variant = choose_plant_variant(terrain, coord, family);
         const auto anchor = terrain.surface_anchor_world(coord);
@@ -140,8 +145,9 @@ namespace game::vegetation
         ++revision_;
     }
 
-    void VegetationSystem::refresh_surface_anchors(const terrain::PlanetTerrain& terrain,
-                                                   const std::unordered_set<std::uint64_t>& affected_keys)
+    void VegetationSystem::refresh_surface_anchors(
+	    const terrain::PlanetTerrain&            terrain,
+	    const std::unordered_set<std::uint64_t>& affected_keys)
     {
         if (affected_keys.empty() || plant_samples_.empty()) return;
 
@@ -262,10 +268,11 @@ namespace game::vegetation
         return best_candidate->coord;
     }
 
-    std::uint32_t VegetationSystem::nearby_cover_count(const terrain::PlanetTerrain& terrain,
-                                                       const ivec2 coord,
-                                                       const float radius_samples,
-                                                       const bool woody_cover) const
+    std::uint32_t VegetationSystem::nearby_cover_count(
+	    const terrain::PlanetTerrain& terrain,
+	    const ivec2                   coord,
+	    const float                   radius_samples,
+	    const bool                    woody_cover) const
     {
         const float radius_sq = radius_samples * radius_samples;
         std::uint32_t count = 0u;
@@ -275,8 +282,7 @@ namespace game::vegetation
             if (index >= plant_samples_.size()) continue;
             const auto& plant = plant_samples_[index];
             if (plant.stage == PlantStage::Empty) continue;
-            if (woody_cover ? !is_woody_family(plant.family) : !is_low_cover_family(plant.family))
-                continue;
+            if (woody_cover ? !is_woody_family(plant.family) : !is_low_cover_family(plant.family)) continue;
 
             const ivec2 other_coord{ static_cast<int>(index % field_size.x), static_cast<int>(index / field_size.x) };
             const float dx = static_cast<float>(other_coord.x - coord.x);
@@ -293,8 +299,7 @@ namespace game::vegetation
         std::uint32_t count = 0u;
         for (const auto index : active_plant_indices())
         {
-            if (index >= plant_samples_.size())
-                continue;
+            if (index >= plant_samples_.size()) continue;
             const auto& plant = plant_samples_[index];
             if (plant.stage == PlantStage::Mature && plant.family == PlantFamily::Tree)
                 ++count;
@@ -303,9 +308,10 @@ namespace game::vegetation
         return count;
     }
 
-    bool VegetationSystem::can_place_woody_near(const terrain::PlanetTerrain& terrain,
-                                                const ivec2 coord,
-                                                const int min_spacing_samples) const
+    bool VegetationSystem::can_place_woody_near(
+	    const terrain::PlanetTerrain& terrain,
+	    const ivec2                   coord,
+	    const int                     min_spacing_samples) const
     {
         const auto field_size = terrain.global_field_size();
         for (const auto index : active_plant_indices())

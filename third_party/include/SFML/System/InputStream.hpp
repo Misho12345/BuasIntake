@@ -63,7 +63,7 @@ public:
     /// \return The number of bytes actually read, or `std::nullopt` on error
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual std::optional<std::size_t> read(void* data, std::size_t size) = 0;
+    virtual std::optional<std::size_t> read(void* data, std::size_t size) = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the current reading position
@@ -73,7 +73,7 @@ public:
     /// \return The position actually sought to, or `std::nullopt` on error
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual std::optional<std::size_t> seek(std::size_t position) = 0;
+    virtual std::optional<std::size_t> seek(std::size_t position) = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the current reading position in the stream
@@ -81,7 +81,7 @@ public:
     /// \return The current position, or `std::nullopt` on error.
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual std::optional<std::size_t> tell() = 0;
+    virtual std::optional<std::size_t> tell() = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the size of the stream
@@ -119,13 +119,13 @@ public:
 ///
 ///     ZipStream(const std::string& archive);
 ///
-///     [[nodiscard]] bool open(const std::filesystem::path& filename);
+///     bool open(const std::filesystem::path& filename);
 ///
-///     [[nodiscard]] std::optional<std::size_t> read(void* data, std::size_t size);
+///     std::optional<std::size_t> read(void* data, std::size_t size);
 ///
-///     [[nodiscard]] std::optional<std::size_t> seek(std::size_t position);
+///     std::optional<std::size_t> seek(std::size_t position);
 ///
-///     [[nodiscard]] std::optional<std::size_t> tell();
+///     std::optional<std::size_t> tell();
 ///
 ///     std::optional<std::size_t> getSize();
 ///

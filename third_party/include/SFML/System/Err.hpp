@@ -38,7 +38,7 @@ namespace sf
 /// \brief Standard stream used by SFML to output warnings and errors
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_SYSTEM_API std::ostream& err();
+SFML_SYSTEM_API std::ostream& err();
 
 } // namespace sf
 

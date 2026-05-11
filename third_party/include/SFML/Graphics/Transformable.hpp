@@ -122,7 +122,7 @@ public:
     /// \see `setPosition`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f getPosition() const;
+    Vector2f getPosition() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief get the orientation of the object
@@ -134,7 +134,7 @@ public:
     /// \see `setRotation`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Angle getRotation() const;
+    Angle getRotation() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief get the current scale of the object
@@ -144,7 +144,7 @@ public:
     /// \see `setScale`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f getScale() const;
+    Vector2f getScale() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief get the local origin of the object
@@ -154,7 +154,7 @@ public:
     /// \see `setOrigin`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f getOrigin() const;
+    Vector2f getOrigin() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Move the object by a given offset
@@ -214,7 +214,7 @@ public:
     /// \see `getInverseTransform`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Transform& getTransform() const;
+    const Transform& getTransform() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief get the inverse of the combined transform of the object
@@ -224,7 +224,7 @@ public:
     /// \see `getTransform`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Transform& getInverseTransform() const;
+    const Transform& getInverseTransform() const;
 
 private:
     ////////////////////////////////////////////////////////////

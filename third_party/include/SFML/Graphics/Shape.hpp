@@ -146,7 +146,7 @@ public:
     /// \see `setTexture`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Texture* getTexture() const;
+    const Texture* getTexture() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the sub-rectangle of the texture displayed by the shape
@@ -156,7 +156,7 @@ public:
     /// \see `setTextureRect`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const IntRect& getTextureRect() const;
+    const IntRect& getTextureRect() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the fill color of the shape
@@ -166,7 +166,7 @@ public:
     /// \see `setFillColor`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Color getFillColor() const;
+    Color getFillColor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the outline color of the shape
@@ -176,7 +176,7 @@ public:
     /// \see `setOutlineColor`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Color getOutlineColor() const;
+    Color getOutlineColor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the outline thickness of the shape
@@ -186,7 +186,7 @@ public:
     /// \see `setOutlineThickness`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getOutlineThickness() const;
+    float getOutlineThickness() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the total number of points of the shape
@@ -196,7 +196,7 @@ public:
     /// \see `getPoint`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual std::size_t getPointCount() const = 0;
+    virtual std::size_t getPointCount() const = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get a point of the shape
@@ -213,7 +213,7 @@ public:
     /// \see `getPointCount`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual Vector2f getPoint(std::size_t index) const = 0;
+    virtual Vector2f getPoint(std::size_t index) const = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the geometric center of the shape
@@ -225,7 +225,7 @@ public:
     /// \return The geometric center of the shape
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual Vector2f getGeometricCenter() const;
+    virtual Vector2f getGeometricCenter() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the local bounding rectangle of the entity
@@ -239,7 +239,7 @@ public:
     /// \return Local bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getLocalBounds() const;
+    FloatRect getLocalBounds() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the global (non-minimal) bounding rectangle of the entity
@@ -260,7 +260,7 @@ public:
     /// \return Global bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getGlobalBounds() const;
+    FloatRect getGlobalBounds() const;
 
 protected:
     ////////////////////////////////////////////////////////////

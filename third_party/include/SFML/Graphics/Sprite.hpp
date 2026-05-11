@@ -150,7 +150,7 @@ public:
     /// \see `setTexture`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const Texture& getTexture() const;
+    const Texture& getTexture() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the sub-rectangle of the texture displayed by the sprite
@@ -160,7 +160,7 @@ public:
     /// \see `setTextureRect`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const IntRect& getTextureRect() const;
+    const IntRect& getTextureRect() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the global color of the sprite
@@ -170,7 +170,7 @@ public:
     /// \see `setColor`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Color getColor() const;
+    Color getColor() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the local bounding rectangle of the entity
@@ -184,7 +184,7 @@ public:
     /// \return Local bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getLocalBounds() const;
+    FloatRect getLocalBounds() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the global bounding rectangle of the entity
@@ -198,7 +198,7 @@ public:
     /// \return Global bounding rectangle of the entity
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] FloatRect getGlobalBounds() const;
+    FloatRect getGlobalBounds() const;
 
 private:
     ////////////////////////////////////////////////////////////

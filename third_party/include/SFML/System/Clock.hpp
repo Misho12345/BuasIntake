@@ -101,7 +101,7 @@ public:
     /// \return Time elapsed
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Time getElapsedTime() const;
+    Time getElapsedTime() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Check whether the clock is running
@@ -109,7 +109,7 @@ public:
     /// \return `true` if the clock is running, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isRunning() const;
+    bool isRunning() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Start the clock

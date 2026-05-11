@@ -123,7 +123,7 @@ struct SFML_GRAPHICS_API StencilMode
 /// \return `true` if stencil modes are equal, `false` if they are different
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_GRAPHICS_API bool operator==(const StencilMode& left, const StencilMode& right);
+SFML_GRAPHICS_API bool operator==(const StencilMode& left, const StencilMode& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates StencilMode
@@ -135,7 +135,7 @@ struct SFML_GRAPHICS_API StencilMode
 /// \return `true` if stencil modes are different, `false` if they are equal
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_GRAPHICS_API bool operator!=(const StencilMode& left, const StencilMode& right);
+SFML_GRAPHICS_API bool operator!=(const StencilMode& left, const StencilMode& right);
 
 } // namespace sf
 

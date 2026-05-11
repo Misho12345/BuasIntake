@@ -76,7 +76,7 @@ public:
     /// \see `stop`, `getAvailableDevices`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool start(unsigned int sampleRate = 44100);
+    bool start(unsigned int sampleRate = 44100);
 
     ////////////////////////////////////////////////////////////
     /// \brief Stop the capture
@@ -96,7 +96,7 @@ public:
     /// \return Sample rate, in samples per second
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getSampleRate() const;
+    unsigned int getSampleRate() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get a list of the names of all available audio capture devices
@@ -107,7 +107,7 @@ public:
     /// \return A vector of strings containing the names
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static std::vector<std::string> getAvailableDevices();
+    static std::vector<std::string> getAvailableDevices();
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the name of the default audio capture device
@@ -119,7 +119,7 @@ public:
     /// \return The name of the default audio capture device
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static std::string getDefaultDevice();
+    static std::string getDefaultDevice();
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the audio capture device
@@ -136,7 +136,7 @@ public:
     /// \see `getAvailableDevices`, `getDefaultDevice`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool setDevice(const std::string& name);
+    bool setDevice(const std::string& name);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the name of the current audio capture device
@@ -144,7 +144,7 @@ public:
     /// \return The name of the current audio capture device
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const std::string& getDevice() const;
+    const std::string& getDevice() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the channel count of the audio capture device
@@ -172,7 +172,7 @@ public:
     /// \see `setChannelCount`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getChannelCount() const;
+    unsigned int getChannelCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the map of position in sample frame to sound channel
@@ -183,7 +183,7 @@ public:
     /// \return Map of position in sample frame to sound channel
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const std::vector<SoundChannel>& getChannelMap() const;
+    const std::vector<SoundChannel>& getChannelMap() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Check if the system supports audio capture
@@ -196,7 +196,7 @@ public:
     /// \return `true` if audio capture is supported, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] static bool isAvailable();
+    static bool isAvailable();
 
 protected:
     ////////////////////////////////////////////////////////////
@@ -234,7 +234,7 @@ protected:
     /// \return `true` to continue the capture, or `false` to stop it
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual bool onProcessSamples(const std::int16_t* samples, std::size_t sampleCount) = 0;
+    virtual bool onProcessSamples(const std::int16_t* samples, std::size_t sampleCount) = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Stop capturing audio data
@@ -328,7 +328,7 @@ private:
 ///         return true;
 ///     }
 ///
-///     [[nodiscard]] bool onProcessSamples(const std::int16_t* samples, std::size_t sampleCount) override
+///     bool onProcessSamples(const std::int16_t* samples, std::size_t sampleCount) override
 ///     {
 ///         // Do something with the new chunk of samples (store them, send them, ...)
 ///         ...

@@ -72,7 +72,7 @@ public:
     /// \see `setRadius`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] float getRadius() const;
+    float getRadius() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the number of points of the circle
@@ -92,7 +92,7 @@ public:
     /// \see `setPointCount`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::size_t getPointCount() const override;
+    std::size_t getPointCount() const override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get a point of the circle
@@ -107,7 +107,7 @@ public:
     /// \return `index`-th point of the shape
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f getPoint(std::size_t index) const override;
+    Vector2f getPoint(std::size_t index) const override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the geometric center of the circle
@@ -119,7 +119,7 @@ public:
     /// \return The geometric center of the shape
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f getGeometricCenter() const override;
+    Vector2f getGeometricCenter() const override;
 
 private:
     ////////////////////////////////////////////////////////////

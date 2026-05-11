@@ -155,7 +155,7 @@ public:
     /// \see `setView`, `getDefaultView`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const View& getView() const;
+    const View& getView() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the default view of the render target
@@ -168,7 +168,7 @@ public:
     /// \see `setView`, `getView`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] const View& getDefaultView() const;
+    const View& getDefaultView() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the viewport of a view, applied to this render target
@@ -183,7 +183,7 @@ public:
     /// \return Viewport rectangle, expressed in pixels
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] IntRect getViewport(const View& view) const;
+    IntRect getViewport(const View& view) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the scissor rectangle of a view, applied to this render target
@@ -198,7 +198,7 @@ public:
     /// \return Scissor rectangle, expressed in pixels
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] IntRect getScissor(const View& view) const;
+    IntRect getScissor(const View& view) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Convert a point from target coordinates to world
@@ -218,7 +218,7 @@ public:
     /// \see `mapCoordsToPixel`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f mapPixelToCoords(Vector2i point) const;
+    Vector2f mapPixelToCoords(Vector2i point) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Convert a point from target coordinates to world coordinates
@@ -249,7 +249,7 @@ public:
     /// \see `mapCoordsToPixel`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2f mapPixelToCoords(Vector2i point, const View& view) const;
+    Vector2f mapPixelToCoords(Vector2i point, const View& view) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Convert a point from world coordinates to target
@@ -269,7 +269,7 @@ public:
     /// \see `mapPixelToCoords`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2i mapCoordsToPixel(Vector2f point) const;
+    Vector2i mapCoordsToPixel(Vector2f point) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Convert a point from world coordinates to target coordinates
@@ -296,7 +296,7 @@ public:
     /// \see `mapPixelToCoords`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Vector2i mapCoordsToPixel(Vector2f point, const View& view) const;
+    Vector2i mapCoordsToPixel(Vector2f point, const View& view) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Draw a drawable object to the render target
@@ -350,7 +350,7 @@ public:
     /// \return Size in pixels
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual Vector2u getSize() const = 0;
+    virtual Vector2u getSize() const = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell if the render target will use sRGB encoding when drawing on it
@@ -358,7 +358,7 @@ public:
     /// \return `true` if the render target use sRGB encoding, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual bool isSrgb() const;
+    virtual bool isSrgb() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Activate or deactivate the render target for rendering
@@ -380,7 +380,7 @@ public:
     /// \return `true` if operation was successful, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual bool setActive(bool active = true);
+    virtual bool setActive(bool active = true);
 
     ////////////////////////////////////////////////////////////
     /// \brief Save the current OpenGL render states and matrices

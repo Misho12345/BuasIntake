@@ -124,7 +124,7 @@ public:
     /// \return Number of channels
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getChannelCount() const;
+    unsigned int getChannelCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the stream sample rate of the stream
@@ -135,7 +135,7 @@ public:
     /// \return Sample rate, in number of samples per second
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] unsigned int getSampleRate() const;
+    unsigned int getSampleRate() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the map of position in sample frame to sound channel
@@ -146,7 +146,7 @@ public:
     /// \return Map of position in sample frame to sound channel
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] std::vector<SoundChannel> getChannelMap() const;
+    std::vector<SoundChannel> getChannelMap() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the current status of the stream (stopped, paused, playing)
@@ -154,7 +154,7 @@ public:
     /// \return Current status
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Status getStatus() const override;
+    Status getStatus() const override;
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the current playing position of the stream
@@ -179,7 +179,7 @@ public:
     /// \see `setPlayingOffset`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] Time getPlayingOffset() const;
+    Time getPlayingOffset() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set whether or not the stream should loop after reaching the end
@@ -204,7 +204,7 @@ public:
     /// \see `setLooping`
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] bool isLooping() const;
+    bool isLooping() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the effect processor to be applied to the sound
@@ -260,7 +260,7 @@ protected:
     /// \return `true` to continue playback, `false` to stop
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] virtual bool onGetData(Chunk& data) = 0;
+    virtual bool onGetData(Chunk& data) = 0;
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the current playing position in the stream source
@@ -292,7 +292,7 @@ private:
     /// \return The sound object
     ///
     ////////////////////////////////////////////////////////////
-    [[nodiscard]] void* getSound() const override;
+    void* getSound() const override;
 
     ////////////////////////////////////////////////////////////
     // Member data
@@ -342,7 +342,7 @@ private:
 /// {
 /// public:
 ///
-///     [[nodiscard]] bool open(const std::string& location)
+///     bool open(const std::string& location)
 ///     {
 ///         // Open the source and get audio settings
 ///         ...

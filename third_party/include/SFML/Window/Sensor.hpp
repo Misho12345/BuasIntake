@@ -62,7 +62,7 @@ static constexpr unsigned int Count{6}; //!< The total number of sensor types
 /// \return `true` if the sensor is available, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API bool isAvailable(Type sensor);
+SFML_WINDOW_API bool isAvailable(Type sensor);
 
 ////////////////////////////////////////////////////////////
 /// \brief Enable or disable a sensor
@@ -87,7 +87,7 @@ SFML_WINDOW_API void setEnabled(Type sensor, bool enabled);
 /// \return The current sensor value
 ///
 ////////////////////////////////////////////////////////////
-[[nodiscard]] SFML_WINDOW_API Vector3f getValue(Type sensor);
+SFML_WINDOW_API Vector3f getValue(Type sensor);
 } // namespace sf::Sensor
 
 
