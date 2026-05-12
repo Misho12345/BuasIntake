@@ -49,9 +49,9 @@ namespace game::player
         // this is the per step movement entry point used before each box2d step
         // it lines the player up to the planet then applies gravity and input in that order
         void prepare_for_physics_step(
-            float                        fixed_step,
-            vec2                         planet_center,
-            bool                         in_water);
+            float fixed_step,
+            vec2  planet_center,
+            bool  in_water);
 
         void sync_from_physics(vec2 planet_center);
 
@@ -87,9 +87,9 @@ namespace game::player
 
         // this does the actual impulse math for walking and braking and it is where the grounded vs water behavior splits
         void apply_horizontal_movement(
-            float                        fixed_step,
-            vec2                         movement_direction,
-            bool                         in_water);
+            float fixed_step,
+            vec2  movement_direction,
+            bool  in_water);
 
         void try_jump(vec2 up_direction, bool jump_held, bool in_water);
         void apply_input(float fixed_step, vec2 planet_center, bool in_water);

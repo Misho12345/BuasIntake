@@ -133,13 +133,11 @@ namespace game::render
 
         static constexpr std::array dead_32_paths{
             "assets/images/vegetation/ground_plants_dead.png",
-            "assets/images/vegetation/mushrooms_dead.png",
             "assets/images/vegetation/ferns_dead.png",
             "assets/images/vegetation/broadleaf_plants_dead.png",
             "assets/images/vegetation/reeds_dead.png",
             "assets/images/vegetation/creepers_dead.png",
             "assets/images/vegetation/jungle_roots_dead.png",
-            "assets/images/vegetation/hanging_vines_dead.png",
             "assets/images/vegetation/bushes_dead.png"
         };
 

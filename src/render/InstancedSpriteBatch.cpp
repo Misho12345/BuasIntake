@@ -6,6 +6,7 @@
 
 namespace game::render
 {
+    // i'm using this and not sf::Vertex because the instanced sprites don't need color
     namespace
     {
         struct QuadVertex final
@@ -14,7 +15,7 @@ namespace game::render
             vec2 uv{ 0.0f, 0.0f };
         };
 
-        static constexpr std::array quad_vertices{
+        constexpr std::array quad_vertices{
             QuadVertex{ .position = { -0.5f, 0.0f }, .uv = { 0.0f, 1.0f } },
             QuadVertex{ .position = { 0.5f, 0.0f }, .uv = { 1.0f, 1.0f } },
             QuadVertex{ .position = { -0.5f, -1.0f }, .uv = { 0.0f, 0.0f } },

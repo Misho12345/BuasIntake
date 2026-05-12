@@ -15,8 +15,8 @@ uniform vec2 uCellSize;
 uniform uint uSeed;
 uniform float uPlanetRadius;
 
-const float shallow_pond_depth = 3.4;
-const float deep_pond_depth = 6.2;
+const float shallow_pond_depth = 3.0;
+const float deep_pond_depth = 5.5;
 
 #include "terrain/noise.glsl"
 #include "terrain/cave_slots.glsl"

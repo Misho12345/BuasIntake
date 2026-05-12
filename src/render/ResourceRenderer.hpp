@@ -24,7 +24,8 @@ namespace game::render
 
         Result<void> initialize_assets();
         void         destroy_graphics_resources();
-        void         draw_ores(
+
+        void draw_ores(
             const sf::View&                  view,
             const terrain::PlanetTerrain&    terrain,
             const resources::ResourceSystem& resources);

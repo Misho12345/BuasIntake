@@ -77,7 +77,7 @@ void main()
                 float segment_t = segment_length_sq > 1e-5 ? clamp(dot(world - previous_lobe, segment) / segment_length_sq, 0.0, 1.0) : 0.0;
                 vec2 closest = previous_lobe + segment * segment_t;
                 vec2 corridor_delta = world - closest;
-                float corridor_radius = max(min(radius_tangent, radius_up) * 0.78, 2.6);
+                float corridor_radius = max(min(radius_tangent, radius_up) * 0.78, 2.3);
                 float corridor_field = dot(corridor_delta, corridor_delta) / max(corridor_radius * corridor_radius, 1e-4) - 1.0;
                 local_field = min(local_field, corridor_field);
             }

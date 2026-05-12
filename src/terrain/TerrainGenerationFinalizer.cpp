@@ -8,8 +8,8 @@ namespace game::terrain
 {
     namespace
     {
-        constexpr float cave_generation_min_depth{ 0.14f };
-        constexpr float cave_generation_max_depth{ 0.54f };
+        constexpr float cave_generation_min_depth{ 0.10f };
+        constexpr float cave_generation_max_depth{ 0.45f };
     }
 
     // this is the bridge between raw generated density and gameplay ready terrain

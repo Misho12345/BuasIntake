@@ -2,12 +2,12 @@ const float tau = 6.28318530718;
 
 const int cave_slot_count = 16;
 const float cave_activation_threshold = 0.14;
-const float min_cave_depth = 0.22;
-const float max_cave_depth = 0.43;
-const float min_cave_radius_tangent = 5.8;
-const float max_cave_radius_tangent = 10.8;
-const float min_cave_radius_up = 4.2;
-const float max_cave_radius_up = 7.0;
+const float min_cave_depth = 0.15;
+const float max_cave_depth = 0.36;
+const float min_cave_radius_tangent = 5.2;
+const float max_cave_radius_tangent = 9.5;
+const float min_cave_radius_up = 3.8;
+const float max_cave_radius_up = 6.2;
 
 // shared cave layout used by both cave carving and pond placement
 // this is why water basins line up with the same cave spaces instead of being a separate random pass
@@ -52,7 +52,7 @@ CaveSlotProfile cave_slot_profile(int slot)
     float base_radius_tangent = mix(min_cave_radius_tangent, max_cave_radius_tangent, size_roll);
     float base_radius_up = mix(min_cave_radius_up, max_cave_radius_up, height_roll) * 0.75;
     int lobe_count = 2 + int(floor(hash(vec2(slot_id + 31.4, 4.8)) * 4.0));
-    float lobe_spacing = mix(5.6, 10.8, hash(vec2(slot_id + 27.2, 12.3)));
+    float lobe_spacing = mix(5.0, 9.6, hash(vec2(slot_id + 27.2, 12.3)));
     float lobe_span = lobe_spacing * 0.5 * float(max(lobe_count - 1, 0));
 
     CaveSlotProfile profile;

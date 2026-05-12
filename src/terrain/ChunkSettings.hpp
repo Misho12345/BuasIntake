@@ -11,7 +11,7 @@ namespace game::terrain
 
         ivec2 chunk_coord{ 0, 0 };
         ivec2 chunk_grid_size{ 10, 10 };
-        vec2  chunk_size{ 25.0f, 25.0f };
+        vec2  chunk_size{ 18.0f, 18.0f };
 
         vec2 world_center{ 0.0f, 0.0f };
 
