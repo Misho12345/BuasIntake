@@ -25,6 +25,8 @@ namespace game::tools
     {
     }
 
+    // right click arms or commits placement and left click either cancels placement or tries pickup
+    // that split sounds tiny but it keeps the bucket from needing a bunch of extra input modes
     void WaterTool::handle_mouse_pressed(const TerrainToolContext& context, const TerrainTargetResolver& resolver, const MouseButton button)
     {
         if (context.terrain == nullptr) return;
@@ -149,6 +151,7 @@ namespace game::tools
         };
     }
 
+    // the preview cache is revision driven because rebuilding a whole water plan every frame while the mouse is not meaningfully changing is just waste
     void WaterTool::refresh_preview_cache(const TerrainToolContext& context, const TerrainTargetResolver& resolver) const
     {
         if (!placement_mode_ || context.terrain == nullptr || context.water == nullptr || desired_place_amount_ == 0u)

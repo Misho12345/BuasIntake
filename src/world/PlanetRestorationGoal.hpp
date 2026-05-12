@@ -11,15 +11,15 @@ namespace game::world
     public:
         bool update(const World& world);
 
-        bool completed() const noexcept { return completed_; }
-        float progress() const noexcept;
-        float green_surface_coverage() const noexcept { return green_surface_coverage_; }
+        bool  completed() const { return completed_; }
+        float progress() const;
+        float green_surface_coverage() const { return green_surface_coverage_; }
 
     private:
         static constexpr float required_green_surface_coverage_{ 0.82f };
 
         std::uint64_t last_field_revision_{ std::numeric_limits<std::uint64_t>::max() };
-        float green_surface_coverage_{ 0.0f };
-        bool completed_{ false };
+        float         green_surface_coverage_{ 0.0f };
+        bool          completed_{ false };
     };
 }

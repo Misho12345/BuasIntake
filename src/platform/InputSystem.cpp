@@ -41,7 +41,7 @@ namespace game::platform
 
             if (auto* resized = event->getIf<sf::Event::Resized>())
             {
-                result.resized = true;
+                result.resized  = true;
                 result.new_size = resized->size;
                 continue;
             }
@@ -63,10 +63,11 @@ namespace game::platform
 
             if (const auto* key = event->getIf<sf::Event::KeyPressed>())
             {
-                if (const auto index = key_index(key->code); index.has_value())
+                if (const auto index = key_index(key->code);
+                    index.has_value())
                 {
                     input.current_.pressed_keys[*index] = true;
-                    input.key_pressed_events_[*index] = true;
+                    input.key_pressed_events_[*index]   = true;
                 }
 
                 continue;
@@ -74,10 +75,11 @@ namespace game::platform
 
             if (const auto* key = event->getIf<sf::Event::KeyReleased>())
             {
-                if (const auto index = key_index(key->code); index.has_value())
+                if (const auto index = key_index(key->code);
+                    index.has_value())
                 {
                     input.current_.pressed_keys[*index] = false;
-                    input.key_released_events_[*index] = true;
+                    input.key_released_events_[*index]  = true;
                 }
 
                 continue;
@@ -85,10 +87,11 @@ namespace game::platform
 
             if (const auto* btn = event->getIf<sf::Event::MouseButtonPressed>())
             {
-                if (const auto index = mouse_button_index(btn->button); index.has_value())
+                if (const auto index = mouse_button_index(btn->button);
+                    index.has_value())
                 {
                     input.current_.pressed_mouse_buttons[*index] = true;
-                    input.mouse_pressed_events_[*index] = true;
+                    input.mouse_pressed_events_[*index]          = true;
                 }
 
                 continue;
@@ -96,10 +99,11 @@ namespace game::platform
 
             if (const auto* btn = event->getIf<sf::Event::MouseButtonReleased>())
             {
-                if (const auto index = mouse_button_index(btn->button); index.has_value())
+                if (const auto index = mouse_button_index(btn->button);
+                    index.has_value())
                 {
                     input.current_.pressed_mouse_buttons[*index] = false;
-                    input.mouse_released_events_[*index] = true;
+                    input.mouse_released_events_[*index]         = true;
                 }
 
                 continue;
@@ -117,7 +121,7 @@ namespace game::platform
     bool InputSystem::is_pressed(const Key key)
     {
         const InputSystem& input = instance();
-        const auto index = key_index(key);
+        const auto         index = key_index(key);
         if (!index.has_value()) return false;
         return input.current_.pressed_keys[*index];
     }
@@ -125,7 +129,7 @@ namespace game::platform
     bool InputSystem::is_pressed(const MouseButton button)
     {
         const InputSystem& input = instance();
-        const auto index = mouse_button_index(button);
+        const auto         index = mouse_button_index(button);
         if (!index.has_value()) return false;
         return input.current_.pressed_mouse_buttons[*index];
     }
@@ -133,7 +137,7 @@ namespace game::platform
     bool InputSystem::just_pressed(const Key key)
     {
         const InputSystem& input = instance();
-        const auto index = key_index(key);
+        const auto         index = key_index(key);
         if (!index.has_value()) return false;
         return input.key_pressed_events_[*index];
     }
@@ -141,7 +145,7 @@ namespace game::platform
     bool InputSystem::just_pressed(const MouseButton button)
     {
         const InputSystem& input = instance();
-        const auto index = mouse_button_index(button);
+        const auto         index = mouse_button_index(button);
         if (!index.has_value()) return false;
         return input.mouse_pressed_events_[*index];
     }
@@ -149,7 +153,7 @@ namespace game::platform
     bool InputSystem::released(const Key key)
     {
         const InputSystem& input = instance();
-        const auto index = key_index(key);
+        const auto         index = key_index(key);
         if (!index.has_value()) return false;
         return input.key_released_events_[*index];
     }
@@ -157,19 +161,19 @@ namespace game::platform
     bool InputSystem::released(const MouseButton button)
     {
         const InputSystem& input = instance();
-        const auto index = mouse_button_index(button);
+        const auto         index = mouse_button_index(button);
         if (!index.has_value()) return false;
         return input.mouse_released_events_[*index];
     }
 
-    std::optional<std::size_t> InputSystem::key_index(const Key key) noexcept
+    std::optional<std::size_t> InputSystem::key_index(const Key key)
     {
         const int index = static_cast<int>(key);
         if (index < 0 || std::cmp_greater_equal(index, key_count)) return std::nullopt;
         return static_cast<std::size_t>(index);
     }
 
-    std::optional<std::size_t> InputSystem::mouse_button_index(const MouseButton button) noexcept
+    std::optional<std::size_t> InputSystem::mouse_button_index(const MouseButton button)
     {
         const int index = static_cast<int>(button);
         if (index < 0 || std::cmp_greater_equal(index, mouse_button_count)) return std::nullopt;

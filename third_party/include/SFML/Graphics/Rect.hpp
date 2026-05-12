@@ -95,7 +95,7 @@ public:
     /// \see `contains`
     ///
     ////////////////////////////////////////////////////////////
-    constexpr std::optional<Rect<T>> findIntersection(const Rect<T>& rectangle) const;
+    constexpr std::optional<Rect> findIntersection(const Rect& rectangle) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the position of the center of the rectangle

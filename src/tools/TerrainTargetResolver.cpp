@@ -12,40 +12,45 @@ namespace game::tools
 
         struct ToolRayCastContext final
         {
-            b2BodyId ignored_body{ b2_nullBodyId };
+            b2BodyId            ignored_body{ b2_nullBodyId };
             std::optional<vec2> hit_point{ std::nullopt };
         };
 
         float tool_ray_cast_callback(
             const b2ShapeId shape_id,
-            const b2Vec2 point,
+            const b2Vec2    point,
             const b2Vec2 /*normal*/,
             const float fraction,
-            void* context)
+            void*       context)
         {
-            auto& ray_context = *static_cast<ToolRayCastContext*>(context);
+            auto& [ignored_body, hit_point] = *static_cast<ToolRayCastContext*>(context);
+
             const auto body_id = b2Shape_GetBody(shape_id);
-            if (B2_ID_EQUALS(body_id, ray_context.ignored_body)) return -1.0f;
+
+            if (B2_ID_EQUALS(body_id, ignored_body)) return -1.0f;
             if (b2Shape_IsSensor(shape_id)) return -1.0f;
 
-            ray_context.hit_point = vec2{ point.x, point.y };
+            hit_point = from_b2(point);
             return fraction;
         }
 
         std::optional<vec2> tool_ray_translation(const TerrainToolContext& context)
         {
-            if (context.terrain == nullptr || !b2World_IsValid(context.world) || !b2Body_IsValid(context.player_body)) return std::nullopt;
+            if (context.terrain == nullptr ||
+                !b2World_IsValid(context.world) ||
+                !b2Body_IsValid(context.player_body))
+                return std::nullopt;
 
             const vec2 ray_delta{
                 context.mouse_world_position.x - context.player_world_position.x,
                 context.mouse_world_position.y - context.player_world_position.y
             };
             const float ray_distance = ray_delta.length();
-            if (ray_distance <= std::numeric_limits<float>::epsilon()) return std::nullopt;
+            if (ray_distance <= eps) return std::nullopt;
 
             // Keep all tool targeting within the same reach limit.
             const float clamped_distance = std::min(ray_distance, max_tool_reach);
-            const float scale = clamped_distance / ray_distance;
+            const float scale            = clamped_distance / ray_distance;
             return vec2{ ray_delta.x * scale, ray_delta.y * scale };
         }
 
@@ -54,7 +59,7 @@ namespace game::tools
             const auto translation = tool_ray_translation(context);
             if (!translation.has_value()) return std::nullopt;
 
-            ToolRayCastContext ray_context{ .ignored_body = context.player_body };
+            ToolRayCastContext  ray_context{ .ignored_body = context.player_body };
             const b2QueryFilter filter = b2DefaultQueryFilter();
             b2World_CastRay(
                 context.world,
@@ -67,8 +72,9 @@ namespace game::tools
             return ray_context.hit_point;
         }
 
-        std::optional<vec2> find_water_point_along_tool_line(const TerrainToolContext& context,
-                                                             const std::optional<vec2>& end_override = std::nullopt)
+        std::optional<vec2> find_water_point_along_tool_line(
+            const TerrainToolContext&  context,
+            const std::optional<vec2>& end_override = std::nullopt)
         {
             if (context.terrain == nullptr) return std::nullopt;
 
@@ -76,35 +82,42 @@ namespace game::tools
             if (!translation.has_value()) return std::nullopt;
 
             const vec2 start = context.player_world_position;
-            const vec2 end = end_override.has_value()
-                ? *end_override
-                : vec2{ start.x + translation->x, start.y + translation->y };
-            const vec2 effective_translation = end - start;
-            const float ray_distance = effective_translation.length();
-            if (ray_distance <= std::numeric_limits<float>::epsilon()) return std::nullopt;
+            const vec2 end   = end_override.has_value()
+                                   ? *end_override
+                                   : vec2{ start.x + translation->x, start.y + translation->y };
 
-            const float step_length =
-                std::max(std::min(context.terrain->terrain_cell_size().x, context.terrain->terrain_cell_size().y) * 0.35f, 0.05f);
+            const vec2  effective_translation = end - start;
+            const float ray_distance          = effective_translation.length();
+
+            if (ray_distance <= eps) return std::nullopt;
+
+            const float step_length = std::max(
+                std::min(context.terrain->terrain_cell_size().x,
+                         context.terrain->terrain_cell_size().y) * 0.35f,
+                0.05f);
+
             const int step_count = std::max(2, static_cast<int>(std::ceil(ray_distance / step_length)));
 
-            vec2 previous = start;
+            vec2 previous          = start;
             bool previous_in_water = context.terrain->contains_water_volume(previous);
             for (int step = 1; step <= step_count; ++step)
             {
-                const float t = static_cast<float>(step) / static_cast<float>(step_count);
-                const vec2 current = lerp(start, end, t);
-                const bool current_in_water = context.terrain->contains_water_volume(current);
+                const float t                = static_cast<float>(step) / static_cast<float>(step_count);
+                const vec2  current          = lerp(start, end, t);
+                const bool  current_in_water = context.terrain->contains_water_volume(current);
+
                 if (!current_in_water)
                 {
-                    previous = current;
+                    previous          = current;
                     previous_in_water = false;
                     continue;
                 }
 
                 if (!previous_in_water)
                 {
-                    vec2 low = previous;
+                    vec2 low  = previous;
                     vec2 high = current;
+
                     // Tighten the hit a bit so the bucket target sits near the surface instead of deep inside the blob.
                     for (int i = 0; i < 6; ++i)
                     {
@@ -127,7 +140,10 @@ namespace game::tools
         const auto translation = tool_ray_translation(context);
         if (!translation.has_value()) return std::nullopt;
 
-        return vec2{ context.player_world_position.x + translation->x, context.player_world_position.y + translation->y };
+        return vec2{
+            context.player_world_position.x + translation->x,
+            context.player_world_position.y + translation->y
+        };
     }
 
     std::optional<vec2> TerrainTargetResolver::terrain_tool_hit_world_position(const TerrainToolContext& context) const
@@ -135,18 +151,22 @@ namespace game::tools
         return cast_tool_ray(context);
     }
 
-    std::optional<vec2> TerrainTargetResolver::water_pickup_target_world_position(const TerrainToolContext& context) const
+    std::optional<vec2> TerrainTargetResolver::water_pickup_target_world_position(
+        const TerrainToolContext& context) const
     {
-        if (const auto water_hit = find_water_point_along_tool_line(context); water_hit.has_value()) return water_hit;
+        if (const auto water_hit = find_water_point_along_tool_line(context);
+            water_hit.has_value())
+            return water_hit;
 
         const auto clamped_position = clamped_tool_world_position(context);
-        if (context.terrain != nullptr && clamped_position.has_value() && context.terrain->contains_water_volume(*clamped_position))
-        {
+        if (context.terrain != nullptr &&
+            clamped_position.has_value() &&
+            context.terrain-> contains_water_volume(*clamped_position))
             return clamped_position;
-        }
 
         const auto hit = terrain_tool_hit_world_position(context);
-        if (context.terrain != nullptr && hit.has_value() && context.terrain->contains_water_volume(*hit))
+        if (context.terrain != nullptr && hit.has_value() &&
+            context.terrain->contains_water_volume(*hit))
         {
             return hit;
         }
@@ -155,10 +175,14 @@ namespace game::tools
         return clamped_position;
     }
 
-    std::optional<vec2> TerrainTargetResolver::water_placement_target_world_position(const TerrainToolContext& context) const
+    std::optional<vec2> TerrainTargetResolver::water_placement_target_world_position(
+        const TerrainToolContext& context) const
     {
         const auto terrain_hit = terrain_tool_hit_world_position(context);
-        if (const auto water_hit = find_water_point_along_tool_line(context, terrain_hit); water_hit.has_value()) return water_hit;
+
+        if (const auto water_hit = find_water_point_along_tool_line(context, terrain_hit);
+            water_hit.has_value())
+            return water_hit;
 
         if (terrain_hit.has_value()) return terrain_hit;
 

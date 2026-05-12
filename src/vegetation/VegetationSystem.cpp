@@ -62,6 +62,8 @@ namespace game::vegetation
         ++revision_;
     }
 
+    // planting is more than just dropping a flag in a cell
+    // we resolve the actual best nearby sample then lock in family variant and anchor right away so later growth is deterministic
     Result<void> VegetationSystem::plant_seed(
 	    const terrain::PlanetTerrain& terrain,
 	    resources::ResourceSystem&    resources,
@@ -99,6 +101,8 @@ namespace game::vegetation
         return {};
     }
 
+    // this advances growth stages first then runs spreading after that
+    // keeping spread separate from growth makes the thresholds easier to reason about and stops one update from doing too many things at once
     bool VegetationSystem::update(const float dt, const terrain::PlanetTerrain& terrain)
     {
         if (plant_samples_.empty() || dt <= 0.0f) return false;
@@ -205,6 +209,8 @@ namespace game::vegetation
         return active_plant_indices_;
     }
 
+    // this is a local best candidate search around the click
+    // there are a lot of filters because planting everywhere looks fake fast and it also breaks progression if it ignores wetness resources and spacing
     std::optional<ivec2> VegetationSystem::find_plantable_seed_coord(const terrain::PlanetTerrain& terrain, const vec2 world_position) const
     {
         if (plant_samples_.empty()) return std::nullopt;
@@ -331,6 +337,8 @@ namespace game::vegetation
         return true;
     }
 
+    // this is intentionally simple and deterministic
+    // the hashes give variety but the tree ratio and spacing checks stop the map from degenerating into all woody plants
     PlantFamily VegetationSystem::choose_plant_family(const terrain::PlanetTerrain& terrain, const ivec2 coord) const
     {
         const float roll = hash01(static_cast<float>(coord.x), static_cast<float>(coord.y), terrain.seed() + 6001u);
@@ -359,6 +367,8 @@ namespace game::vegetation
         return tree_variants[base_variant % tree_variants.size()];
     }
 
+    // mature plants try a handful of nearby offsets instead of scanning the whole world because we only need believable spread not a botany sim
+    // new plants are staged first and committed after the loop so one plant spreading does not immediately affect another one in the same pass
     bool VegetationSystem::spread_plants(const terrain::PlanetTerrain& terrain)
     {
         if (active_plant_indices().empty()) return false;

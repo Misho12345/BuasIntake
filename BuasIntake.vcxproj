@@ -202,6 +202,9 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClCompile Include="src\world\PlanetRestorationGoal.cpp" />
     <ClCompile Include="src\gfx\Mesh.cpp" />
     <ClCompile Include="src\gfx\Shader.cpp" />
+    <ClCompile Include="src\gfx\ShaderCompiler.cpp" />
+    <ClCompile Include="src\gfx\ShaderPreprocessor.cpp" />
+    <ClCompile Include="src\gfx\ShaderProgramCache.cpp" />
     <ClCompile Include="src\gfx\Texture2D.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\pch.cpp">
@@ -243,7 +246,7 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClInclude Include="src\tools\TerrainTargetResolver.hpp" />
     <ClInclude Include="src\tools\TerrainToolController.hpp" />
     <ClInclude Include="src\tools\ToolUpgradeModel.hpp" />
-    <ClInclude Include="src\tools\ToolStrategy.hpp" />
+    <ClInclude Include="src\tools\TerrainTool.hpp" />
     <ClInclude Include="src\tools\WaterTool.hpp" />
     <ClInclude Include="src\ui\GoalProgressHud.hpp" />
     <ClInclude Include="src\ui\InventoryHud.hpp" />
@@ -266,6 +269,10 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClInclude Include="src\gfx\MeshBuilders.hpp" />
     <ClInclude Include="src\gfx\Projection.hpp" />
     <ClInclude Include="src\gfx\Shader.hpp" />
+    <ClInclude Include="src\gfx\ShaderCompiler.hpp" />
+    <ClInclude Include="src\gfx\ShaderPreprocessor.hpp" />
+    <ClInclude Include="src\gfx\ShaderProgram.hpp" />
+    <ClInclude Include="src\gfx\ShaderProgramCache.hpp" />
     <ClInclude Include="src\gfx\SSBO.hpp" />
     <ClInclude Include="src\gfx\Texture2D.hpp" />
     <ClInclude Include="src\pch.hpp" />

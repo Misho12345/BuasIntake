@@ -11,10 +11,10 @@ namespace game::gfx
         GlBuffer() = default;
         ~GlBuffer() { reset(); }
 
-        GlBuffer(const GlBuffer&) = delete;
+        GlBuffer(const GlBuffer&)            = delete;
         GlBuffer& operator=(const GlBuffer&) = delete;
 
-        GlBuffer(GlBuffer&& other) noexcept : id_{ std::exchange(other.id_, 0u) } { }
+        GlBuffer(GlBuffer&& other) noexcept : id_{ std::exchange(other.id_, 0u) } {}
 
         GlBuffer& operator=(GlBuffer&& other) noexcept
         {
@@ -36,8 +36,8 @@ namespace game::gfx
             id_ = 0;
         }
 
-        GLuint id() const noexcept { return id_; }
-        bool valid() const noexcept { return id_ != 0; }
+        GLuint id() const { return id_; }
+        bool   valid() const { return id_ != 0; }
 
     private:
         GLuint id_{ 0 };
@@ -49,9 +49,9 @@ namespace game::gfx
         GlVertexArray() = default;
         ~GlVertexArray() { reset(); }
 
-        GlVertexArray(const GlVertexArray&) = delete;
+        GlVertexArray(const GlVertexArray&)            = delete;
         GlVertexArray& operator=(const GlVertexArray&) = delete;
-        GlVertexArray(GlVertexArray&& other) noexcept : id_{ std::exchange(other.id_, 0u) } { }
+        GlVertexArray(GlVertexArray&& other) noexcept : id_{ std::exchange(other.id_, 0u) } {}
 
         GlVertexArray& operator=(GlVertexArray&& other) noexcept
         {
@@ -73,8 +73,8 @@ namespace game::gfx
             id_ = 0;
         }
 
-        GLuint id() const noexcept { return id_; }
-        bool valid() const noexcept { return id_ != 0; }
+        GLuint id() const { return id_; }
+        bool   valid() const { return id_ != 0; }
 
     private:
         GLuint id_{ 0 };
@@ -86,10 +86,10 @@ namespace game::gfx
         GlTexture() = default;
         ~GlTexture() { reset(); }
 
-        GlTexture(const GlTexture&) = delete;
+        GlTexture(const GlTexture&)            = delete;
         GlTexture& operator=(const GlTexture&) = delete;
 
-        GlTexture(GlTexture&& other) noexcept : id_{ std::exchange(other.id_, 0u) } { }
+        GlTexture(GlTexture&& other) noexcept : id_{ std::exchange(other.id_, 0u) } {}
 
         GlTexture& operator=(GlTexture&& other) noexcept
         {
@@ -111,8 +111,8 @@ namespace game::gfx
             id_ = 0;
         }
 
-        GLuint id() const noexcept { return id_; }
-        bool valid() const noexcept { return id_ != 0; }
+        GLuint id() const { return id_; }
+        bool   valid() const { return id_ != 0; }
 
     private:
         GLuint id_{ 0 };

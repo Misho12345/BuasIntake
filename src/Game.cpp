@@ -8,14 +8,14 @@ namespace game
 
     namespace
     {
-#ifndef NDEBUG
+        #ifndef NDEBUG
         void gl_debug_callback(const GLenum source,
-            const GLenum type,
-            const GLuint /*id*/,
-            const GLenum severity,
-            const GLsizei /*length*/,
-            const GLchar* message,
-            const void* /*user_param*/)
+                               const GLenum type,
+                               const GLuint /*id*/,
+                               const GLenum severity,
+                               const GLsizei /*length*/,
+                               const GLchar* message,
+                               const void* /*user_param*/)
         {
             if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
 
@@ -60,27 +60,21 @@ namespace game
             };
 
             const std::string_view safe_message = message != nullptr ? std::string_view{ message } : std::string_view{};
-            if (severity == GL_DEBUG_SEVERITY_HIGH) Log::error("OpenGL [{}:{}:{}] {}", source_name(source), type_name(type), severity_name(severity), safe_message);
-            else Log::warn("OpenGL [{}:{}:{}] {}", source_name(source), type_name(type), severity_name(severity), safe_message);
+            if (severity == GL_DEBUG_SEVERITY_HIGH) Log::error("OpenGL [{}:{}:{}] {}", source_name(source),
+                                                               type_name(type), severity_name(severity), safe_message);
+            else Log::warn("OpenGL [{}:{}:{}] {}", source_name(source), type_name(type), severity_name(severity),
+                           safe_message);
         }
-#endif
+        #endif
     }
 
-    Game::~Game()
-    {
-        destroy_world();
-        destroy_graphics();
-    }
+    Game::~Game() = default;
 
-    void Game::initialize(GameSettings settings)
-    {
-        instance().initialize_impl(std::move(settings));
-    }
+    void Game::initialize(GameSettings settings) { instance().initialize_impl(std::move(settings)); }
 
-    void Game::run()
-    {
-        instance().run_impl();
-    }
+    void Game::run() { instance().run_impl(); }
+
+    void Game::shutdown() { instance().shutdown_impl(); }
 
     void Game::quit()
     {
@@ -111,68 +105,78 @@ namespace game
             return;
         }
 
-        settings_ = std::move(settings);
+        settings_    = std::move(settings);
         initialized_ = true;
 
-        if (const auto result = initialize_window(); !result)
+        if (const auto result = initialize_window();
+            !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = initialize_graphics(); !result)
+        if (const auto result = initialize_graphics();
+            !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = terrain_tools_.initialize_ui_assets(); !result)
+        if (const auto result = terrain_tools_.initialize_ui_assets();
+            !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = inventory_hud_.initialize_assets(); !result)
+        if (const auto result = inventory_hud_.initialize_assets();
+            !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = world_renderer_.initialize_assets(); !result)
+        if (const auto result = world_renderer_.initialize_assets();
+            !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = goal_hud_.initialize_assets(); !result)
+        if (const auto result = goal_hud_.initialize_assets();
+            !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = initialize_world_state(); !result)
+        if (const auto result = initialize_world_state();
+            !result)
         {
             Log::error(result.error());
             failed_ = true;
         }
     }
 
+    // this is the top level frame loop and the order here is not accidental
+    // input first then simulation then gl then sfml because sfml happily stomps shared gl state on the way out
     void Game::run_impl()
     {
-        if (!initialized_ || failed_) return;
+        if (!initialized_) return;
+        if (failed_) return;
 
         while (window_.isOpen())
         {
             InputSystem::begin_frame();
             const auto [
-                should_close, 
-                resized, 
+                should_close,
+                resized,
                 new_size
             ] = InputSystem::update(window_);
 
@@ -193,20 +197,31 @@ namespace game
         }
     }
 
+    void Game::shutdown_impl()
+    {
+        destroy_world();
+        destroy_graphics();
 
+        if (window_.isOpen()) window_.close();
+        initialized_ = false;
+        failed_      = false;
+    }
+
+
+    // physics gets the real dt but the variable side gets clamped so one nasty frame hitch does not blow up camera and tool feel
     void Game::update(const float dt)
     {
         fixed_update(dt);
         variable_update(std::min(dt, 1.0f / 15.0f));
 
-#ifndef NDEBUG
+        #ifndef NDEBUG
         debug_validation_timer_ = std::max(0.0f, debug_validation_timer_ - dt);
         if (debug_validation_timer_ <= 0.0f)
         {
             world_state_.validate();
             debug_validation_timer_ = 2.0f;
         }
-#endif
+        #endif
     }
 
     Result<void> Game::initialize_window()
@@ -216,10 +231,10 @@ namespace game
             settings_.title,
             sf::State::Windowed,
             {
-                .depthBits = 24,
-                .stencilBits = 8,
-                .majorVersion = 4,
-                .minorVersion = 6,
+                .depthBits      = 24,
+                .stencilBits    = 8,
+                .majorVersion   = 4,
+                .minorVersion   = 6,
                 .attributeFlags = sf::ContextSettings::Default,
             }
         };
@@ -234,20 +249,19 @@ namespace game
     Result<void> Game::initialize_graphics()
     {
         if (!window_.setActive(true)) return fail("Failed to activate the OpenGL context");
-
         if (gladLoaderLoadGL() == 0) return fail("Failed to initialize GLAD");
 
         gl_loaded_ = true;
         apply_viewport(settings_.win_size);
 
-#ifndef NDEBUG
+        #ifndef NDEBUG
         if (GLAD_GL_VERSION_4_3)
         {
             glEnable(GL_DEBUG_OUTPUT);
             glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
             glDebugMessageCallback(gl_debug_callback, nullptr);
         }
-#endif
+        #endif
 
         return {};
     }
@@ -257,14 +271,16 @@ namespace game
         TRY(create_world());
         TRY(world_state_.initialize(world_, player_config_));
 
-        camera_.set_world_span({ world_state_.terrain().chunk_size().x * 1.75f, world_state_.terrain().chunk_size().y * 1.75f });
+        camera_.set_world_span({
+            world_state_.terrain().chunk_size().x * 1.75f, world_state_.terrain().chunk_size().y * 1.75f
+        });
         camera_.update_view_size(settings_.win_size);
         camera_.sync_to_player(world_state_, 0.0f, is_player_move_input_active());
 
-#ifndef NDEBUG
+        #ifndef NDEBUG
         world_state_.validate();
         debug_validation_timer_ = 2.0f;
-#endif
+        #endif
 
         return {};
     }
@@ -297,7 +313,8 @@ namespace game
     void Game::render_opengl()
     {
         // draw the GL world first; the SFML pass that follows resets shared GL state
-        if (const auto context = terrain_tool_context(); context.has_value())
+        if (const auto context = terrain_tool_context();
+            context.has_value())
         {
             world_renderer_.draw(world_state_, terrain_tools_.active_water_preview(*context), camera_.view());
             return;
@@ -321,16 +338,17 @@ namespace game
     Result<void> Game::create_world()
     {
         b2WorldDef world_def = b2DefaultWorldDef();
-        world_def.gravity = { .x = 0.0f, .y = 0.0f };
-        world_ = b2CreateWorld(&world_def);
+        world_def.gravity    = { .x = 0.0f, .y = 0.0f };
+        world_               = b2CreateWorld(&world_def);
         if (!b2World_IsValid(world_)) return fail("Failed to create the Box2D world");
         return {};
     }
 
+    // this is the input traffic cop for the frame
+    // modal stuff gets first dibs because once a menu is open the world should stop pretending it still owns the mouse
     void Game::handle_frame_input()
     {
-        if (restoration_goal_.completed())
-            return;
+        if (restoration_goal_.completed()) return;
 
         handle_scroll_input();
         if (handle_global_shortcuts()) return;
@@ -346,7 +364,8 @@ namespace game
 
     void Game::handle_scroll_input()
     {
-        if (const float scroll_delta = InputSystem::mouse_wheel_delta(); scroll_delta != 0.0f)
+        if (const float scroll_delta = InputSystem::mouse_wheel_delta();
+            scroll_delta != 0.0f)
         {
             // Plain scroll swaps tools; Ctrl + scroll is for camera zoom
             if (InputSystem::is_pressed(Key::LControl) || InputSystem::is_pressed(Key::RControl))
@@ -381,10 +400,11 @@ namespace game
     {
         if (InputSystem::just_pressed(MouseButton::Left))
         {
-            if (const auto context = terrain_tool_context(); context.has_value())
+            if (const auto context = terrain_tool_context();
+                context.has_value())
             {
                 const auto pixel_position = sf::Mouse::getPosition(window_);
-                const auto ui_position = window_.mapPixelToCoords(pixel_position, make_ui_view());
+                const auto ui_position    = window_.mapPixelToCoords(pixel_position, make_ui_view());
                 terrain_tools_.handle_upgrade_menu_click(*context, ui_position, window_.getSize());
             }
         }
@@ -392,11 +412,14 @@ namespace game
 
     void Game::handle_gameplay_input()
     {
-        if (InputSystem::just_pressed(MouseButton::Left))  handle_tool_mouse_pressed(MouseButton::Left);
+        if (InputSystem::just_pressed(MouseButton::Left)) handle_tool_mouse_pressed(MouseButton::Left);
         if (InputSystem::just_pressed(MouseButton::Right)) handle_tool_mouse_pressed(MouseButton::Right);
     }
 
 
+    // this runs the deterministic side of the game
+    // collider activation goes first then we burn down the accumulator with fixed steps and keep refreshing contact state around each step
+    // doing the refresh that often is the boring but stable answer when the terrain itself can change under the player
     void Game::fixed_update(const float dt)
     {
         if (!b2World_IsValid(world_) || !world_state_.ready()) return;
@@ -405,11 +428,11 @@ namespace game
 
         physics_accumulator_ = std::min(physics_accumulator_ + dt, 0.25f);
 
-        static constexpr float fixed_step = 1.0f / 60.0f;
-        static constexpr int sub_steps = 4;
-        auto& player = world_state_.player();
-        const auto& terrain = world_state_.terrain();
-        const vec2 planet_center = terrain.planet_center();
+        static constexpr float fixed_step    = 1.0f / 60.0f;
+        static constexpr int   sub_steps     = 4;
+        auto&                  player        = world_state_.player();
+        const auto&            terrain       = world_state_.terrain();
+        const vec2             planet_center = terrain.planet_center();
 
         auto refresh_player_state = [&player, &terrain, planet_center]
         {
@@ -433,6 +456,8 @@ namespace game
         player.set_in_water(player.is_in_water() || terrain.contains_water_volume(player.world_position()));
     }
 
+    // this is the frame rate side of the update and the order matters
+    // tool edits can change terrain then world systems react then the win check runs then the camera follows the final result
     void Game::variable_update(const float dt)
     {
         if (!restoration_goal_.completed()) update_terrain_editing(dt);
@@ -447,7 +472,8 @@ namespace game
 
         terrain_tools_.close_upgrade_menu();
         terrain_tools_.cancel_active_interaction();
-        Log::info("Planet restored: {:.0f}% of the surface is green", restoration_goal_.green_surface_coverage() * 100.0f);
+        Log::info("Planet restored: {:.0f}% of the surface is green",
+                  restoration_goal_.green_surface_coverage() * 100.0f);
     }
 
     void Game::sync_camera_to_player(const float dt)
@@ -458,12 +484,16 @@ namespace game
 
     void Game::update_terrain_editing(const float dt)
     {
-        if (const auto context = terrain_tool_context(); context.has_value()) terrain_tools_.update(*context, dt);
+        if (const auto context = terrain_tool_context();
+            context.has_value())
+            terrain_tools_.update(*context, dt);
     }
 
     void Game::handle_tool_mouse_pressed(const MouseButton button)
     {
-        if (const auto context = terrain_tool_context(); context.has_value()) terrain_tools_.handle_mouse_pressed(*context, button);
+        if (const auto context = terrain_tool_context();
+            context.has_value())
+            terrain_tools_.handle_mouse_pressed(*context, button);
     }
 
     void Game::handle_resize(const uvec2 size)
@@ -479,26 +509,24 @@ namespace game
         glViewport(0, 0, static_cast<std::int32_t>(size.x), static_cast<std::int32_t>(size.y));
     }
 
+    // tool code needs a lot of scattered state and this keeps that mess in one place instead of making every tool reach through game
     std::optional<tools::TerrainToolContext> Game::terrain_tool_context()
     {
         if (!b2World_IsValid(world_) || !world_state_.ready()) return std::nullopt;
 
         return tools::TerrainToolContext{
-            .world = world_,
-            .terrain = &world_state_.terrain(),
-            .resources = &world_state_.resources(),
-            .water = &world_state_.water(),
-            .input = &InputSystem::instance(),
-            .player_body = world_state_.player().body(),
+            .world                 = world_,
+            .terrain               = &world_state_.terrain(),
+            .resources             = &world_state_.resources(),
+            .water                 = &world_state_.water(),
+            .input                 = &InputSystem::instance(),
+            .player_body           = world_state_.player().body(),
             .player_world_position = world_state_.player().world_position(),
-            .mouse_world_position = mouse_world_position()
+            .mouse_world_position  = mouse_world_position()
         };
     }
 
-    vec2 Game::mouse_world_position() const
-    {
-        return camera_.mouse_world_position(window_);
-    }
+    vec2 Game::mouse_world_position() const { return camera_.mouse_world_position(window_); }
 
     sf::View Game::make_ui_view() const
     {
@@ -513,5 +541,4 @@ namespace game
     {
         return world_state_.ready() && world_state_.player().is_move_input_active(InputSystem::instance());
     }
-
 }

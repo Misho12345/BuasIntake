@@ -22,10 +22,7 @@ namespace game
     template <typename T> requires (!std::same_as<T, Error>)
     using Result = std::expected<T, Error>;
 
-    inline std::unexpected<Error> fail(Error error)
-    {
-        return std::unexpected{ std::move(error) };
-    }
+    inline std::unexpected<Error> fail(Error error) { return std::unexpected{ std::move(error) }; }
 
     template <typename... Args>
     std::unexpected<Error> fail(std::format_string<Args...> fmt, Args&&... args)
@@ -34,9 +31,9 @@ namespace game
     }
 }
 
-#define TRY(expr)                                                                                                                          \
-    do                                                                                                                                     \
-    {                                                                                                                                      \
-        auto _res = (expr);                                                                                                                \
-        if (!_res) return ::game::fail(std::move(_res).error());                                                                           \
+#define TRY(expr)                                                \
+    do                                                           \
+    {                                                            \
+        auto _res = (expr);                                      \
+        if (!_res) return ::game::fail(std::move(_res).error()); \
     } while (false)

@@ -156,6 +156,9 @@ namespace game::water
         return false;
     }
 
+    // water placement feels wrong if we just trust the clicked sample blindly
+    // first we walk downhill toward a better local basin then we do a bounded flood around that area so a connected pocket can still win
+    // this keeps water from sticking to a slightly higher sample just because the click was a few pixels off
     ivec2 settle_water_anchor(const GridView& grid, const ivec2 anchor)
     {
         if (!is_valid_global_sample(grid, anchor)) return anchor;
@@ -245,6 +248,8 @@ namespace game::water
         return best_coord;
     }
 
+    // for pickup we care more about what the player is obviously pointing at than the mathematically deepest part of the blob
+    // so this is a small local search around the click with nearest visible wet sample winning first
     std::optional<ivec2> find_water_sample(const GridView& grid, const vec2 world_position)
     {
         if (!grid_ready(grid)) return std::nullopt;
@@ -290,6 +295,8 @@ namespace game::water
         return best_candidate->coord;
     }
 
+    // placement wants the visible cavity edge not some random sample behind it
+    // so we probe outward from the click first and only fall back to the hit sample when that simple guess fails
     std::optional<ivec2> find_water_anchor(const GridView& grid, const vec2 world_position)
     {
         if (!grid_ready(grid)) return std::nullopt;
@@ -354,6 +361,7 @@ namespace game::water
         return std::nullopt;
     }
 
+    // this is just a straight bfs over wet cells but a lot of later code depends on having a stable connected component first
     std::vector<ivec2> collect_water_component(const GridView& grid, const ivec2 start_coord, const bool include_diagonals)
     {
         if (!is_valid_global_sample(grid, start_coord))
@@ -407,6 +415,9 @@ namespace game::water
         return component;
     }
 
+    // this is the actual fill planner
+    // the frontier is ordered by spill level first because we want something closer to how a basin really fills instead of a dumb radius flood
+    // once we know which cells make the cut we derive one shared surface level and turn that back into per cell water values
     static std::optional<WaterPlan> build_settled_water_plan(
 	    const GridView&     grid,
 	    const ivec2         start_coord,
@@ -545,6 +556,7 @@ namespace game::water
         return plan;
     }
 
+    // volume is measured as connected wet samples and we also hand back a lowest cell so later replans start from the most stable point
     std::uint32_t water_volume_at_anchor(const GridView& grid, const ivec2 anchor, ivec2* const plan_start)
     {
         if (plan_start != nullptr) *plan_start = anchor;
@@ -575,6 +587,8 @@ namespace game::water
         return static_cast<std::uint32_t>(component.size());
     }
 
+    // this is the click facing planner used by the bucket tool
+    // resolve a sensible anchor first then either shrink or grow the connected volume around it depending on pickup vs placement
     std::optional<WaterPlan> build_targeted_water_plan(
 	    const GridView&      grid,
 	    const vec2           world_position,
@@ -629,6 +643,8 @@ namespace game::water
         return build_settled_water_plan(grid, plan_start, {}, volume_cap);
     }
 
+    // this lower level entry point is for when we already know the sample we want to work from
+    // preserve_existing_water means reuse the current blob instead of pretending we are filling from empty space
     std::optional<WaterPlan> build_water_plan(
 	    const GridView&     grid,
 	    const ivec2         start_coord,

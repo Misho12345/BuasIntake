@@ -13,29 +13,30 @@ namespace game::world
     class World final
     {
     public:
+        // this wires terrain player water resources and vegetation together in the only order that really makes sense
         Result<void> initialize(b2WorldId physics_world, const player::PlayerConfig& player_config);
+
         void destroy();
+        // this is the world level update order for the frame after terrain edits and before render code looks at the result
         void update(float dt);
         void validate() const;
 
-        bool ready() const noexcept { return terrain_.has_value() && player_.valid(); }
-        player::Player& player() noexcept { return player_; }
-        const player::Player& player() const noexcept { return player_; }
-        terrain::PlanetTerrain& terrain() noexcept { return *terrain_; }
-        const terrain::PlanetTerrain& terrain() const noexcept { return *terrain_; }
-        water::WaterSystem& water() noexcept { return water_; }
-        const water::WaterSystem& water() const noexcept { return water_; }
-        resources::ResourceSystem& resources() noexcept { return resources_; }
-        const resources::ResourceSystem& resources() const noexcept { return resources_; }
-        vegetation::VegetationSystem& vegetation() noexcept { return vegetation_; }
-        const vegetation::VegetationSystem& vegetation() const noexcept { return vegetation_; }
+        bool ready() const { return terrain_.has_value() && player_.valid(); }
+
+        // these are the shared access points the rest of the game uses once the world is live
+        auto& player(this auto& self) { return self.player_; }
+        auto& terrain(this auto& self) { return *self.terrain_; }
+        auto& water(this auto& self) { return self.water_; }
+        auto& resources(this auto& self) { return self.resources_; }
+        auto& vegetation(this auto& self) { return self.vegetation_; }
 
     private:
         b2WorldId physics_world_{ b2_nullWorldId };
-        resources::ResourceSystem resources_{};
-        vegetation::VegetationSystem vegetation_{};
-        water::WaterSystem water_{};
+
+        resources::ResourceSystem             resources_{};
+        vegetation::VegetationSystem          vegetation_{};
+        water::WaterSystem                    water_{};
         std::optional<terrain::PlanetTerrain> terrain_{ std::nullopt };
-        player::Player player_{};
+        player::Player                        player_{};
     };
 }

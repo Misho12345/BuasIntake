@@ -19,23 +19,22 @@ namespace game::terrain
     {
         struct ValidationState final
         {
-            bool resource_system_null{false};
-            bool vegetation_system_null{false};
-            bool pending_dirty_chunk_size_mismatch{false};
-            bool global_field_size_mismatch{false};
+            bool resource_system_null{ false };
+            bool vegetation_system_null{ false };
+            bool pending_dirty_chunk_size_mismatch{ false };
+            bool global_field_size_mismatch{ false };
+
             std::optional<std::size_t> non_finite_sample_index{};
             std::optional<std::size_t> water_in_solid_index{};
-            std::optional<ivec2> invalid_resource_node{};
+            std::optional<ivec2>       invalid_resource_node{};
         };
 
         void log_validation_transition(const bool active, bool& previous, const std::string_view message)
         {
-            if (active == previous)
-                return;
+            if (active == previous) return;
 
             previous = active;
-            if (active)
-                Log::error("{}", message);
+            if (active) Log::error("{}", message);
         }
 
         float radial_dist(const vec2& point, const vec2& center)
@@ -44,133 +43,133 @@ namespace game::terrain
             return std::sqrt(offset.x * offset.x + offset.y * offset.y);
         }
 
-        bool has_water(const PlanetTerrain::FieldSample& sample)
-        {
-            return water::has_water(sample);
-        }
+        bool has_water(const PlanetTerrain::FieldSample& sample) { return water::has_water(sample); }
+        bool is_solid(const PlanetTerrain::FieldSample& sample) { return sample.terrain >= 0.0f; }
 
-        bool is_solid(const PlanetTerrain::FieldSample& sample)
-        {
-            return sample.terrain >= 0.0f;
-        }
-
-        float dry_water_density(const PlanetTerrain::FieldSample& sample)
-        {
-            return -std::abs(sample.terrain);
-        }
+        float dry_water_density(const PlanetTerrain::FieldSample& sample) { return -std::abs(sample.terrain); }
 
         std::uint64_t sample_key(const ivec2 coord)
         {
-            return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(coord.x)) << 32u) | static_cast<std::uint32_t>(coord.y);
+            return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(coord.x)) << 32u) | static_cast<std::uint32_t>
+                    (coord.y);
         }
 
         bool aabb_intersects_view_circle(const vec2 min, const vec2 max, const sf::View& view)
         {
-            const vec2 center{view.getCenter().x, view.getCenter().y};
-            const vec2 size{std::abs(view.getSize().x), std::abs(view.getSize().y)};
-            const float radius = std::sqrt(size.x * size.x + size.y * size.y) * 0.5f;
+            const vec2  center{ view.getCenter().x, view.getCenter().y };
+            const vec2  size{ std::abs(view.getSize().x), std::abs(view.getSize().y) };
+            const float radius    = std::sqrt(size.x * size.x + size.y * size.y) * 0.5f;
             const float closest_x = std::clamp(center.x, min.x, max.x);
             const float closest_y = std::clamp(center.y, min.y, max.y);
-            const float dx = center.x - closest_x;
-            const float dy = center.y - closest_y;
+            const float dx        = center.x - closest_x;
+            const float dy        = center.y - closest_y;
             return dx * dx + dy * dy <= radius * radius;
         }
 
         std::pair<ivec2, ivec2> owned_local_sample_bounds(const ChunkSettings& settings)
         {
             const auto padded_size = padded_field_size(settings);
-            ivec2 min_coord{settings.chunk_coord.x == 0 ? 0 : static_cast<int>(settings.field_padding.x),
-                            settings.chunk_coord.y == 0 ? 0 : static_cast<int>(settings.field_padding.y)};
-            ivec2 max_coord{settings.chunk_coord.x == settings.chunk_grid_size.x - 1
-                                ? static_cast<int>(padded_size.x) - 1
-                                : static_cast<int>(settings.field_padding.x + settings.field_size.x - 2u),
-                            settings.chunk_coord.y == settings.chunk_grid_size.y - 1
-                                ? static_cast<int>(padded_size.y) - 1
-                                : static_cast<int>(settings.field_padding.y + settings.field_size.y - 2u)};
-            return {min_coord, max_coord};
+            ivec2      min_coord{
+                settings.chunk_coord.x == 0 ? 0 : static_cast<int>(settings.field_padding.x),
+                settings.chunk_coord.y == 0 ? 0 : static_cast<int>(settings.field_padding.y)
+            };
+            ivec2 max_coord{
+                settings.chunk_coord.x == settings.chunk_grid_size.x - 1
+                    ? static_cast<int>(padded_size.x) - 1
+                    : static_cast<int>(settings.field_padding.x + settings.field_size.x - 2u),
+                settings.chunk_coord.y == settings.chunk_grid_size.y - 1
+                    ? static_cast<int>(padded_size.y) - 1
+                    : static_cast<int>(settings.field_padding.y + settings.field_size.y - 2u)
+            };
+            return { min_coord, max_coord };
         }
 
-        float fract01(const float value)
-        {
-            return value - std::floor(value);
-        }
+        float fract01(const float value) { return value - std::floor(value); }
 
         float terrain_hash(vec2 point, const std::uint32_t seed)
         {
             const float seed_offset = static_cast<float>(seed) * 0.0009765625f;
-            point = {fract01(point.x * 0.1031f + seed_offset), fract01(point.y * 0.11369f + seed_offset)};
-            const vec2 hash_vector{point.y + 19.19f + seed_offset * 7.0f, point.x + 19.19f + seed_offset * 7.0f};
+            point = { fract01(point.x * 0.1031f + seed_offset), fract01(point.y * 0.11369f + seed_offset) };
+            const vec2  hash_vector{ point.y + 19.19f + seed_offset * 7.0f, point.x + 19.19f + seed_offset * 7.0f };
             const float hash_offset = point.dot(hash_vector);
-            point += vec2{hash_offset, hash_offset};
+            point                   += vec2{ hash_offset, hash_offset };
             return fract01((point.x + point.y) * (point.x + 13.37f));
         }
 
         float terrain_noise(const vec2 point, const std::uint32_t seed)
         {
-            const vec2 cell{std::floor(point.x), std::floor(point.y)};
-            const vec2 fraction{fract01(point.x), fract01(point.y)};
+            const vec2 cell{ std::floor(point.x), std::floor(point.y) };
+            const vec2 fraction{ fract01(point.x), fract01(point.y) };
 
             const float a = terrain_hash(cell, seed);
-            const float b = terrain_hash(cell + vec2{1.0f, 0.0f}, seed);
-            const float c = terrain_hash(cell + vec2{0.0f, 1.0f}, seed);
-            const float d = terrain_hash(cell + vec2{1.0f, 1.0f}, seed);
+            const float b = terrain_hash(cell + vec2{ 1.0f, 0.0f }, seed);
+            const float c = terrain_hash(cell + vec2{ 0.0f, 1.0f }, seed);
+            const float d = terrain_hash(cell + vec2{ 1.0f, 1.0f }, seed);
 
-            const vec2 smoothing{fraction.x * fraction.x * (3.0f - 2.0f * fraction.x),
-                                 fraction.y * fraction.y * (3.0f - 2.0f * fraction.y)};
+            const vec2 smoothing{
+                fraction.x * fraction.x * (3.0f - 2.0f * fraction.x),
+                fraction.y * fraction.y * (3.0f - 2.0f * fraction.y)
+            };
             return std::lerp(std::lerp(a, b, smoothing.x), std::lerp(c, d, smoothing.x), smoothing.y);
         }
 
+        // this is the broad soft noise band that gives the planet most of its large scale wobble
         float terrain_fbm(vec2 point, const std::uint32_t seed)
         {
-            float value = 0.0f;
+            float value     = 0.0f;
             float amplitude = 0.5f;
 
             for (int i = 0; i < 7; ++i)
             {
-                value += amplitude * terrain_noise(point, seed);
-                point = point * 2.03f + vec2{11.7f, -8.3f};
+                value     += amplitude * terrain_noise(point, seed);
+                point     = point * 2.03f + vec2{ 11.7f, -8.3f };
                 amplitude *= 0.5f;
             }
 
             return value;
         }
 
+        // this one sharpens things up because just layering smooth noise everywhere made the shell feel mushy
         float terrain_ridged_fbm(vec2 point, const std::uint32_t seed)
         {
-            float value = 0.0f;
+            float value     = 0.0f;
             float amplitude = 0.55f;
 
             for (int i = 0; i < 6; ++i)
             {
                 float noise_value = terrain_noise(point, seed);
-                noise_value = 1.0f - std::abs(noise_value * 2.0f - 1.0f);
-                value += noise_value * amplitude;
-                point = point * 2.18f + vec2{-6.4f, 9.1f};
-                amplitude *= 0.55f;
+                noise_value       = 1.0f - std::abs(noise_value * 2.0f - 1.0f);
+                value             += noise_value * amplitude;
+                point             = point * 2.18f + vec2{ -6.4f, 9.1f };
+                amplitude         *= 0.55f;
             }
 
             return value;
         }
 
+        // this mixes several noise bands into one radius target so the shell reads as one shape with big medium and tiny detail all at once
         float generated_surface_radius(const vec2 dir, const ChunkSettings& settings)
         {
-            const vec2 seed_offset = vec2{0.0137f, 0.0211f} * static_cast<float>(settings.seed);
-            const float macro = terrain_fbm(dir * 1.85f + (seed_offset + vec2{3.1f, -7.4f}), settings.seed);
-            const float medium = terrain_fbm(dir * 6.20f + vec2{-seed_offset.y - 11.2f, -seed_offset.x + 4.6f}, settings.seed);
-            const float ridges = terrain_ridged_fbm(dir * 11.50f + (seed_offset * 1.3f + vec2{8.4f, -5.6f}), settings.seed);
-            const float micro = terrain_fbm(dir * 23.0f + (seed_offset * -0.75f + vec2{-4.2f, 12.8f}), settings.seed);
+            const vec2  seed_offset = vec2{ 0.0137f, 0.0211f } * static_cast<float>(settings.seed);
+            const float macro       = terrain_fbm(dir * 1.85f + (seed_offset + vec2{ 3.1f, -7.4f }), settings.seed);
+            const float medium      = terrain_fbm(dir * 6.20f + vec2{ -seed_offset.y - 11.2f, -seed_offset.x + 4.6f },
+                                                  settings.seed);
+            const float ridges = terrain_ridged_fbm(dir * 11.50f + (seed_offset * 1.3f + vec2{ 8.4f, -5.6f }),
+                                                    settings.seed);
+            const float micro = terrain_fbm(dir * 23.0f + (seed_offset * -0.75f + vec2{ -4.2f, 12.8f }), settings.seed);
 
             return settings.planet_radius + (macro - 0.5f) * settings.planet_radius * 0.19f +
-                   (medium - 0.5f) * settings.planet_radius * 0.07f + (ridges - 0.45f) * settings.planet_radius * 0.045f +
-                   (micro - 0.5f) * settings.planet_radius * 0.02f;
+                    (medium - 0.5f) * settings.planet_radius * 0.07f + (ridges - 0.45f) * settings.planet_radius *
+                    0.045f +
+                    (micro - 0.5f) * settings.planet_radius * 0.02f;
         }
 
         float clamp_terrain_density(const float density, const vec2 world_position, const ChunkSettings& settings)
         {
-            const vec2 offset = world_position - settings.world_center;
+            const vec2  offset           = world_position - settings.world_center;
             const float dist_from_center = std::sqrt(offset.x * offset.x + offset.y * offset.y);
-            const vec2 dir = dist_from_center > 1e-5f ? offset / dist_from_center : vec2{0.0f, 1.0f};
-            const float base_density = generated_surface_radius(dir, settings) - dist_from_center;
+            const vec2  dir              = dist_from_center > 1e-5f ? offset / dist_from_center : vec2{ 0.0f, 1.0f };
+            const float base_density     = generated_surface_radius(dir, settings) - dist_from_center;
             return std::clamp(density, -1.0f, std::max(1.0f, base_density));
         }
 
@@ -178,32 +177,35 @@ namespace game::terrain
         {
             return is_solid(sample) && solid_neighbors >= 2 && solid_neighbors < 8;
         }
-
     }
 
     PlanetTerrain::~PlanetTerrain() = default;
 
-    PlanetTerrain::PlanetTerrain(const b2WorldId world_id, resources::ResourceSystem& resources, vegetation::VegetationSystem& vegetation)
-        : world_id_{world_id}, water_collider_manager_{world_id}, vegetation_{&vegetation}, resources_{&resources}
-    {
-    }
+    PlanetTerrain::PlanetTerrain(const b2WorldId               world_id, resources::ResourceSystem& resources,
+                                 vegetation::VegetationSystem& vegetation)
+        : world_id_{ world_id },
+          water_collider_manager_{ world_id },
+          vegetation_{ &vegetation },
+          resources_{ &resources } {}
 
     Result<void> PlanetTerrain::initialize()
     {
-        const auto total_chunk_count = chunk_count();
+        const auto total_chunk_count         = chunk_count();
         base_chunk_settings_.chunk_grid_size = total_chunk_count;
-        const auto terrain_chunk_size = base_chunk_settings_.chunk_size;
-        const auto terrain_world_center = base_chunk_settings_.world_center;
-        terrain_cell_size_ = cell_size(base_chunk_settings_);
+        const auto terrain_chunk_size        = base_chunk_settings_.chunk_size;
+        const auto terrain_world_center      = base_chunk_settings_.world_center;
+        terrain_cell_size_                   = cell_size(base_chunk_settings_);
 
-        const vec2 total_world_size{terrain_chunk_size.x * static_cast<float>(total_chunk_count.x),
-                                    terrain_chunk_size.y * static_cast<float>(total_chunk_count.y)};
+        const vec2 total_world_size{
+            terrain_chunk_size.x * static_cast<float>(total_chunk_count.x),
+            terrain_chunk_size.y * static_cast<float>(total_chunk_count.y)
+        };
 
         grid_min_ = terrain_world_center - total_world_size * 0.5f;
         grid_max_ = grid_min_ + total_world_size;
 
-        display_min_ = {std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()};
-        display_max_ = {-std::numeric_limits<float>::infinity(), -std::numeric_limits<float>::infinity()};
+        display_min_ = { inf, inf };
+        display_max_ = { -inf, -inf };
 
         const auto planet_radius = compute_planet_radius();
         chunks_.reserve(static_cast<std::size_t>(total_chunk_count.x * total_chunk_count.y));
@@ -212,12 +214,12 @@ namespace game::terrain
         {
             for (int x = 0; x < total_chunk_count.x; ++x)
             {
-                auto chunk_settings = base_chunk_settings_;
-                chunk_settings.chunk_coord = {x, y};
+                auto chunk_settings            = base_chunk_settings_;
+                chunk_settings.chunk_coord     = { x, y };
                 chunk_settings.chunk_grid_size = total_chunk_count;
-                chunk_settings.planet_radius = planet_radius;
+                chunk_settings.planet_radius   = planet_radius;
 
-                auto& chunk = chunks_.emplace_back(world_id_, chunk_settings);
+                auto& chunk    = chunks_.emplace_back(world_id_, chunk_settings);
                 display_min_.x = std::min(display_min_.x, chunk.display_min().x);
                 display_min_.y = std::min(display_min_.y, chunk.display_min().y);
                 display_max_.x = std::max(display_max_.x, chunk.display_max().x);
@@ -237,26 +239,17 @@ namespace game::terrain
         for (auto& chunk : chunks_)
         {
             auto chunk_initialize_result = chunk.initialize();
-            if (!chunk_initialize_result)
-            {
-                return fail(chunk_initialize_result.error());
-            }
+            if (!chunk_initialize_result) { return fail(chunk_initialize_result.error()); }
 
             auto dispatch_result = chunk.dispatch_generation();
-            if (!dispatch_result)
-            {
-                return fail(dispatch_result.error());
-            }
+            if (!dispatch_result) { return fail(dispatch_result.error()); }
         }
 
         // Queue generation for every chunk first, then do the readback/finalize pass after.
         for (auto& chunk : chunks_)
         {
             auto finalize_result = chunk.finalize_generation();
-            if (!finalize_result)
-            {
-                return fail(finalize_result.error());
-            }
+            if (!finalize_result) { return fail(finalize_result.error()); }
         }
 
         return initialize_global_field();
@@ -266,8 +259,7 @@ namespace game::terrain
     {
         for (const auto& chunk : chunks_)
         {
-            if (!aabb_intersects_view_circle(chunk.display_min(), chunk.display_max(), view))
-                continue;
+            if (!aabb_intersects_view_circle(chunk.display_min(), chunk.display_max(), view)) continue;
             chunk.draw_gl(view);
         }
     }
@@ -276,8 +268,7 @@ namespace game::terrain
     {
         for (const auto& chunk : chunks_)
         {
-            if (!aabb_intersects_view_circle(chunk.display_min(), chunk.display_max(), view))
-                continue;
+            if (!aabb_intersects_view_circle(chunk.display_min(), chunk.display_max(), view)) continue;
             chunk.draw_water_gl(view);
         }
     }
@@ -288,15 +279,14 @@ namespace game::terrain
         flush_deferred_ground_brush_wetness();
     }
 
+    // greenness is terrain side data derived from plants so when plants change we can refresh just that and skip a full geometry rebuild
     void PlanetTerrain::rebuild_after_vegetation_change()
     {
-        std::vector<bool> dirty_chunks(chunks_.size(), false);
+        std::vector dirty_chunks(chunks_.size(), false);
         recompute_ground_greenness(dirty_chunks);
         ++field_revision_;
-        if (const auto rebuild_result = rebuild_dirty_chunks(dirty_chunks, false, false, false); !rebuild_result)
-        {
-            Log::error(rebuild_result.error());
-        }
+        if (const auto rebuild_result = rebuild_dirty_chunks(dirty_chunks, false, false, false);
+            !rebuild_result) { Log::error(rebuild_result.error()); }
     }
 
     void PlanetTerrain::update_active_water_colliders(const vec2 player_position)
@@ -306,8 +296,7 @@ namespace game::terrain
 
     void PlanetTerrain::flush_pending_ground_brush_changes()
     {
-        if (pending_ground_brush_changed_coords_.empty() || pending_ground_brush_dirty_chunks_.empty())
-            return;
+        if (pending_ground_brush_changed_coords_.empty() || pending_ground_brush_dirty_chunks_.empty()) return;
 
         if (pending_ground_brush_rebuild_delay_frames_ > 0)
         {
@@ -317,50 +306,51 @@ namespace game::terrain
 
         if (pending_ground_brush_requires_wetness_rebuild_)
         {
-            deferred_ground_brush_wetness_coords_.insert(deferred_ground_brush_wetness_coords_.end(),
-                                                         pending_ground_brush_changed_coords_.begin(),
-                                                         pending_ground_brush_changed_coords_.end());
+            deferred_ground_brush_wetness_coords_.insert(
+                deferred_ground_brush_wetness_coords_.end(),
+                pending_ground_brush_changed_coords_.begin(),
+                pending_ground_brush_changed_coords_.end());
             deferred_ground_brush_wetness_delay_frames_ = 2;
         }
 
-        if (const auto rebuild_result = rebuild_dirty_chunks(pending_ground_brush_dirty_chunks_, false, pending_ground_brush_changed_water_);
+        if (const auto rebuild_result = rebuild_dirty_chunks(
+                pending_ground_brush_dirty_chunks_,
+                false,
+                pending_ground_brush_changed_water_);
             !rebuild_result)
-        {
             Log::error(rebuild_result.error());
-        }
 
         pending_ground_brush_changed_coords_.clear();
         std::fill(pending_ground_brush_dirty_chunks_.begin(), pending_ground_brush_dirty_chunks_.end(), false);
-        pending_ground_brush_changed_water_ = false;
+        pending_ground_brush_changed_water_            = false;
         pending_ground_brush_requires_wetness_rebuild_ = false;
-        pending_ground_brush_rebuild_delay_frames_ = 0;
+        pending_ground_brush_rebuild_delay_frames_     = 0;
     }
 
     void PlanetTerrain::flush_deferred_ground_brush_wetness()
     {
-        if (deferred_ground_brush_wetness_coords_.empty())
-            return;
-        if (!pending_ground_brush_changed_coords_.empty())
-            return;
+        if (deferred_ground_brush_wetness_coords_.empty()) return;
+        if (!pending_ground_brush_changed_coords_.empty()) return;
         if (deferred_ground_brush_wetness_delay_frames_ > 0)
         {
             --deferred_ground_brush_wetness_delay_frames_;
             return;
         }
 
-        std::vector<bool> dirty_chunks(chunks_.size(), false);
+        std::vector dirty_chunks(chunks_.size(), false);
         recompute_wetness_around(deferred_ground_brush_wetness_coords_, dirty_chunks, true);
-        if (const auto rebuild_result = rebuild_dirty_chunks(dirty_chunks, false, false, false, true); !rebuild_result)
-        {
+        if (const auto rebuild_result = rebuild_dirty_chunks(dirty_chunks, false, false, false, true);
+            !rebuild_result)
             Log::error(rebuild_result.error());
-        }
 
         deferred_ground_brush_wetness_coords_.clear();
     }
 
     bool PlanetTerrain::is_surface_exposed_world(const vec2 world_position, const float clearance_distance) const
     {
-        return terrain_surface_sampler::is_surface_exposed_world(make_surface_field_view(), world_position, clearance_distance);
+        return terrain_surface_sampler::is_surface_exposed_world(
+            make_surface_field_view(), world_position,
+            clearance_distance);
     }
 
     std::optional<PlanetTerrain::SurfaceAttachment> PlanetTerrain::exposed_surface_attachment(const ivec2 coord) const
@@ -392,37 +382,35 @@ namespace game::terrain
         return resources_ != nullptr && resources_->has_at(coord);
     }
 
+    // the goal is based on exposed outer shell coverage not raw green sample count everywhere
+    // so we only count solid samples near the surface that actually border open space and then test their greenness
     float PlanetTerrain::green_surface_coverage() const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return 0.0f;
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return 0.0f;
 
-        static constexpr float surface_depth_limit = 0.12f;
+        static constexpr float surface_depth_limit    = 0.12f;
         static constexpr float green_sample_threshold = 0.25f;
 
         std::uint32_t surface_sample_count = 0u;
-        std::uint32_t green_sample_count = 0u;
+        std::uint32_t green_sample_count   = 0u;
 
         for (int y = 0; y < static_cast<int>(global_field_size_.y); ++y)
         {
             for (int x = 0; x < static_cast<int>(global_field_size_.x); ++x)
             {
-                const ivec2 coord{x, y};
+                const ivec2 coord{ x, y };
                 const auto& sample = global_field_[global_field_index(coord)];
-                if (!is_solid(sample))
-                    continue;
-                if (normalized_depth(global_sample_world_position(coord)) > surface_depth_limit)
-                    continue;
+                if (!is_solid(sample)) continue;
+                if (normalized_depth(global_sample_world_position(coord)) > surface_depth_limit) continue;
 
                 bool has_open_neighbor = false;
                 for (int oy = -1; oy <= 1 && !has_open_neighbor; ++oy)
                 {
                     for (int ox = -1; ox <= 1; ++ox)
                     {
-                        if (ox == 0 && oy == 0)
-                            continue;
+                        if (ox == 0 && oy == 0) continue;
 
-                        const ivec2 neighbor{coord.x + ox, coord.y + oy};
+                        const ivec2 neighbor{ coord.x + ox, coord.y + oy };
                         if (!is_valid_global_sample(neighbor) || !is_solid(global_field_[global_field_index(neighbor)]))
                         {
                             has_open_neighbor = true;
@@ -431,17 +419,14 @@ namespace game::terrain
                     }
                 }
 
-                if (!has_open_neighbor)
-                    continue;
+                if (!has_open_neighbor) continue;
 
                 ++surface_sample_count;
-                if (sample.greenness >= green_sample_threshold)
-                    ++green_sample_count;
+                if (sample.greenness >= green_sample_threshold) ++green_sample_count;
             }
         }
 
-        if (surface_sample_count == 0u)
-            return 0.0f;
+        if (surface_sample_count == 0u) return 0.0f;
 
         return static_cast<float>(green_sample_count) / static_cast<float>(surface_sample_count);
     }
@@ -449,10 +434,8 @@ namespace game::terrain
     Result<void> PlanetTerrain::try_harvest_resource(const vec2 world_position)
     {
         if (resources_ == nullptr) return fail("Terrain resource system is not initialized");
-        if (const auto harvest_result = resources_->harvest_at(world_position); !harvest_result)
-        {
-            return fail(harvest_result.error());
-        }
+        if (const auto harvest_result = resources_->harvest_at(world_position);
+            !harvest_result) { return fail(harvest_result.error()); }
 
         return {};
     }
@@ -460,30 +443,37 @@ namespace game::terrain
     Result<void> PlanetTerrain::plant_seed(const vec2 world_position)
     {
         if (vegetation_ == nullptr || resources_ == nullptr) return fail("Terrain subsystems are not initialized");
-        if (const auto plant_result = vegetation_->plant_seed(*this, *resources_, world_position); !plant_result)
-        {
+        if (const auto plant_result = vegetation_->plant_seed(*this, *resources_, world_position);
+            !plant_result)
             return fail(plant_result.error());
-        }
 
-        std::vector<bool> dirty_chunks(chunks_.size(), false);
+        std::vector dirty_chunks(chunks_.size(), false);
         recompute_ground_greenness(dirty_chunks);
         ++field_revision_;
         ++geometry_revision_;
-        if (auto res = rebuild_dirty_chunks(dirty_chunks, false, false, false); !res)
+        if (auto res = rebuild_dirty_chunks(dirty_chunks, false, false, false);
+            !res)
             return fail(res.error());
+
         return {};
     }
 
-    std::uint32_t PlanetTerrain::apply_ground_brush(const TerrainEdit& edit,
-                                                    const std::uint32_t unit_budget,
-                                                    const std::optional<GroundBrushBlocker>& blocker)
+    // sculpting marks revisions immediately so the rest of the game can react but the costly rebuild gets delayed a frame or two
+    // that tradeoff keeps the tool feeling responsive without pretending the rebuild work is free
+    std::uint32_t PlanetTerrain::apply_ground_brush(
+        const TerrainEdit&                       edit,
+        const std::uint32_t                      unit_budget,
+        const std::optional<GroundBrushBlocker>& blocker)
     {
         if (global_field_.empty() || unit_budget == 0u) return 0u;
-        if (pending_ground_brush_dirty_chunks_.empty()) pending_ground_brush_dirty_chunks_.assign(chunks_.size(), false);
+        if (pending_ground_brush_dirty_chunks_.empty())
+            pending_ground_brush_dirty_chunks_.
+                    assign(chunks_.size(), false);
         const bool had_pending_changes = !pending_ground_brush_changed_coords_.empty();
 
         const auto result = apply_terrain_edit_to_global_field(
-            edit, pending_ground_brush_dirty_chunks_, pending_ground_brush_changed_coords_, unit_budget, blocker);
+            edit,
+            pending_ground_brush_dirty_chunks_, pending_ground_brush_changed_coords_, unit_budget, blocker);
 
         if (!result.changed) return 0u;
 
@@ -491,13 +481,19 @@ namespace game::terrain
         ++field_revision_;
         ++geometry_revision_;
         if (result.water_changed) ++water_revision_;
+
         pending_ground_brush_changed_water_ = pending_ground_brush_changed_water_ || result.water_changed;
-        pending_ground_brush_requires_wetness_rebuild_ = pending_ground_brush_requires_wetness_rebuild_ || result.requires_wetness_rebuild;
-        if (!had_pending_changes)
-            pending_ground_brush_rebuild_delay_frames_ = 1;
+
+        pending_ground_brush_requires_wetness_rebuild_ =
+                pending_ground_brush_requires_wetness_rebuild_ ||
+                result.requires_wetness_rebuild;
+
+        if (!had_pending_changes) pending_ground_brush_rebuild_delay_frames_ = 1;
         return result.units;
     }
 
+    // once chunk generation is stitched into one global field this pass builds all the gameplay side data from that shared view
+    // caves resources plants wetness and greenness all want the same final field so doing them from one source keeps them from drifting apart
     void PlanetTerrain::generate_caves_resources_and_plants()
     {
         if (global_field_.empty()) return;
@@ -507,7 +503,7 @@ namespace game::terrain
         if (resources_ != nullptr) resources_->clear_nodes();
         if (resources_ != nullptr) resources_->reserve_nodes(16000u);
 
-        std::vector<bool> dirty_chunks(chunks_.size(), true);
+        std::vector dirty_chunks(chunks_.size(), true);
         const auto callbacks = TerrainGenerationCallbacks{
             .global_field_index = [this](const ivec2 coord) { return global_field_index(coord); },
             .solid_neighbor_count = [this](const ivec2 coord) { return solid_neighbor_count(coord); },
@@ -518,42 +514,46 @@ namespace game::terrain
             .is_valid_global_sample = [this](const ivec2 coord) { return is_valid_global_sample(coord); },
             .dry_water_density = [](const FieldSample& sample) { return dry_water_density(sample); },
             .add_resource_node =
-                [this](const resources::ResourceNode& node)
+            [this](const resources::ResourceNode& node)
             {
-                if (resources_ == nullptr)
-                    return;
+                if (resources_ == nullptr) return;
                 auto stored_node = node;
                 if (!stored_node.surface_attached)
                 {
                     stored_node.anchor_world = global_sample_world_position(stored_node.coord);
                 }
                 resources_->add_node(stored_node);
-            }};
+            }
+        };
 
         auto changed_coords =
-            terrain_generation_finalizer::initialize_visual_channels_and_smooth_caves(make_generation_field_view(), callbacks);
+                terrain_generation_finalizer::initialize_visual_channels_and_smooth_caves(
+                    make_generation_field_view(), callbacks);
 
         recompute_wetness_around(changed_coords, dirty_chunks);
         terrain_generation_finalizer::generate_resource_nodes(make_generation_field_view(), callbacks);
-        if (const auto finalize_result = rebuild_dirty_chunks(dirty_chunks); !finalize_result)
-        {
-            Log::error(finalize_result.error());
-        }
+        if (const auto finalize_result = rebuild_dirty_chunks(dirty_chunks);
+            !finalize_result) { Log::error(finalize_result.error()); }
     }
 
     Result<void> PlanetTerrain::initialize_global_field()
     {
         const auto total_chunk_count = chunk_count();
-        const auto padded_size = padded_field_size(base_chunk_settings_);
-        const auto stride = chunk_sample_stride(base_chunk_settings_);
-        const auto padding = base_chunk_settings_.field_padding;
+        const auto padded_size       = padded_field_size(base_chunk_settings_);
+        const auto stride            = chunk_sample_stride(base_chunk_settings_);
+        const auto padding           = base_chunk_settings_.field_padding;
 
-        global_field_size_ = {static_cast<std::uint32_t>((total_chunk_count.x - 1) * stride.x + static_cast<int>(padded_size.x)),
-                              static_cast<std::uint32_t>((total_chunk_count.y - 1) * stride.y + static_cast<int>(padded_size.y))};
-        global_field_origin_ = {grid_min_.x - terrain_cell_size_.x * static_cast<float>(padding.x),
-                                grid_min_.y - terrain_cell_size_.y * static_cast<float>(padding.y)};
+        global_field_size_ = {
+            static_cast<std::uint32_t>((total_chunk_count.x - 1) * stride.x + static_cast<int>(padded_size.x)),
+            static_cast<std::uint32_t>((total_chunk_count.y - 1) * stride.y + static_cast<int>(padded_size.y))
+        };
+        global_field_origin_ = {
+            grid_min_.x - terrain_cell_size_.x * static_cast<float>(padding.x),
+            grid_min_.y - terrain_cell_size_.y * static_cast<float>(padding.y)
+        };
 
-        global_field_.assign(static_cast<std::size_t>(global_field_size_.x) * static_cast<std::size_t>(global_field_size_.y), {});
+        global_field_.assign(
+            static_cast<std::size_t>(global_field_size_.x) * static_cast<std::size_t>(global_field_size_.y), {});
 
         // Chunks are generated with overlap for meshing, then copied into one global field for gameplay queries and edits.
         for (const auto& chunk : chunks_)
@@ -572,7 +572,7 @@ namespace game::terrain
 
         for (auto& sample : global_field_)
         {
-            sample.wetness = 0.0f;
+            sample.wetness   = 0.0f;
             sample.greenness = 0.0f;
         }
 
@@ -581,36 +581,36 @@ namespace game::terrain
         return {};
     }
 
-    void PlanetTerrain::sync_chunk_field_to_global(const ivec2 chunk_coord,
-                                                   const std::span<const FieldSample> field_samples,
-                                                   std::unordered_set<std::uint64_t>* const cleared_keys)
+    void PlanetTerrain::sync_chunk_field_to_global(
+        const ivec2                              chunk_coord,
+        const std::span<const FieldSample>       field_samples,
+        std::unordered_set<std::uint64_t>* const cleared_keys)
     {
         if (field_samples.empty()) return;
 
-        auto chunk_settings = base_chunk_settings_;
-        chunk_settings.chunk_coord = chunk_coord;
-        chunk_settings.chunk_grid_size = chunk_count();
-        const auto padded_size = padded_field_size(chunk_settings);
-        const auto stride = chunk_sample_stride(chunk_settings);
-        const auto [owned_min, owned_max] = owned_local_sample_bounds(chunk_settings);
-        const ivec2 chunk_base{chunk_coord.x * stride.x, chunk_coord.y * stride.y};
+        auto chunk_settings                = base_chunk_settings_;
+        chunk_settings.chunk_coord         = chunk_coord;
+        chunk_settings.chunk_grid_size     = chunk_count();
+        const auto  padded_size            = padded_field_size(chunk_settings);
+        const auto  stride                 = chunk_sample_stride(chunk_settings);
+        const auto  [owned_min, owned_max] = owned_local_sample_bounds(chunk_settings);
+        const ivec2 chunk_base{ chunk_coord.x * stride.x, chunk_coord.y * stride.y };
 
         // Only copy the chunk-owned range back; the padded border belongs to neighbors too.
         for (int y = owned_min.y; y <= owned_max.y; ++y)
         {
             for (int x = owned_min.x; x <= owned_max.x; ++x)
             {
-                const ivec2 global_coord{chunk_base.x + x, chunk_base.y + y};
-                if (!is_valid_global_sample(global_coord))
-                    continue;
+                const ivec2 global_coord{ chunk_base.x + x, chunk_base.y + y };
+                if (!is_valid_global_sample(global_coord)) continue;
 
-                const auto global_index = global_field_index(global_coord);
+                const auto  global_index    = global_field_index(global_coord);
                 const auto& previous_sample = global_field_[global_index];
-                const auto& next_sample = field_samples[static_cast<std::size_t>(y) * padded_size.x + static_cast<std::size_t>(x)];
+                const auto& next_sample     = field_samples[static_cast<std::size_t>(y) * padded_size.x + static_cast<
+                    std::size_t>(x)];
                 if (cleared_keys != nullptr && is_solid(previous_sample) && !is_solid(next_sample))
                 {
-                    if (vegetation_ != nullptr)
-                        vegetation_->clear_plant_at(global_index);
+                    if (vegetation_ != nullptr) vegetation_->clear_plant_at(global_index);
                     cleared_keys->insert(sample_key(global_coord));
                 }
 
@@ -631,116 +631,113 @@ namespace game::terrain
             {
                 for (int ox = -1; ox <= 1; ++ox)
                 {
-                    const ivec2 neighbor{coord.x + ox, coord.y + oy};
-                    if (!is_valid_global_sample(neighbor))
-                        continue;
+                    const ivec2 neighbor{ coord.x + ox, coord.y + oy };
+                    if (!is_valid_global_sample(neighbor)) continue;
                     affected_keys.insert(sample_key(neighbor));
                 }
             }
         }
 
-        if (vegetation_ != nullptr)
-        {
-            vegetation_->refresh_surface_anchors(*this, affected_keys);
-        }
+        if (vegetation_ != nullptr) { vegetation_->refresh_surface_anchors(*this, affected_keys); }
 
         if (resources_ != nullptr)
         {
             static_cast<void>(resources_->erase_nodes_if(
                 [this, &affected_keys](ResourceNode& node)
                 {
-                    if (!node.surface_attached)
-                        return false;
-                    if (!affected_keys.contains(sample_key(node.coord)))
-                        return false;
+                    if (!node.surface_attached) return false;
+                    if (!affected_keys.contains(sample_key(node.coord))) return false;
 
                     const auto attachment = exposed_surface_attachment(node.coord);
-                    if (!attachment.has_value())
-                        return true;
+                    if (!attachment.has_value()) return true;
 
                     node.anchor_world = attachment->anchor_world;
-                    node.surface_up = attachment->surface_up;
+                    node.surface_up   = attachment->surface_up;
                     return false;
                 }));
         }
     }
 
-    void PlanetTerrain::rebuild_water_blob_colliders()
-    {
-        water_collider_manager_.clear_water_colliders();
-    }
+    void PlanetTerrain::rebuild_water_blob_colliders() { water_collider_manager_.clear_water_colliders(); }
 
     bool PlanetTerrain::is_valid_global_sample(const ivec2 coord) const
     {
         return coord.x >= 0 && coord.y >= 0 && coord.x < static_cast<int>(global_field_size_.x) &&
-               coord.y < static_cast<int>(global_field_size_.y);
+                coord.y < static_cast<int>(global_field_size_.y);
     }
 
     std::size_t PlanetTerrain::global_field_index(const ivec2 coord) const
     {
-        return static_cast<std::size_t>(coord.y) * static_cast<std::size_t>(global_field_size_.x) + static_cast<std::size_t>(coord.x);
+        return static_cast<std::size_t>(coord.y) * static_cast<std::size_t>(global_field_size_.x) + static_cast<
+            std::size_t>(coord.x);
     }
 
     vec2 PlanetTerrain::global_sample_world_position(const ivec2 coord) const
     {
         if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return global_field_origin_;
+            return
+                    global_field_origin_;
 
-        return {global_field_origin_.x + static_cast<float>(coord.x) * terrain_cell_size_.x,
-                global_field_origin_.y + static_cast<float>(coord.y) * terrain_cell_size_.y};
+        return {
+            global_field_origin_.x + static_cast<float>(coord.x) * terrain_cell_size_.x,
+            global_field_origin_.y + static_cast<float>(coord.y) * terrain_cell_size_.y
+        };
     }
 
     float PlanetTerrain::normalized_depth(const vec2 world_position) const
     {
         const float surface_radius = std::max(base_chunk_settings_.planet_radius, 1e-4f);
-        const float radius = radial_dist(world_position, base_chunk_settings_.world_center);
+        const float radius         = radial_dist(world_position, base_chunk_settings_.world_center);
         return std::clamp(1.0f - radius / surface_radius, 0.0f, 1.0f);
     }
 
     ivec2 PlanetTerrain::world_to_global_sample(const vec2 world_position) const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return {0, 0};
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return { 0, 0 };
 
         const float gx = (world_position.x - global_field_origin_.x) / terrain_cell_size_.x;
         const float gy = (world_position.y - global_field_origin_.y) / terrain_cell_size_.y;
 
-        return {std::clamp(static_cast<int>(std::lround(gx)), 0, static_cast<int>(global_field_size_.x) - 1),
-                std::clamp(static_cast<int>(std::lround(gy)), 0, static_cast<int>(global_field_size_.y) - 1)};
+        return {
+            std::clamp(static_cast<int>(std::lround(gx)), 0, static_cast<int>(global_field_size_.x) - 1),
+            std::clamp(static_cast<int>(std::lround(gy)), 0, static_cast<int>(global_field_size_.y) - 1)
+        };
     }
 
     std::vector<PlanetTerrain::FieldSample> PlanetTerrain::extract_chunk_field(const ivec2 chunk_coord) const
     {
-        const auto padded_size = padded_field_size(base_chunk_settings_);
-        const auto stride = chunk_sample_stride(base_chunk_settings_);
-        const ivec2 chunk_base{chunk_coord.x * stride.x, chunk_coord.y * stride.y};
+        const auto  padded_size = padded_field_size(base_chunk_settings_);
+        const auto  stride      = chunk_sample_stride(base_chunk_settings_);
+        const ivec2 chunk_base{ chunk_coord.x * stride.x, chunk_coord.y * stride.y };
 
-        std::vector<FieldSample> field_samples(static_cast<std::size_t>(padded_size.x) * static_cast<std::size_t>(padded_size.y));
+        std::vector<FieldSample> field_samples(
+            static_cast<std::size_t>(padded_size.x) * static_cast<std::size_t>(padded_size.y));
         for (std::uint32_t y = 0; y < padded_size.y; ++y)
         {
             for (std::uint32_t x = 0; x < padded_size.x; ++x)
             {
-                const ivec2 global_coord{chunk_base.x + static_cast<int>(x), chunk_base.y + static_cast<int>(y)};
-                field_samples[static_cast<std::size_t>(y) * padded_size.x + x] = global_field_[global_field_index(global_coord)];
+                const ivec2 global_coord{ chunk_base.x + static_cast<int>(x), chunk_base.y + static_cast<int>(y) };
+                field_samples[static_cast<std::size_t>(y) * padded_size.x + x] = global_field_[global_field_index(
+                    global_coord)];
             }
         }
 
         return field_samples;
     }
 
-    Result<void> PlanetTerrain::rebuild_dirty_chunks(const std::vector<bool>& dirty_chunks,
-                                                     const bool smooth_water,
-                                                     const bool rebuild_water,
-                                                     const bool rebuild_terrain_geometry,
-                                                     const bool refresh_terrain_visuals)
+    Result<void> PlanetTerrain::rebuild_dirty_chunks(
+        const std::vector<bool>& dirty_chunks,
+        const bool               smooth_water,
+        const bool               rebuild_water,
+        const bool               rebuild_terrain_geometry,
+        const bool               refresh_terrain_visuals)
     {
         const bool any_dirty = std::ranges::any_of(dirty_chunks, [](const bool dirty) { return dirty; });
-        if (!any_dirty)
-            return {};
+        if (!any_dirty) return {};
 
         struct PendingChunkRebuild final
         {
-            std::size_t chunk_index{0u};
+            std::size_t              chunk_index{ 0u };
             std::vector<FieldSample> field_samples{};
         };
 
@@ -748,11 +745,10 @@ namespace game::terrain
         pending_chunks.reserve(chunks_.size());
         for (std::size_t i = 0; i < chunks_.size(); ++i)
         {
-            if (!dirty_chunks[i])
-                continue;
+            if (!dirty_chunks[i]) continue;
 
             pending_chunks.push_back({
-                .chunk_index = i,
+                .chunk_index   = i,
                 .field_samples = extract_chunk_field(chunks_[i].chunk_coord())
             });
         }
@@ -782,16 +778,14 @@ namespace game::terrain
                 sync_chunk_field_to_global(chunks_[pending.chunk_index].chunk_coord(), *synced_field);
             }
 
-            if (rebuild_water)
-            {
-                rebuild_water_blob_colliders();
-            }
+            if (rebuild_water) { rebuild_water_blob_colliders(); }
             return {};
         }
 
         for (auto& pending : pending_chunks)
         {
-            if (auto upload_result = chunks_[pending.chunk_index].upload_rebuild_field(pending.field_samples); !upload_result)
+            if (auto upload_result = chunks_[pending.chunk_index].upload_rebuild_field(pending.field_samples);
+                !upload_result)
             {
                 return fail("Failed to rebuild chunk ({}, {}): {}",
                             chunks_[pending.chunk_index].chunk_coord().x,
@@ -804,7 +798,8 @@ namespace game::terrain
         {
             for (auto& pending : pending_chunks)
             {
-                if (auto dispatch_result = chunks_[pending.chunk_index].dispatch_terrain_surface_rebuild(); !dispatch_result)
+                if (auto dispatch_result = chunks_[pending.chunk_index].dispatch_terrain_surface_rebuild();
+                    !dispatch_result)
                 {
                     return fail("Failed to dispatch terrain rebuild for chunk ({}, {}): {}",
                                 chunks_[pending.chunk_index].chunk_coord().x,
@@ -815,7 +810,8 @@ namespace game::terrain
 
             for (auto& pending : pending_chunks)
             {
-                if (auto finalize_result = chunks_[pending.chunk_index].finalize_terrain_surface_rebuild(pending.field_samples);
+                if (auto finalize_result = chunks_[pending.chunk_index].finalize_terrain_surface_rebuild(
+                        pending.field_samples);
                     !finalize_result)
                 {
                     return fail("Failed to finalize terrain rebuild for chunk ({}, {}): {}",
@@ -837,7 +833,8 @@ namespace game::terrain
         {
             for (auto& pending : pending_chunks)
             {
-                if (auto dispatch_result = chunks_[pending.chunk_index].dispatch_water_surface_rebuild(); !dispatch_result)
+                if (auto dispatch_result = chunks_[pending.chunk_index].dispatch_water_surface_rebuild();
+                    !dispatch_result)
                 {
                     return fail("Failed to dispatch water rebuild for chunk ({}, {}): {}",
                                 chunks_[pending.chunk_index].chunk_coord().x,
@@ -848,7 +845,8 @@ namespace game::terrain
 
             for (auto& pending : pending_chunks)
             {
-                if (auto finalize_result = chunks_[pending.chunk_index].finalize_water_surface_rebuild(); !finalize_result)
+                if (auto finalize_result = chunks_[pending.chunk_index].finalize_water_surface_rebuild();
+                    !finalize_result)
                 {
                     return fail("Failed to finalize water rebuild for chunk ({}, {}): {}",
                                 chunks_[pending.chunk_index].chunk_coord().x,
@@ -866,24 +864,23 @@ namespace game::terrain
     void PlanetTerrain::mark_chunks_covering_global_sample(const ivec2 coord, std::vector<bool>& dirty_chunks) const
     {
         const auto total_chunk_count = chunk_count();
-        const auto padded_size = padded_field_size(base_chunk_settings_);
-        const auto stride = chunk_sample_stride(base_chunk_settings_);
+        const auto padded_size       = padded_field_size(base_chunk_settings_);
+        const auto stride            = chunk_sample_stride(base_chunk_settings_);
 
         const int base_x = coord.x / std::max(stride.x, 1);
         const int base_y = coord.y / std::max(stride.y, 1);
 
         for (int chunk_y = std::max(0, base_y - 1); chunk_y <= std::min(total_chunk_count.y - 1, base_y + 1); ++chunk_y)
         {
-            for (int chunk_x = std::max(0, base_x - 1); chunk_x <= std::min(total_chunk_count.x - 1, base_x + 1); ++chunk_x)
+            for (int chunk_x = std::max(0, base_x - 1); chunk_x <= std::min(total_chunk_count.x - 1, base_x + 1); ++
+                 chunk_x)
             {
                 const int local_x = coord.x - chunk_x * stride.x;
                 const int local_y = coord.y - chunk_y * stride.y;
-                if (local_x < 0 || local_y < 0)
-                    continue;
-                if (local_x >= static_cast<int>(padded_size.x) || local_y >= static_cast<int>(padded_size.y))
-                    continue;
+                if (local_x < 0 || local_y < 0) continue;
+                if (local_x >= static_cast<int>(padded_size.x) || local_y >= static_cast<int>(padded_size.y)) continue;
 
-                dirty_chunks[flat_index({chunk_x, chunk_y}, total_chunk_count)] = true;
+                dirty_chunks[flat_index({ chunk_x, chunk_y }, total_chunk_count)] = true;
             }
         }
     }
@@ -895,14 +892,11 @@ namespace game::terrain
         {
             for (int x = -1; x <= 1; ++x)
             {
-                if (x == 0 && y == 0)
-                    continue;
+                if (x == 0 && y == 0) continue;
 
-                const ivec2 neighbor{coord.x + x, coord.y + y};
-                if (!is_valid_global_sample(neighbor))
-                    continue;
-                if (is_solid(global_field_[global_field_index(neighbor)]))
-                    ++count;
+                const ivec2 neighbor{ coord.x + x, coord.y + y };
+                if (!is_valid_global_sample(neighbor)) continue;
+                if (is_solid(global_field_[global_field_index(neighbor)])) ++count;
             }
         }
 
@@ -915,14 +909,11 @@ namespace game::terrain
         {
             for (int x = -1; x <= 1; ++x)
             {
-                if (x == 0 && y == 0)
-                    continue;
+                if (x == 0 && y == 0) continue;
 
-                const ivec2 neighbor{coord.x + x, coord.y + y};
-                if (!is_valid_global_sample(neighbor))
-                    continue;
-                if (has_water(global_field_[global_field_index(neighbor)]))
-                    return true;
+                const ivec2 neighbor{ coord.x + x, coord.y + y };
+                if (!is_valid_global_sample(neighbor)) continue;
+                if (has_water(global_field_[global_field_index(neighbor)])) return true;
             }
         }
 
@@ -931,40 +922,34 @@ namespace game::terrain
 
     bool PlanetTerrain::has_protective_water_neighbor(const ivec2 coord) const
     {
-        if (!is_valid_global_sample(coord))
-            return false;
+        if (!is_valid_global_sample(coord)) return false;
 
-        const vec2 sample_world = global_sample_world_position(coord);
-        const vec2 up = normalize(sample_world - base_chunk_settings_.world_center, {0.0f, 1.0f});
-        const vec2 tangent{up.y, -up.x};
-        const float cell_extent = std::min(terrain_cell_size_.x, terrain_cell_size_.y);
-        const float tangential_limit = cell_extent * 2.35f;
-        const float outward_limit = cell_extent * 2.35f;
-        const float inward_allowance = cell_extent * 0.60f;
-        static constexpr int search_radius = 4;
+        const vec2           sample_world = global_sample_world_position(coord);
+        const vec2           up           = normalize(sample_world - base_chunk_settings_.world_center, { 0.0f, 1.0f });
+        const vec2           tangent{ up.y, -up.x };
+        const float          cell_extent      = std::min(terrain_cell_size_.x, terrain_cell_size_.y);
+        const float          tangential_limit = cell_extent * 2.35f;
+        const float          outward_limit    = cell_extent * 2.35f;
+        const float          inward_allowance = cell_extent * 0.60f;
+        static constexpr int search_radius    = 4;
 
         for (int y = -search_radius; y <= search_radius; ++y)
         {
             for (int x = -search_radius; x <= search_radius; ++x)
             {
-                if (x == 0 && y == 0)
-                    continue;
+                if (x == 0 && y == 0) continue;
 
-                const ivec2 neighbor{coord.x + x, coord.y + y};
-                if (!is_valid_global_sample(neighbor))
-                    continue;
+                const ivec2 neighbor{ coord.x + x, coord.y + y };
+                if (!is_valid_global_sample(neighbor)) continue;
 
                 const auto& neighbor_sample = global_field_[global_field_index(neighbor)];
-                if (!has_water(neighbor_sample))
-                    continue;
+                if (!has_water(neighbor_sample)) continue;
 
-                const vec2 delta = global_sample_world_position(neighbor) - sample_world;
+                const vec2  delta          = global_sample_world_position(neighbor) - sample_world;
                 const float tangent_offset = std::abs(delta.dot(tangent));
-                const float up_offset = delta.dot(up);
-                if (tangent_offset > tangential_limit)
-                    continue;
-                if (up_offset < -inward_allowance || up_offset > outward_limit)
-                    continue;
+                const float up_offset      = delta.dot(up);
+                if (tangent_offset > tangential_limit) continue;
+                if (up_offset < -inward_allowance || up_offset > outward_limit) continue;
 
                 return true;
             }
@@ -975,20 +960,19 @@ namespace game::terrain
 
     bool PlanetTerrain::is_dig_protected(const ivec2 coord) const
     {
-        if (!is_valid_global_sample(coord))
-            return false;
+        if (!is_valid_global_sample(coord)) return false;
         const auto& sample = global_field_[global_field_index(coord)];
         return has_water(sample) || has_protective_water_neighbor(coord) ||
-               normalized_depth(global_sample_world_position(coord)) >= constants::hard_rock_depth_threshold;
+                normalized_depth(global_sample_world_position(coord)) >= constants::hard_rock_depth_threshold;
     }
 
     TerrainSurfaceFieldView PlanetTerrain::make_surface_field_view() const
     {
         return {
-            .world_center = base_chunk_settings_.world_center,
-            .field_origin = global_field_origin_,
-            .cell_size = terrain_cell_size_,
-            .field_size = global_field_size_,
+            .world_center  = base_chunk_settings_.world_center,
+            .field_origin  = global_field_origin_,
+            .cell_size     = terrain_cell_size_,
+            .field_size    = global_field_size_,
             .planet_radius = base_chunk_settings_.planet_radius,
             .field_samples = global_field_
         };
@@ -997,81 +981,76 @@ namespace game::terrain
     TerrainGenerationFieldView PlanetTerrain::make_generation_field_view()
     {
         return {
-            .global_field = global_field_,
+            .global_field      = global_field_,
             .global_field_size = global_field_size_,
-            .seed = base_chunk_settings_.seed
+            .seed              = base_chunk_settings_.seed
         };
     }
 
     water::GridView PlanetTerrain::make_water_grid_view() const
     {
         return water::GridView{
-            .world_center = base_chunk_settings_.world_center,
-            .field_origin = global_field_origin_,
-            .cell_size = terrain_cell_size_,
-            .field_size = global_field_size_,
+            .world_center  = base_chunk_settings_.world_center,
+            .field_origin  = global_field_origin_,
+            .cell_size     = terrain_cell_size_,
+            .field_size    = global_field_size_,
             .field_samples = global_field_
         };
     }
 
     ivec2 PlanetTerrain::settle_water_anchor(const ivec2 anchor) const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return anchor;
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return anchor;
 
         return water::settle_water_anchor(make_water_grid_view(), anchor);
     }
 
     std::optional<ivec2> PlanetTerrain::find_water_anchor(const vec2 world_position) const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return std::nullopt;
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return std::nullopt;
 
         return water::find_water_anchor(make_water_grid_view(), world_position);
     }
 
     std::optional<ivec2> PlanetTerrain::find_water_sample(const vec2 world_position) const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return std::nullopt;
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return std::nullopt;
 
         return water::find_water_sample(make_water_grid_view(), world_position);
     }
 
-    std::vector<ivec2> PlanetTerrain::collect_water_component(const ivec2 start_coord, const bool include_diagonals) const
+    std::vector<ivec2> PlanetTerrain::collect_water_component(const ivec2 start_coord,
+                                                              const bool  include_diagonals) const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return {};
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return {};
 
         return water::collect_water_component(make_water_grid_view(), start_coord, include_diagonals);
     }
 
     std::uint32_t PlanetTerrain::water_volume_at_anchor(const ivec2 anchor, ivec2* plan_start) const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return 0u;
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return 0u;
 
         return water::water_volume_at_anchor(make_water_grid_view(), anchor, plan_start);
     }
 
     std::optional<PlanetTerrain::WaterPlan> PlanetTerrain::build_targeted_water_plan(const vec2 world_position,
-                                                                                     const std::uint32_t volume_cap,
-                                                                                     const bool pickup,
-                                                                                     std::uint32_t* const existing_volume) const
+        const std::uint32_t                                                                     volume_cap,
+        const bool                                                                              pickup,
+        std::uint32_t* const                                                                    existing_volume) const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return std::nullopt;
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return std::nullopt;
 
-        return water::build_targeted_water_plan(make_water_grid_view(), world_position, volume_cap, pickup, existing_volume);
+        return water::build_targeted_water_plan(make_water_grid_view(), world_position, volume_cap, pickup,
+                                                existing_volume);
     }
 
     Result<bool> PlanetTerrain::apply_water_plan_and_rebuild(const WaterPlan& plan)
     {
-        std::vector<bool> dirty_chunks(chunks_.size(), false);
+        std::vector        dirty_chunks(chunks_.size(), false);
         std::vector<ivec2> changed_coords;
-        const bool changed = apply_water_plan(plan, dirty_chunks, changed_coords);
-        if (!changed)
-            return false;
+        const bool         changed = apply_water_plan(plan, dirty_chunks, changed_coords);
+        if (!changed) return false;
 
         // Water edits still go through the same rebuild path so mesh, wetness, and colliders stay together.
         ++field_revision_;
@@ -1091,27 +1070,30 @@ namespace game::terrain
     std::vector<ivec2> PlanetTerrain::dirty_chunk_extent_markers(const std::vector<bool>& dirty_chunks) const
     {
         std::vector<ivec2> markers;
-        const auto padded_size = padded_field_size(base_chunk_settings_);
-        const auto stride = chunk_sample_stride(base_chunk_settings_);
+        const auto         padded_size = padded_field_size(base_chunk_settings_);
+        const auto         stride      = chunk_sample_stride(base_chunk_settings_);
         markers.reserve(chunks_.size() * 2u);
 
         for (std::size_t i = 0; i < chunks_.size(); ++i)
         {
             if (!dirty_chunks[i]) continue;
-            const auto chunk_coord = chunks_[i].chunk_coord();
-            const ivec2 chunk_base{chunk_coord.x * stride.x, chunk_coord.y * stride.y};
+            const auto  chunk_coord = chunks_[i].chunk_coord();
+            const ivec2 chunk_base{ chunk_coord.x * stride.x, chunk_coord.y * stride.y };
             markers.push_back(chunk_base);
-            markers.push_back({chunk_base.x + static_cast<int>(padded_size.x) - 1, chunk_base.y + static_cast<int>(padded_size.y) - 1});
+            markers.push_back({
+                chunk_base.x + static_cast<int>(padded_size.x) - 1, chunk_base.y + static_cast<int>(padded_size.y) - 1
+            });
         }
 
         return markers;
     }
 
-    PlanetTerrain::TerrainEditResult PlanetTerrain::apply_terrain_edit_to_global_field(const TerrainEdit& edit,
-                                                                                       std::vector<bool>& dirty_chunks,
-                                                                                       std::vector<ivec2>& changed_coords,
-                                                                                       const std::uint32_t unit_budget,
-                                                                                       const std::optional<GroundBrushBlocker>& blocker)
+    PlanetTerrain::TerrainEditResult PlanetTerrain::apply_terrain_edit_to_global_field(
+        const TerrainEdit&                       edit,
+        std::vector<bool>&                       dirty_chunks,
+        std::vector<ivec2>&                      changed_coords,
+        const std::uint32_t                      unit_budget,
+        const std::optional<GroundBrushBlocker>& blocker)
     {
         std::unordered_set<std::uint64_t> cleared_keys;
         // The brush system does the per-sample math; this wrapper supplies the terrain-specific rules.
@@ -1131,53 +1113,67 @@ namespace game::terrain
             [this](const ivec2 coord) { return is_dig_protected(coord); },
             [this](const ivec2 coord) { return has_water_neighbor(coord); },
             [this](const float density, const vec2 world, const ChunkSettings& settings)
-            { return clamp_terrain_density(density, world, settings); },
+            {
+                return clamp_terrain_density(density, world, settings);
+            },
             [](const FieldSample& sample) { return dry_water_density(sample); },
             [this](const ivec2 coord) { return global_sample_world_position(coord); },
-            [this](const ivec2 coord, std::vector<bool>& dirty_flags) { mark_chunks_covering_global_sample(coord, dirty_flags); },
+            [this](const ivec2 coord, std::vector<bool>& dirty_flags)
+            {
+                mark_chunks_covering_global_sample(coord, dirty_flags);
+            },
             [this, &cleared_keys](const ivec2 coord, const std::size_t sample_index)
             {
-                if (vegetation_ != nullptr)
-                    vegetation_->clear_plant_at(sample_index);
+                if (vegetation_ != nullptr) vegetation_->clear_plant_at(sample_index);
                 cleared_keys.insert(sample_key(coord));
             });
 
-        if (resources_ != nullptr && !cleared_keys.empty())
-            static_cast<void>(resources_->remove_nodes(cleared_keys));
+        if (resources_ != nullptr && !cleared_keys.empty()) static_cast<void>(resources_->remove_nodes(cleared_keys));
         refresh_surface_attachments_around(changed_coords);
         return result;
     }
 
-    std::optional<PlanetTerrain::WaterPlan> PlanetTerrain::build_water_plan(const ivec2 start_coord,
-                                                                            const std::uint32_t desired_wet_sample_count,
-                                                                            const bool preserve_existing_water) const
+    std::optional<PlanetTerrain::WaterPlan> PlanetTerrain::build_water_plan(
+        const ivec2 start_coord,
+        const std::uint32_t
+        desired_wet_sample_count,
+        const bool preserve_existing_water) const
     {
-        return water::build_water_plan(make_water_grid_view(), start_coord, desired_wet_sample_count, preserve_existing_water);
+        return water::build_water_plan(
+            make_water_grid_view(),
+            start_coord,
+            desired_wet_sample_count,
+            preserve_existing_water);
     }
 
-    bool PlanetTerrain::apply_water_plan(const WaterPlan& plan, std::vector<bool>& dirty_chunks, std::vector<ivec2>& changed_coords)
+    bool PlanetTerrain::apply_water_plan(
+        const WaterPlan&    plan,
+        std::vector<bool>&  dirty_chunks,
+        std::vector<ivec2>& changed_coords)
     {
         bool changed = false;
         for (const auto& coord : plan.dried_component)
         {
-            auto& sample = global_field_[global_field_index(coord)];
+            auto&       sample     = global_field_[global_field_index(coord)];
             const float next_water = dry_water_density(sample);
             if (std::abs(sample.water - next_water) <= 1e-6f) continue;
 
             sample.water = next_water;
-            changed = true;
+            changed      = true;
             changed_coords.push_back(coord);
             mark_chunks_covering_global_sample(coord, dirty_chunks);
         }
 
         for (const auto& entry : plan.affected_samples)
         {
-            auto& sample = global_field_[global_field_index(entry.coord)];
-            const float next_water = sample.terrain < 0.0f && entry.water > 0.0f ? entry.water : dry_water_density(sample);
+            auto&       sample     = global_field_[global_field_index(entry.coord)];
+            const float next_water = sample.terrain < 0.0f && entry.water > 0.0f
+                                         ? entry.water
+                                         : dry_water_density(sample);
             if (std::abs(sample.water - next_water) <= 1e-6f) continue;
 
             sample.water = next_water;
-            changed = true;
+            changed      = true;
             changed_coords.push_back(entry.coord);
             mark_chunks_covering_global_sample(entry.coord, dirty_chunks);
         }
@@ -1185,9 +1181,10 @@ namespace game::terrain
         return changed;
     }
 
-    void PlanetTerrain::recompute_wetness_around(const std::vector<ivec2>& changed_coords,
-                                                 std::vector<bool>& dirty_chunks,
-                                                 const bool recompute_greenness)
+    void PlanetTerrain::recompute_wetness_around(
+        const std::vector<ivec2>& changed_coords,
+        std::vector<bool>&        dirty_chunks,
+        const bool                recompute_greenness)
     {
         // Wetness only needs to be refreshed around changed water, not across the whole planet every time.
         terrain_wetness::recompute_around(
@@ -1196,10 +1193,12 @@ namespace game::terrain
             terrain_cell_size_,
             changed_coords,
             [this, &dirty_chunks](const ivec2 coord) { mark_chunks_covering_global_sample(coord, dirty_chunks); },
-            [this](const ivec2 coord, const bool include_diagonals) { return collect_water_component(coord, include_diagonals); });
+            [this](const ivec2 coord, const bool include_diagonals)
+            {
+                return collect_water_component(coord, include_diagonals);
+            });
 
-        if (recompute_greenness)
-            recompute_ground_greenness(dirty_chunks);
+        if (recompute_greenness) recompute_ground_greenness(dirty_chunks);
         ++field_revision_;
     }
 
@@ -1222,21 +1221,20 @@ namespace game::terrain
 
     void PlanetTerrain::validate() const
     {
-#ifndef NDEBUG
+        #ifndef NDEBUG
         static ValidationState previous_state;
-        ValidationState current_state{};
+        ValidationState        current_state{};
 
-        current_state.resource_system_null = resources_ == nullptr;
-        current_state.vegetation_system_null = vegetation_ == nullptr;
+        current_state.resource_system_null              = resources_ == nullptr;
+        current_state.vegetation_system_null            = vegetation_ == nullptr;
         current_state.pending_dirty_chunk_size_mismatch =
-            !pending_ground_brush_dirty_chunks_.empty() && pending_ground_brush_dirty_chunks_.size() != chunks_.size();
+                !pending_ground_brush_dirty_chunks_.empty() && pending_ground_brush_dirty_chunks_.size() != chunks_.
+                size();
         current_state.global_field_size_mismatch = false;
 
         if (!global_field_.empty() &&
-            global_field_.size() != static_cast<std::size_t>(global_field_size_.x) * static_cast<std::size_t>(global_field_size_.y))
-        {
-            current_state.global_field_size_mismatch = true;
-        }
+            global_field_.size() != static_cast<std::size_t>(global_field_size_.x) * static_cast<std::size_t>(
+                global_field_size_.y)) { current_state.global_field_size_mismatch = true; }
 
         for (std::size_t i = 0; i < global_field_.size(); ++i)
         {
@@ -1268,17 +1266,20 @@ namespace game::terrain
         log_validation_transition(current_state.resource_system_null,
                                   previous_state.resource_system_null,
                                   "PlanetTerrain validation failed: resource system is null");
+
         log_validation_transition(current_state.vegetation_system_null,
                                   previous_state.vegetation_system_null,
                                   "PlanetTerrain validation failed: vegetation system is null");
+
         if (current_state.pending_dirty_chunk_size_mismatch != previous_state.pending_dirty_chunk_size_mismatch)
         {
             previous_state.pending_dirty_chunk_size_mismatch = current_state.pending_dirty_chunk_size_mismatch;
             if (current_state.pending_dirty_chunk_size_mismatch)
             {
-                Log::error("PlanetTerrain validation failed: pending dirty chunk array size {} does not match chunk count {}",
-                           pending_ground_brush_dirty_chunks_.size(),
-                           chunks_.size());
+                Log::error(
+                    "PlanetTerrain validation failed: pending dirty chunk array size {} does not match chunk count {}",
+                    pending_ground_brush_dirty_chunks_.size(),
+                    chunks_.size());
             }
         }
 
@@ -1324,7 +1325,7 @@ namespace game::terrain
                            current_state.invalid_resource_node->y);
             }
         }
-#endif
+        #endif
     }
 
     vec2 PlanetTerrain::chunk_size() const { return base_chunk_settings_.chunk_size; }
@@ -1333,8 +1334,7 @@ namespace game::terrain
 
     bool PlanetTerrain::contains_water_volume(const vec2 world_position) const
     {
-        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u)
-            return false;
+        if (global_field_.empty() || global_field_size_.x == 0u || global_field_size_.y == 0u) return false;
 
         const float gx = (world_position.x - global_field_origin_.x) / terrain_cell_size_.x;
         const float gy = (world_position.y - global_field_origin_.y) / terrain_cell_size_.y;
@@ -1366,15 +1366,16 @@ namespace game::terrain
     vec2 PlanetTerrain::spawn_point_from_top_center(const float height_offset) const
     {
         const auto terrain_world_center = base_chunk_settings_.world_center;
-        const vec2 ray_origin{terrain_world_center.x, display_max_.y + base_chunk_settings_.chunk_size.y * 2.0f};
-        const vec2 ray_end{terrain_world_center.x, display_min_.y - base_chunk_settings_.chunk_size.y * 2.0f};
+        const vec2 ray_origin{ terrain_world_center.x, display_max_.y + base_chunk_settings_.chunk_size.y * 2.0f };
+        const vec2 ray_end{ terrain_world_center.x, display_min_.y - base_chunk_settings_.chunk_size.y * 2.0f };
         const b2QueryFilter filter = b2DefaultQueryFilter();
         const auto ray_result =
-            b2World_CastRayClosest(world_id_, {ray_origin.x, ray_origin.y}, {ray_end.x - ray_origin.x, ray_end.y - ray_origin.y}, filter);
+                b2World_CastRayClosest(world_id_, { ray_origin.x, ray_origin.y },
+                                       { ray_end.x - ray_origin.x, ray_end.y - ray_origin.y }, filter);
 
         if (ray_result.hit)
         {
-            const vec2 hit_point{ray_result.point.x, ray_result.point.y};
+            const vec2 hit_point{ ray_result.point.x, ray_result.point.y };
             const vec2 radial_up = normalize(hit_point - terrain_world_center);
             return { hit_point.x + radial_up.x * height_offset, hit_point.y + radial_up.y * height_offset };
         }
@@ -1384,14 +1385,16 @@ namespace game::terrain
 
     float PlanetTerrain::compute_planet_radius()
     {
-        const auto total_chunk_count = chunk_count();
+        const auto          total_chunk_count = chunk_count();
         const ChunkSettings defaults{};
-        const auto terrain_chunk_size = defaults.chunk_size;
-        const vec2 total_world_size{terrain_chunk_size.x * static_cast<float>(total_chunk_count.x),
-                                    terrain_chunk_size.y * static_cast<float>(total_chunk_count.y)};
+        const auto          terrain_chunk_size = defaults.chunk_size;
+        const vec2          total_world_size{
+            terrain_chunk_size.x * static_cast<float>(total_chunk_count.x),
+            terrain_chunk_size.y * static_cast<float>(total_chunk_count.y)
+        };
 
         const auto min_half_extent = std::min(total_world_size.x, total_world_size.y) * 0.5f;
-        const auto edge_padding = std::min(terrain_chunk_size.x, terrain_chunk_size.y) * 0.75f;
+        const auto edge_padding    = std::min(terrain_chunk_size.x, terrain_chunk_size.y) * 0.75f;
         return std::max(min_half_extent - edge_padding, 1.0f);
     }
 
@@ -1403,8 +1406,8 @@ namespace game::terrain
     ivec2 PlanetTerrain::chunk_index_from_world(const vec2 world_position) const
     {
         const auto total_chunk_count = chunk_count();
-        const auto local_x = (world_position.x - grid_min_.x) / base_chunk_settings_.chunk_size.x;
-        const auto local_y = (world_position.y - grid_min_.y) / base_chunk_settings_.chunk_size.y;
+        const auto local_x           = (world_position.x - grid_min_.x) / base_chunk_settings_.chunk_size.x;
+        const auto local_y           = (world_position.y - grid_min_.y) / base_chunk_settings_.chunk_size.y;
 
         return {
             std::clamp(static_cast<int>(std::floor(local_x)), 0, total_chunk_count.x - 1),

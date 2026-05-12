@@ -10,7 +10,7 @@ namespace game::ui
     {
     public:
         Result<void> initialize_assets();
-        void destroy_graphics_resources();
+        void         destroy_graphics_resources();
 
         void draw(sf::RenderWindow& window, const world::PlanetRestorationGoal& goal) const;
 

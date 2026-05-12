@@ -40,9 +40,7 @@ namespace game::gfx
         : vao_{ std::exchange(other.vao_, 0) },
           vbo_{ std::exchange(other.vbo_, 0) },
           ebo_{ std::exchange(other.ebo_, 0) },
-          index_count_{ std::exchange(other.index_count_, 0) }
-    {
-    }
+          index_count_{ std::exchange(other.index_count_, 0) } {}
 
     Mesh& Mesh::operator=(Mesh&& other) noexcept
     {
@@ -52,9 +50,9 @@ namespace game::gfx
         if (vbo_ != 0) glDeleteBuffers(1, &vbo_);
         if (vao_ != 0) glDeleteVertexArrays(1, &vao_);
 
-        vao_ = std::exchange(other.vao_, 0);
-        vbo_ = std::exchange(other.vbo_, 0);
-        ebo_ = std::exchange(other.ebo_, 0);
+        vao_         = std::exchange(other.vao_, 0);
+        vbo_         = std::exchange(other.vbo_, 0);
+        ebo_         = std::exchange(other.ebo_, 0);
         index_count_ = std::exchange(other.index_count_, 0);
 
         return *this;
@@ -65,15 +63,15 @@ namespace game::gfx
         index_count_ = static_cast<GLsizei>(indices.size());
 
         glNamedBufferData(
-            vbo_, 
-            static_cast<GLsizeiptr>(vertices.size_bytes()), 
-            vertices.empty() ? nullptr : vertices.data(), 
+            vbo_,
+            static_cast<GLsizeiptr>(vertices.size_bytes()),
+            vertices.empty() ? nullptr : vertices.data(),
             GL_STATIC_DRAW);
 
         glNamedBufferData(
-            ebo_, 
-            static_cast<GLsizeiptr>(indices.size_bytes()), 
-            indices.empty() ? nullptr : indices.data(), 
+            ebo_,
+            static_cast<GLsizeiptr>(indices.size_bytes()),
+            indices.empty() ? nullptr : indices.data(),
             GL_STATIC_DRAW);
     }
 
@@ -86,8 +84,5 @@ namespace game::gfx
         glBindVertexArray(0);
     }
 
-    bool Mesh::empty() const
-    {
-        return index_count_ == 0;
-    }
+    bool Mesh::empty() const { return index_count_ == 0; }
 }

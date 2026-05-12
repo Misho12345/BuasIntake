@@ -19,10 +19,7 @@ namespace game::resources
 
     inline constexpr std::size_t inventory_item_count = static_cast<std::size_t>(InventoryItem::Count);
 
-    constexpr std::size_t inventory_item_index(const InventoryItem item) noexcept
-    {
-        return static_cast<std::size_t>(item);
-    }
+    constexpr std::size_t inventory_item_index(const InventoryItem item) { return static_cast<std::size_t>(item); }
 
     struct ResourceInventory final
     {
@@ -38,10 +35,7 @@ namespace game::resources
     {
         std::array<std::uint32_t, inventory_item_count> amounts{};
 
-        std::uint32_t count(const InventoryItem item) const noexcept
-        {
-            return amounts[inventory_item_index(item)];
-        }
+        std::uint32_t count(const InventoryItem item) const { return amounts[inventory_item_index(item)]; }
     };
 
     struct ResourceReward final
@@ -52,11 +46,8 @@ namespace game::resources
 
     class Inventory final
     {
-      public:
-        std::uint32_t count(const InventoryItem item) const noexcept
-        {
-            return counts_[inventory_item_index(item)];
-        }
+    public:
+        std::uint32_t count(const InventoryItem item) const { return counts_[inventory_item_index(item)]; }
 
         void add(const InventoryItem item, const std::uint32_t amount)
         {
@@ -65,18 +56,17 @@ namespace game::resources
 
         std::uint32_t remove_up_to(const InventoryItem item, const std::uint32_t requested)
         {
-            auto& value = counts_[inventory_item_index(item)];
+            auto&      value   = counts_[inventory_item_index(item)];
             const auto removed = std::min(value, requested);
-            value -= removed;
+            value              -= removed;
             return removed;
         }
 
-        bool can_afford(const InventoryCost& cost) const noexcept
+        bool can_afford(const InventoryCost& cost) const
         {
             for (std::size_t i = 0; i < cost.amounts.size(); ++i)
             {
-                if (counts_[i] < cost.amounts[i])
-                    return false;
+                if (counts_[i] < cost.amounts[i]) return false;
             }
 
             return true;
@@ -84,8 +74,7 @@ namespace game::resources
 
         bool spend(const InventoryCost& cost)
         {
-            if (!can_afford(cost))
-                return false;
+            if (!can_afford(cost)) return false;
             for (std::size_t i = 0; i < cost.amounts.size(); ++i)
             {
                 counts_[i] -= cost.amounts[i];
@@ -94,33 +83,27 @@ namespace game::resources
             return true;
         }
 
-      private:
+    private:
         std::array<std::uint32_t, inventory_item_count> counts_{};
     };
 
-    constexpr InventoryCost make_inventory_cost(const ResourceInventory& cost) noexcept
+    constexpr InventoryCost make_inventory_cost(const ResourceInventory& cost)
     {
         return InventoryCost{
             .amounts = { cost.rocks, cost.copper_bars, cost.iron_bars, cost.gold_bars, cost.diamonds, cost.seeds }
         };
     }
 
-    constexpr ResourceReward reward_for(const ResourceNodeKind kind) noexcept
+    constexpr ResourceReward reward_for(const ResourceNodeKind kind)
     {
         switch (kind)
         {
-            case ResourceNodeKind::Rock:
-                return { InventoryItem::Rock, 1u };
-            case ResourceNodeKind::IronOre:
-                return { InventoryItem::IronBar, 1u };
-            case ResourceNodeKind::CopperOre:
-                return { InventoryItem::CopperBar, 1u };
-            case ResourceNodeKind::GoldOre:
-                return { InventoryItem::GoldBar, 1u };
-            case ResourceNodeKind::DiamondOre:
-                return { InventoryItem::Diamond, 1u };
-            case ResourceNodeKind::DeadPlant:
-                return { InventoryItem::Seeds, 2u };
+            case ResourceNodeKind::Rock: return { InventoryItem::Rock, 1u };
+            case ResourceNodeKind::IronOre: return { InventoryItem::IronBar, 1u };
+            case ResourceNodeKind::CopperOre: return { InventoryItem::CopperBar, 1u };
+            case ResourceNodeKind::GoldOre: return { InventoryItem::GoldBar, 1u };
+            case ResourceNodeKind::DiamondOre: return { InventoryItem::Diamond, 1u };
+            case ResourceNodeKind::DeadPlant: return { InventoryItem::Seeds, 2u };
         }
 
         return { InventoryItem::Rock, 0u };

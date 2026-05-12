@@ -10,9 +10,9 @@ namespace game::gfx
     public:
         ScopedAlphaBlendPass()
         {
-            blend_enabled_ = glIsEnabled(GL_BLEND);
+            blend_enabled_      = glIsEnabled(GL_BLEND);
             depth_test_enabled_ = glIsEnabled(GL_DEPTH_TEST);
-            cull_face_enabled_ = glIsEnabled(GL_CULL_FACE);
+            cull_face_enabled_  = glIsEnabled(GL_CULL_FACE);
             glGetIntegerv(GL_BLEND_SRC_RGB, &blend_src_rgb_);
             glGetIntegerv(GL_BLEND_DST_RGB, &blend_dst_rgb_);
             glGetIntegerv(GL_BLEND_SRC_ALPHA, &blend_src_alpha_);
@@ -39,10 +39,10 @@ namespace game::gfx
             glUseProgram(0);
         }
 
-        ScopedAlphaBlendPass(const ScopedAlphaBlendPass&) = delete;
+        ScopedAlphaBlendPass(const ScopedAlphaBlendPass&)            = delete;
         ScopedAlphaBlendPass& operator=(const ScopedAlphaBlendPass&) = delete;
-        ScopedAlphaBlendPass(ScopedAlphaBlendPass&&) = delete;
-        ScopedAlphaBlendPass& operator=(ScopedAlphaBlendPass&&) = delete;
+        ScopedAlphaBlendPass(ScopedAlphaBlendPass&&)                 = delete;
+        ScopedAlphaBlendPass& operator=(ScopedAlphaBlendPass&&)      = delete;
 
     private:
         GLboolean blend_enabled_{ GL_FALSE };

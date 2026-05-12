@@ -67,13 +67,13 @@ constexpr T Vector2<T>::lengthSquared() const
 template <typename T>
 constexpr Vector2<T> Vector2<T>::perpendicular() const
 {
-    return Vector2<T>(-y, x);
+    return Vector2(-y, x);
 }
 
 
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr T Vector2<T>::dot(Vector2<T> rhs) const
+constexpr T Vector2<T>::dot(Vector2 rhs) const
 {
     return x * rhs.x + y * rhs.y;
 }
@@ -81,7 +81,7 @@ constexpr T Vector2<T>::dot(Vector2<T> rhs) const
 
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr T Vector2<T>::cross(Vector2<T> rhs) const
+constexpr T Vector2<T>::cross(Vector2 rhs) const
 {
     return x * rhs.y - y * rhs.x;
 }
@@ -89,19 +89,19 @@ constexpr T Vector2<T>::cross(Vector2<T> rhs) const
 
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector2<T> Vector2<T>::componentWiseMul(Vector2<T> rhs) const
+constexpr Vector2<T> Vector2<T>::componentWiseMul(Vector2 rhs) const
 {
-    return Vector2<T>(x * rhs.x, y * rhs.y);
+    return Vector2(x * rhs.x, y * rhs.y);
 }
 
 
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector2<T> Vector2<T>::componentWiseDiv(Vector2<T> rhs) const
+constexpr Vector2<T> Vector2<T>::componentWiseDiv(Vector2 rhs) const
 {
     assert(rhs.x != 0 && "Vector2::componentWiseDiv() cannot divide by 0");
     assert(rhs.y != 0 && "Vector2::componentWiseDiv() cannot divide by 0");
-    return Vector2<T>(x / rhs.x, y / rhs.y);
+    return Vector2(x / rhs.x, y / rhs.y);
 }
 
 

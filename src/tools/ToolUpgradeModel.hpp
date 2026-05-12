@@ -10,14 +10,14 @@
 namespace game::tools::upgrade_model
 {
     inline std::pair<std::size_t, std::size_t> next_material_level(
-        std::size_t material,
-        std::size_t level,
+        std::size_t       material,
+        std::size_t       level,
         const std::size_t max_material)
     {
         ++level;
         if (level >= 3u)
         {
-            level = 0u;
+            level    = 0u;
             material = std::min(material + 1u, max_material);
         }
 
@@ -29,20 +29,17 @@ namespace game::tools::upgrade_model
         resources::ResourceInventory cost{};
         auto [next_material, next_level] = next_material_level(tool.material_index(), tool.level_index(), 2u);
 
-        if (next_material == 0u)
-        {
-            cost.copper_bars = 2u + static_cast<std::uint32_t>(next_level);
-        }
+        if (next_material == 0u) cost.copper_bars = 2u + static_cast<std::uint32_t>(next_level);
         else if (next_material == 1u)
         {
             cost.copper_bars = 3u + static_cast<std::uint32_t>(next_level);
-            cost.iron_bars = 2u + static_cast<std::uint32_t>(next_level);
+            cost.iron_bars   = 2u + static_cast<std::uint32_t>(next_level);
         }
         else
         {
             cost.iron_bars = 4u + static_cast<std::uint32_t>(next_level);
             cost.gold_bars = 2u + static_cast<std::uint32_t>(next_level);
-            cost.diamonds = next_level < 2u ? 1u : 2u;
+            cost.diamonds  = next_level < 2u ? 1u : 2u;
         }
 
         return cost;
@@ -53,20 +50,17 @@ namespace game::tools::upgrade_model
         resources::ResourceInventory cost{};
         auto [next_material, next_level] = next_material_level(tool.material_index(), tool.level_index(), 2u);
 
-        if (next_material == 0u)
-        {
-            cost.rocks = 4u + static_cast<std::uint32_t>(next_level) * 2u;
-        }
+        if (next_material == 0u) { cost.rocks = 4u + static_cast<std::uint32_t>(next_level) * 2u; }
         else if (next_material == 1u)
         {
-            cost.rocks = 4u + static_cast<std::uint32_t>(next_level) * 2u;
+            cost.rocks       = 4u + static_cast<std::uint32_t>(next_level) * 2u;
             cost.copper_bars = 2u + static_cast<std::uint32_t>(next_level);
         }
         else
         {
-            cost.rocks = 6u + static_cast<std::uint32_t>(next_level) * 2u;
+            cost.rocks       = 6u + static_cast<std::uint32_t>(next_level) * 2u;
             cost.copper_bars = 2u + static_cast<std::uint32_t>(next_level);
-            cost.iron_bars = 2u + static_cast<std::uint32_t>(next_level);
+            cost.iron_bars   = 2u + static_cast<std::uint32_t>(next_level);
         }
 
         return cost;
@@ -91,57 +85,97 @@ namespace game::tools::upgrade_model
     template <typename ToolIconRect>
     std::array<ui::UpgradeCard, 2> build_menu_cards(
         const TerrainSculptTool& terrain_tool,
-        const WaterTool& water_tool,
-        ToolIconRect&& tool_icon_rect)
+        const WaterTool&         water_tool,
+        ToolIconRect&&           tool_icon_rect)
     {
-        const auto tool_stats = terrain_tool.current_stats();
-        const auto tool_next = terrain_tool.next_stats();
-        const auto [next_tool_material, next_tool_level] = next_material_level(terrain_tool.material_index(), terrain_tool.level_index(), 2u);
+        const auto tool_stats                            = terrain_tool.current_stats();
+        const auto tool_next                             = terrain_tool.next_stats();
+        const auto [next_tool_material, next_tool_level] = next_material_level(
+            terrain_tool.material_index(), terrain_tool.level_index(), 2u);
 
-        const std::vector<ui::UpgradeStat> tool_stats_rows = tool_next.has_value()
-            ? std::vector<ui::UpgradeStat>{
-                ui::UpgradeStat{ "Radius", std::format("{:.2f}", tool_stats.radius), std::format("{:.2f}", tool_next->radius) },
-                ui::UpgradeStat{ "Speed", std::format("{:.0f}/s", tool_stats.speed), std::format("{:.0f}/s", tool_next->speed) },
-                ui::UpgradeStat{ "Storage", std::format("{}", tool_stats.capacity), std::format("{}", tool_next->capacity) }
-            }
-            : std::vector<ui::UpgradeStat>{
-                ui::UpgradeStat{ "Radius", std::format("{:.2f}", tool_stats.radius), "Max" },
-                ui::UpgradeStat{ "Speed", std::format("{:.0f}/s", tool_stats.speed), "Max" },
-                ui::UpgradeStat{ "Storage", std::format("{}", tool_stats.capacity), "Max" }
-            };
+        const std::vector<ui::UpgradeStat> tool_stats_rows =
+                tool_next.has_value()
+                    ? std::vector{
+                        ui::UpgradeStat{
+                            "Radius",
+                            std::format("{:.2f}", tool_stats.radius),
+                            std::format("{:.2f}", tool_next->radius)
+                        },
+                        ui::UpgradeStat{
+                            "Speed",
+                            std::format("{:.0f}/s", tool_stats.speed),
+                            std::format("{:.0f}/s", tool_next->speed)
+                        },
+                        ui::UpgradeStat{
+                            "Storage",
+                            std::format("{}", tool_stats.capacity),
+                            std::format("{}", tool_next->capacity)
+                        }
+                    }
+                    : std::vector{
+                        ui::UpgradeStat{
+                            "Radius",
+                            std::format("{:.2f}", tool_stats.radius), "Max"
+                        },
+                        ui::UpgradeStat{
+                            "Speed",
+                            std::format("{:.0f}/s", tool_stats.speed),
+                            "Max"
+                        },
+                        ui::UpgradeStat{
+                            "Storage",
+                            std::format("{}", tool_stats.capacity), "Max"
+                        }
+                    };
 
         const auto bucket_stats = water_tool.current_stats();
-        const auto bucket_next = water_tool.next_stats();
-        const auto [next_bucket_material, next_bucket_level] = next_material_level(water_tool.material_index(), water_tool.level_index(), 2u);
+        const auto bucket_next  = water_tool.next_stats();
 
-        const std::vector<ui::UpgradeStat> bucket_stats_rows = bucket_next.has_value()
-            ? std::vector<ui::UpgradeStat>{
-                ui::UpgradeStat{ "Capacity", std::format("{}", bucket_stats.capacity), std::format("{}", bucket_next->capacity) }
-            }
-            : std::vector<ui::UpgradeStat>{
-                ui::UpgradeStat{ "Capacity", std::format("{}", bucket_stats.capacity), "Max" }
-            };
+        const auto [
+            next_bucket_material,
+            next_bucket_level
+        ] = next_material_level(
+            water_tool.material_index(),
+            water_tool.level_index(),
+            2u);
+
+        const std::vector<ui::UpgradeStat> bucket_stats_rows =
+                bucket_next.has_value()
+                    ? std::vector{
+                        ui::UpgradeStat{
+                            "Capacity",
+                            std::format("{}", bucket_stats.capacity),
+                            std::format("{}", bucket_next->capacity)
+                        }
+                    }
+                    : std::vector{
+                        ui::UpgradeStat{
+                            "Capacity",
+                            std::format("{}", bucket_stats.capacity),
+                            "Max"
+                        }
+                    };
 
         return {
             ui::UpgradeCard{
-                .title = "Digging Tool",
-                .current_icon = tool_icon_rect(terrain_tool.material_index(), 0u),
+                .title         = "Digging Tool",
+                .current_icon  = tool_icon_rect(terrain_tool.material_index(), 0u),
                 .current_level = terrain_tool.level_index(),
-                .next_icon = tool_icon_rect(next_tool_material, 0u),
-                .next_level = next_tool_level,
-                .stats = tool_stats_rows,
-                .cost_text = format_cost(digging_upgrade_cost(terrain_tool)),
-                .maxed = terrain_tool.at_max_upgrade()
+                .next_icon     = tool_icon_rect(next_tool_material, 0u),
+                .next_level    = next_tool_level,
+                .stats         = tool_stats_rows,
+                .cost_text     = format_cost(digging_upgrade_cost(terrain_tool)),
+                .maxed         = terrain_tool.at_max_upgrade()
             },
             ui::UpgradeCard{
-                .title = "Bucket",
-                .current_icon = tool_icon_rect(water_tool.material_index(), 1u),
+                .title         = "Bucket",
+                .current_icon  = tool_icon_rect(water_tool.material_index(), 1u),
                 .current_level = water_tool.level_index(),
-                .next_icon = tool_icon_rect(next_bucket_material, 1u),
-                .next_level = next_bucket_level,
-                .stats = bucket_stats_rows,
-                .cost_text = format_cost(bucket_upgrade_cost(water_tool)),
-                .maxed = water_tool.at_max_upgrade()
+                .next_icon     = tool_icon_rect(next_bucket_material, 1u),
+                .next_level    = next_bucket_level,
+                .stats         = bucket_stats_rows,
+                .cost_text     = format_cost(bucket_upgrade_cost(water_tool)),
+                .maxed         = water_tool.at_max_upgrade()
             }
         };
     }

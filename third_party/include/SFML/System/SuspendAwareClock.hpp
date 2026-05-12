@@ -70,7 +70,7 @@ struct SFML_SYSTEM_API SuspendAwareClock
 
     static constexpr bool is_steady = true; // NOLINT(readability-identifier-naming)
 
-    static time_point now() noexcept;
+    static time_point now();
 };
 
 } // namespace sf

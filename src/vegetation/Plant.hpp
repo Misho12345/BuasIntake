@@ -27,11 +27,11 @@ namespace game::vegetation
 
     struct Plant final
     {
-        PlantStage stage{ PlantStage::Empty };
-        PlantFamily family{ PlantFamily::Grass };
-        float age{ 0.0f };
-        float spread_age{ 0.0f };
+        PlantStage   stage{ PlantStage::Empty };
+        PlantFamily  family{ PlantFamily::Grass };
+        float        age{ 0.0f };
+        float        spread_age{ 0.0f };
         std::uint8_t variant{ 0u };
-        vec2 anchor_world{ 0.0f, 0.0f };
+        vec2         anchor_world{ 0.0f, 0.0f };
     };
 }

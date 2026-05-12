@@ -652,7 +652,7 @@ public:
     /// \param right Instance to swap with
     ///
     ////////////////////////////////////////////////////////////
-    void swap(Texture& right) noexcept;
+    void swap(Texture& right);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the underlying OpenGL handle of the texture.
@@ -762,7 +762,7 @@ private:
 /// \param right Second instance to swap
 ///
 ////////////////////////////////////////////////////////////
-SFML_GRAPHICS_API void swap(Texture& left, Texture& right) noexcept;
+SFML_GRAPHICS_API void swap(Texture& left, Texture& right);
 
 } // namespace sf
 

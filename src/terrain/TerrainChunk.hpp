@@ -15,68 +15,82 @@ namespace game::terrain
 {
     class TerrainChunk final
     {
-      public:
+    public:
         using FieldSample = TerrainGenerator::FieldSample;
 
         explicit TerrainChunk(b2WorldId world_id, const ChunkSettings& settings = {});
         ~TerrainChunk() = default;
 
-        TerrainChunk(const TerrainChunk&) = delete;
-        TerrainChunk& operator=(const TerrainChunk&) = delete;
-        TerrainChunk(TerrainChunk&&) noexcept = default;
+        TerrainChunk(const TerrainChunk&)                = delete;
+        TerrainChunk& operator=(const TerrainChunk&)     = delete;
+        TerrainChunk(TerrainChunk&&) noexcept            = default;
         TerrainChunk& operator=(TerrainChunk&&) noexcept = default;
 
         Result<void> initialize();
+
         void draw_gl(const sf::View& view) const;
         void draw_water_gl(const sf::View& view) const;
+
         Result<void> dispatch_generation();
         Result<void> finalize_generation();
-        Result<void> rebuild_from_field(std::span<const FieldSample> field_samples,
-                                        bool smooth_water = false,
-                                        bool rebuild_water = true,
-                                        bool rebuild_terrain_geometry = true);
+        Result<void> rebuild_from_field(
+            std::span<const FieldSample> field_samples,
+            bool                         smooth_water             = false,
+            bool                         rebuild_water            = true,
+            bool                         rebuild_terrain_geometry = true);
+
         Result<void> upload_rebuild_field(std::span<const FieldSample> field_samples);
+
         void refresh_cached_terrain_mesh(std::span<const FieldSample> field_samples);
+
         Result<void> dispatch_terrain_surface_rebuild();
         Result<void> finalize_terrain_surface_rebuild(std::span<const FieldSample> field_samples);
         Result<void> dispatch_water_surface_rebuild();
         Result<void> finalize_water_surface_rebuild();
+
         Result<std::vector<FieldSample>> readback_field() const;
 
         ivec2 chunk_coord() const;
-        vec2 display_min() const;
-        vec2 display_max() const;
+        vec2  display_min() const;
+        vec2  display_max() const;
 
-      private:
+    private:
         Result<TerrainContour::ScoredResult> read_scored_surface();
         Result<TerrainContour::ScoredResult> rebuild_scored_surface(std::uint32_t channel_index, float iso);
-        Result<void> rebuild_chunk_meshes(std::span<const FieldSample> field_samples,
-                                          bool rebuild_water = true,
-                                          bool rebuild_terrain_geometry = true);
 
-        void build_chunk(const TerrainContour::ScoredResult& terrain_result,
-                         const TerrainContour::ScoredResult& water_result,
-                         std::span<const FieldSample> field_samples);
-        void build_terrain_mesh(const std::vector<vec2>& vertices,
-                                const std::vector<std::uint32_t>& indices,
-                                std::span<const FieldSample> field_samples);
-        void build_water_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices);
+        Result<void> rebuild_chunk_meshes(
+            std::span<const FieldSample> field_samples,
+            bool                         rebuild_water            = true,
+            bool                         rebuild_terrain_geometry = true);
+
+        void build_chunk(
+            const TerrainContour::ScoredResult& terrain_result,
+            const TerrainContour::ScoredResult& water_result,
+            std::span<const FieldSample>        field_samples);
+        void build_terrain_mesh(
+            const std::vector<vec2>&          vertices,
+            const std::vector<std::uint32_t>& indices,
+            std::span<const FieldSample>      field_samples);
+
+        void build_water_mesh(
+            const std::vector<vec2>&          vertices,
+            const std::vector<std::uint32_t>& indices);
 
         ChunkSettings settings_{};
 
-        TerrainGenerator generator_;
-        TerrainCollider collider_;
-        TerrainRenderable renderable_{};
+        TerrainGenerator       generator_;
+        TerrainCollider        collider_;
+        TerrainRenderable      renderable_{};
         water::WaterRenderable water_renderable_{};
 
-        gfx::Mesh mesh_{};
-        gfx::Mesh water_mesh_{};
-        std::vector<vec2> cached_terrain_vertices_{};
+        gfx::Mesh                  mesh_{};
+        gfx::Mesh                  water_mesh_{};
+        std::vector<vec2>          cached_terrain_vertices_{};
         std::vector<std::uint32_t> cached_terrain_indices_{};
 
         vec2 display_min_{};
         vec2 display_max_{};
-        bool generation_dispatched_{false};
-        bool generation_finalized_{false};
+        bool generation_dispatched_{ false };
+        bool generation_finalized_{ false };
     };
 }

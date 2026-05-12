@@ -10,7 +10,9 @@ namespace game::terrain
 {
     class TerrainWaterColliderBuilder final
     {
-      public:
-        static void rebuild(TerrainColliderManager& collider_manager, const water::GridView& grid);
+    public:
+        static void rebuild(
+            TerrainColliderManager& collider_manager,
+            const water::GridView&  grid);
     };
 }

@@ -19,12 +19,12 @@ namespace game::render
         resource_renderer_.destroy_graphics_resources();
     }
 
-    void WorldRenderer::draw(const world::World& world,
-                             const std::optional<tools::WaterTool::PreviewState>& preview_state,
-                             const sf::View& view) const
+    void WorldRenderer::draw(
+        const world::World&                                  world,
+        const std::optional<tools::WaterTool::PreviewState>& preview_state,
+        const sf::View&                                      view) const
     {
-        if (!world.ready())
-            return;
+        if (!world.ready()) return;
 
         resource_renderer_.draw_ores(view, world.terrain(), world.resources());
         world.terrain().draw_gl(view);

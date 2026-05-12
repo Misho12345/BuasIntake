@@ -20,15 +20,13 @@ namespace game::terrain
     namespace
     {
         constexpr float rock_blend_start_depth = 0.12f;
-        constexpr float rock_blend_end_depth = 0.52f;
+        constexpr float rock_blend_end_depth   = 0.52f;
+
         std::weak_ptr<TerrainRenderable::SharedAssets> shared_assets_cache;
 
         Result<void> load_terrain_texture(sf::Texture& texture, const char* path)
         {
-            if (!texture.loadFromFile(path))
-            {
-                return fail("Failed to load terrain texture '{}'", path);
-            }
+            if (!texture.loadFromFile(path)) return fail("Failed to load terrain texture '{}'", path);
 
             texture.setRepeated(true);
             texture.setSmooth(true);
@@ -37,16 +35,15 @@ namespace game::terrain
 
         Result<std::shared_ptr<TerrainRenderable::SharedAssets>> acquire_shared_assets()
         {
-            if (const auto shared_assets = shared_assets_cache.lock(); shared_assets)
-            {
-                return shared_assets;
-            }
+            if (const auto shared_assets = shared_assets_cache.lock();
+                shared_assets) { return shared_assets; }
 
             auto shared_assets = std::make_shared<TerrainRenderable::SharedAssets>();
-            auto shader = gfx::Shader::from_graphics_files("assets/shaders/render/default.vert", "assets/shaders/terrain/terrain_mesh.frag");
+            auto shader        = gfx::Shader::from_graphics_files(
+                "assets/shaders/render/default.vert",
+                "assets/shaders/terrain/terrain_mesh.frag");
 
-            if (!shader)
-                return fail(shader.error());
+            if (!shader) return fail(shader.error());
             shared_assets->shader = std::move(*shader);
 
             TRY(load_terrain_texture(shared_assets->dirt_texture, "assets/images/textures/dirt.png"));
@@ -62,16 +59,14 @@ namespace game::terrain
     Result<void> TerrainRenderable::initialize()
     {
         auto shared_assets = acquire_shared_assets();
-        if (!shared_assets)
-            return fail(shared_assets.error());
+        if (!shared_assets) return fail(shared_assets.error());
         assets_ = std::move(*shared_assets);
         return {};
     }
 
     void TerrainRenderable::draw(const gfx::Mesh& mesh, const sf::View& view) const
     {
-        if (mesh.empty() || assets_ == nullptr || !assets_->shader.valid())
-            return;
+        if (mesh.empty() || assets_ == nullptr || !assets_->shader.valid()) return;
 
         glDisable(GL_BLEND);
         glDisable(GL_DEPTH_TEST);
@@ -79,7 +74,8 @@ namespace game::terrain
 
         // glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-        if (const auto use_result = assets_->shader.use(); !use_result)
+        if (const auto use_result = assets_->shader.use();
+            !use_result)
         {
             Log::error(use_result.error());
             return;

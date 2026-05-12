@@ -7,3 +7,5 @@ captures/
 screenshots/
 exports/
 temp/
+.idea/
+CMakeLists.txt

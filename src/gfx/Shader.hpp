@@ -9,22 +9,22 @@ namespace game::gfx
     class Shader final
     {
     public:
-        Shader() = default;
+        Shader()  = default;
         ~Shader() = default;
 
-        Shader(const Shader&) = delete;
-        Shader& operator=(const Shader&) = delete;
-        Shader(Shader&& other) noexcept = default;
+        Shader(const Shader&)                      = delete;
+        Shader& operator=(const Shader&)           = delete;
+        Shader(Shader&& other) noexcept            = default;
         Shader& operator=(Shader&& other) noexcept = default;
 
         static Result<Shader> from_compute_file(const fs::path& path);
         static Result<Shader> from_graphics_files(const fs::path& vertex_path, const fs::path& fragment_path);
-        static void clear_cache();
+        static void           clear_cache();
 
         Result<void> use() const;
 
         GLuint id() const;
-        bool valid() const;
+        bool   valid() const;
 
         template <typename T>
         void set_uniform(const std::string_view name, const T& value) const
@@ -55,9 +55,6 @@ namespace game::gfx
 
     private:
         explicit Shader(std::shared_ptr<ShaderProgram> program);
-
-        static Result<GLuint> compile_stage(GLenum stage, const std::string& source, const fs::path& path);
-        static Result<GLuint> link_program(std::span<const GLuint> shaders, std::string_view label);
 
         GLint uniform_location(std::string_view name) const;
 

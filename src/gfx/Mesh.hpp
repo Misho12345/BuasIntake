@@ -10,7 +10,7 @@ namespace game::gfx
         Mesh();
         ~Mesh();
 
-        Mesh(const Mesh&) = delete;
+        Mesh(const Mesh&)            = delete;
         Mesh& operator=(const Mesh&) = delete;
         Mesh(Mesh&& other) noexcept;
         Mesh& operator=(Mesh&& other) noexcept;
@@ -21,9 +21,9 @@ namespace game::gfx
         bool empty() const;
 
     private:
-        GLuint vao_{ 0 };
-        GLuint vbo_{ 0 };
-        GLuint ebo_{ 0 };
+        GLuint  vao_{ 0 };
+        GLuint  vbo_{ 0 };
+        GLuint  ebo_{ 0 };
         GLsizei index_count_{ 0 };
     };
 }

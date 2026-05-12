@@ -18,7 +18,10 @@ namespace game::water
 
     Result<void> WaterRenderable::initialize()
     {
-        auto shader = gfx::Shader::from_graphics_files("assets/shaders/render/default.vert", "assets/shaders/water/water_mesh.frag");
+        auto shader = gfx::Shader::from_graphics_files(
+            "assets/shaders/render/default.vert",
+            "assets/shaders/water/water_mesh.frag");
+
         if (!shader) return fail(shader.error());
 
         shader_ = std::move(*shader);
@@ -29,10 +32,11 @@ namespace game::water
     {
         if (mesh.empty() || !shader_.valid()) return;
 
-		[[maybe_unused]]
+        [[maybe_unused]]
         const gfx::ScopedAlphaBlendPass blend_pass{};
 
-        if (const auto use_result = shader_.use(); !use_result)
+        if (const auto use_result = shader_.use();
+            !use_result)
         {
             Log::error(use_result.error());
             return;

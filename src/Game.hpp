@@ -18,20 +18,21 @@ namespace game
     struct GameSettings final
     {
         std::string title;
-        uvec2 win_size;
-        sf::Color clear_color;
+        uvec2       win_size;
+        sf::Color   clear_color;
     };
 
     class Game final
     {
     public:
-        Game(const Game&) = delete;
-        Game& operator=(const Game&) = delete;
-        Game(Game&&) noexcept = delete;
+        Game(const Game&)                = delete;
+        Game& operator=(const Game&)     = delete;
+        Game(Game&&) noexcept            = delete;
         Game& operator=(Game&&) noexcept = delete;
 
         static void initialize(GameSettings settings);
         static void run();
+        static void shutdown();
         static void quit();
 
     private:
@@ -42,6 +43,7 @@ namespace game
 
         void initialize_impl(GameSettings settings);
         void run_impl();
+        void shutdown_impl();
 
         void update(float dt);
         void handle_frame_input();
@@ -50,6 +52,7 @@ namespace game
         void handle_modal_input();
         void handle_gameplay_input();
 
+        // window and gl setup are split out because if any one of these dies we want a clean early exit
         Result<void> initialize_window();
         Result<void> initialize_graphics();
         Result<void> initialize_world_state();
@@ -62,6 +65,8 @@ namespace game
 
         Result<void> create_world();
 
+        // fixed_update is the physics side and variable_update is the game logic side
+        // keeping those separate avoids mixing box2d stepping with frame rate dependent work
         void fixed_update(float dt);
         void variable_update(float dt);
         void update_win_condition();
@@ -74,6 +79,7 @@ namespace game
 
         sf::View make_ui_view() const;
 
+        // this bundles the live world state into one little packet so tool code does not have to know about the whole game object
         std::optional<tools::TerrainToolContext> terrain_tool_context();
 
         vec2 mouse_world_position() const;
@@ -82,22 +88,22 @@ namespace game
         GameSettings settings_{};
 
         sf::RenderWindow window_{};
-        sf::Clock clock_{};
+        sf::Clock        clock_{};
 
         b2WorldId world_{ b2_nullWorldId };
 
-        world::World world_state_{};
+        world::World                 world_state_{};
         world::PlanetRestorationGoal restoration_goal_{};
-        player::PlayerConfig player_config_{};
+        player::PlayerConfig         player_config_{};
 
-        float physics_accumulator_{ 0.0f };
+        float                    physics_accumulator_{ 0.0f };
         render::CameraController camera_{};
 
-        render::WorldRenderer world_renderer_{};
+        render::WorldRenderer        world_renderer_{};
         tools::TerrainToolController terrain_tools_{};
-        ui::InventoryHud inventory_hud_{};
-        ui::GoalProgressHud goal_hud_{};
-        float debug_validation_timer_{ 0.0f };
+        ui::InventoryHud             inventory_hud_{};
+        ui::GoalProgressHud          goal_hud_{};
+        float                        debug_validation_timer_{ 0.0f };
 
         bool initialized_{ false };
         bool gl_loaded_{ false };

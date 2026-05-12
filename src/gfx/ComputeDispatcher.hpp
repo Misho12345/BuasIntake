@@ -68,12 +68,6 @@ namespace game::gfx
     private:
         static GLuint ceil_div(const GLuint value, const GLuint divisor)
         {
-            if (divisor == 0)
-            {
-                Log::error("ComputeDispatcher ceil_div received zero divisor");
-                return 1;
-            }
-
             return (value + divisor - 1) / divisor;
         }
     };

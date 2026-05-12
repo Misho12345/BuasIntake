@@ -96,6 +96,15 @@
     <ClCompile Include="src\gfx\Shader.cpp">
       <Filter>Source Files\gfx</Filter>
     </ClCompile>
+    <ClCompile Include="src\gfx\ShaderCompiler.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\ShaderPreprocessor.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gfx\ShaderProgramCache.cpp">
+      <Filter>Source Files\gfx</Filter>
+    </ClCompile>
     <ClCompile Include="src\gfx\Mesh.cpp">
       <Filter>Source Files\gfx</Filter>
     </ClCompile>
@@ -203,6 +212,18 @@
     <ClInclude Include="src\gfx\Shader.hpp">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
+    <ClInclude Include="src\gfx\ShaderCompiler.hpp">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gfx\ShaderPreprocessor.hpp">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gfx\ShaderProgram.hpp">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
+    <ClInclude Include="src\gfx\ShaderProgramCache.hpp">
+      <Filter>Header Files\gfx</Filter>
+    </ClInclude>
     <ClInclude Include="src\gfx\SSBO.hpp">
       <Filter>Header Files\gfx</Filter>
     </ClInclude>
@@ -299,7 +320,7 @@
     <ClInclude Include="src\tools\ToolUpgradeModel.hpp">
       <Filter>Header Files\tools</Filter>
     </ClInclude>
-    <ClInclude Include="src\tools\ToolStrategy.hpp">
+    <ClInclude Include="src\tools\TerrainTool.hpp">
       <Filter>Header Files\tools</Filter>
     </ClInclude>
     <ClInclude Include="src\tools\WaterTool.hpp">

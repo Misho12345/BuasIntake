@@ -4,6 +4,8 @@
 
 namespace game::world
 {
+    // world startup is annoyingly order sensitive
+    // terrain has to exist before we can ask for a spawn point and the player has to spawn against the final planet center
     Result<void> World::initialize(const b2WorldId physics_world, const player::PlayerConfig& player_config)
     {
         destroy();
@@ -11,17 +13,22 @@ namespace game::world
 
         physics_world_ = physics_world;
         terrain_.emplace(physics_world_, resources_, vegetation_);
-        if (const auto terrain_result = terrain_->initialize(); !terrain_result)
+        if (const auto result = terrain_->initialize();
+            !result)
         {
             terrain_.reset();
-            return fail("Failed to initialize planet terrain: {}", terrain_result.error().message);
+            return fail("Failed to initialize planet terrain: {}", result.error().message);
         }
 
-        const auto spawn = terrain_->spawn_point_from_top_center(player_config.capsule_half_height + player_config.spawn_air_clearance);
-        if (const auto player_result = player_.create(physics_world_, spawn, terrain_->planet_center(), player_config); !player_result)
+        const auto spawn = terrain_->spawn_point_from_top_center(
+            player_config.capsule_half_height +
+            player_config.spawn_air_clearance);
+
+        if (const auto result = player_.create(physics_world_, spawn, terrain_->planet_center(), player_config);
+            !result)
         {
             terrain_.reset();
-            return fail(player_result.error());
+            return fail(result.error());
         }
 
         return {};
@@ -31,28 +38,27 @@ namespace game::world
     {
         terrain_.reset();
         player_.destroy();
-        resources_ = resources::ResourceSystem{};
-        vegetation_ = vegetation::VegetationSystem{};
-        water_ = water::WaterSystem{};
+        resources_     = resources::ResourceSystem{};
+        vegetation_    = vegetation::VegetationSystem{};
+        water_         = water::WaterSystem{};
         physics_world_ = b2_nullWorldId;
     }
 
+    // flush terrain edits first so vegetation is not looking at stale ground data for this frame
+    // if vegetation changes then terrain visuals get another pass right away because greenness is derived from the plant layout
     void World::update(const float dt)
     {
-        if (!terrain_.has_value())
-            return;
+        if (!terrain_.has_value()) return;
 
-        // Flush terrain edits first so plants and resource state see the final field for this frame.
+        // flush terrain edits first so plants and resource state see the final field for this frame
         terrain_->flush_pending_edits();
-        if (vegetation_.update(dt, *terrain_))
-            terrain_->rebuild_after_vegetation_change();
+        if (vegetation_.update(dt, *terrain_)) terrain_->rebuild_after_vegetation_change();
         resources_.update(dt);
     }
 
     void World::validate() const
     {
-        if (!terrain_.has_value())
-            return;
+        if (!terrain_.has_value()) return;
         terrain_->validate();
         resources_.validate();
         vegetation_.validate();

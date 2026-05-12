@@ -2,7 +2,7 @@
 
 #include "pch.hpp"
 
-#include "tools/ToolStrategy.hpp"
+#include "tools/TerrainTool.hpp"
 #include "water/WaterSystem.hpp"
 
 namespace game::tools
@@ -13,6 +13,7 @@ namespace game::tools
         WaterTool() = default;
         ~WaterTool() override = default;
 
+        // this tool is basically a two mode bucket pickup vs armed placement so these calls drive that state machine
         void deactivate() override;
         void update(const TerrainToolContext& context, const TerrainTargetResolver& resolver, float dt) override;
         void handle_mouse_pressed(const TerrainToolContext& context, const TerrainTargetResolver& resolver, MouseButton button) override;
@@ -28,6 +29,7 @@ namespace game::tools
             std::uint64_t revision{ 0u };
         };
 
+        // preview_state is what render code uses to draw the ghost water mesh while placement mode is armed
         std::optional<PreviewState> preview_state(const TerrainToolContext& context, const TerrainTargetResolver& resolver) const;
 
         struct BucketStats final
@@ -66,6 +68,7 @@ namespace game::tools
         void begin_placement();
         void confirm_placement(const TerrainToolContext& context, const TerrainTargetResolver& resolver);
         void collect_water(const TerrainToolContext& context, const TerrainTargetResolver& resolver);
+        // the preview is cached because rebuilding the water plan every frame for no reason got old fast
         void refresh_preview_cache(const TerrainToolContext& context, const TerrainTargetResolver& resolver) const;
         void invalidate_preview_cache() const;
         BucketTier current_tier() const;

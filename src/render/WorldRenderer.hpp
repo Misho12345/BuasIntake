@@ -11,16 +11,18 @@ namespace game::render
 {
     class WorldRenderer final
     {
-      public:
+    public:
         Result<void> initialize_assets();
-        void destroy_graphics_resources();
-        void draw(const world::World& world,
-                  const std::optional<tools::WaterTool::PreviewState>& preview_state,
-                  const sf::View& view) const;
+        void         destroy_graphics_resources();
 
-      private:
-        mutable ResourceRenderer resource_renderer_{};
+        void draw(
+            const world::World&                                  world,
+            const std::optional<tools::WaterTool::PreviewState>& preview_state,
+            const sf::View&                                      view) const;
+
+    private:
+        mutable ResourceRenderer    resource_renderer_{};
         mutable ToolPreviewRenderer tool_preview_renderer_{};
-        mutable VegetationRenderer vegetation_renderer_{};
+        mutable VegetationRenderer  vegetation_renderer_{};
     };
 }

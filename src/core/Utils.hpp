@@ -25,76 +25,45 @@ using mat4 = sf::Glsl::Mat4;
 using sf::Keyboard::Key;
 using MouseButton = sf::Mouse::Button;
 
-inline sf::Angle operator""_deg(const long double val)
-{
-    return sf::degrees(static_cast<float>(val));
-}
+inline sf::Angle operator""_deg(const long double val) { return sf::degrees(static_cast<float>(val)); }
+inline sf::Angle operator""_rad(const long double val) { return sf::radians(static_cast<float>(val)); }
 
-inline sf::Angle operator""_rad(const long double val)
-{
-    return sf::radians(static_cast<float>(val));
-}
-
-inline sf::Time operator""_sec(const long double val)
-{
-    return sf::seconds(static_cast<float>(val));
-}
-
-inline sf::Time operator""_ms(const unsigned long long val)
-{
-    return sf::milliseconds(static_cast<std::int32_t>(val));
-}
-
-inline sf::Time operator""_us(const unsigned long long val)
-{
-    return sf::microseconds(static_cast<std::int64_t>(val));
-}
+inline sf::Time operator""_sec(const long double val) { return sf::seconds(static_cast<float>(val)); }
+inline sf::Time operator""_ms(const unsigned long long val) { return sf::milliseconds(static_cast<std::int32_t>(val)); }
+inline sf::Time operator""_us(const unsigned long long val) { return sf::microseconds(static_cast<std::int64_t>(val)); }
 
 
 inline sf::Color operator""_rgb(const unsigned long long val)
 {
-    return {static_cast<std::uint8_t>(val >> 16 & 0xFF), static_cast<std::uint8_t>(val >> 8 & 0xFF), static_cast<std::uint8_t>(val & 0xFF)};
+    return {
+        static_cast<std::uint8_t>(val >> 16 & 0xFF),
+        static_cast<std::uint8_t>(val >> 8 & 0xFF),
+        static_cast<std::uint8_t>(val & 0xFF)
+    };
 }
 
 inline sf::Color operator""_rgba(const unsigned long long val)
 {
-    return {static_cast<std::uint8_t>(val >> 24 & 0xFF),
-            static_cast<std::uint8_t>(val >> 16 & 0xFF),
-            static_cast<std::uint8_t>(val >> 8 & 0xFF),
-            static_cast<std::uint8_t>(val & 0xFF)};
+    return {
+        static_cast<std::uint8_t>(val >> 24 & 0xFF),
+        static_cast<std::uint8_t>(val >> 16 & 0xFF),
+        static_cast<std::uint8_t>(val >> 8 & 0xFF),
+        static_cast<std::uint8_t>(val & 0xFF)
+    };
 }
 
 namespace game
 {
-    inline constexpr float pi = std::numbers::pi_v<float>;
+    inline constexpr float pi  = std::numbers::pi_v<float>;
     inline constexpr float tau = pi * 2.0f;
+    inline constexpr float eps = std::numeric_limits<float>::epsilon();
+    inline constexpr float inf = std::numeric_limits<float>::infinity();
 
-
-    inline vec2 operator+(const vec2& lhs, const vec2& rhs)
-    {
-        return {lhs.x + rhs.x, lhs.y + rhs.y};
-    }
-
-    inline vec2 operator-(const vec2& lhs, const vec2& rhs)
-    {
-        return {lhs.x - rhs.x, lhs.y - rhs.y};
-    }
-
-    inline vec2 operator*(const vec2& value, const float scalar)
-    {
-        return {value.x * scalar, value.y * scalar};
-    }
-
-    inline vec2 operator*(const float scalar, const vec2& value)
-    {
-        return value * scalar;
-    }
-
-    inline vec2 operator/(const vec2& value, const float scalar)
-    {
-        return {value.x / scalar, value.y / scalar};
-    }
-
+    inline vec2 operator+(const vec2& lhs, const vec2& rhs) { return { lhs.x + rhs.x, lhs.y + rhs.y }; }
+    inline vec2 operator-(const vec2& lhs, const vec2& rhs) { return { lhs.x - rhs.x, lhs.y - rhs.y }; }
+    inline vec2 operator*(const vec2& value, const float scalar) { return { value.x * scalar, value.y * scalar }; }
+    inline vec2 operator*(const float scalar, const vec2& value) { return value * scalar; }
+    inline vec2 operator/(const vec2& value, const float scalar) { return { value.x / scalar, value.y / scalar }; }
 
     inline vec2& operator+=(vec2& lhs, const vec2& rhs)
     {
@@ -126,7 +95,7 @@ namespace game
 
 
     inline b2Vec2 to_b2(const vec2& value) { return { value.x, value.y }; }
-    inline vec2 from_b2(const b2Vec2 value) { return { value.x, value.y }; }
+    inline vec2   from_b2(const b2Vec2 value) { return { value.x, value.y }; }
 
     inline vec2 normalize(const vec2& value, const vec2& fallback = { 0.0f, 1.0f })
     {
@@ -137,7 +106,10 @@ namespace game
 
     inline vec2 lerp(const vec2& a, const vec2& b, const float t)
     {
-        return { std::lerp(a.x, b.x, t), std::lerp(a.y, b.y, t) };
+        return {
+            std::lerp(a.x, b.x, t),
+            std::lerp(a.y, b.y, t)
+        };
     }
 
     inline float smooth_factor(const float smoothing, const float dt)
@@ -146,13 +118,7 @@ namespace game
         return 1.0f - std::exp(-smoothing * dt);
     }
 
-    inline float dir_to_angle(const vec2& dir)
-    {
-        return std::atan2(dir.y, dir.x) - pi * 0.5f;
-    }
+    inline float dir_to_angle(const vec2& dir) { return std::atan2(dir.y, dir.x) - pi * 0.5f; }
 
-    inline float shortest_angle_delta(const float from, const float to)
-    {
-        return std::remainder(to - from, tau);
-    }
+    inline float shortest_angle_delta(const float from, const float to) { return std::remainder(to - from, tau); }
 }

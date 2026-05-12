@@ -68,7 +68,7 @@ constexpr bool Rect<T>::contains(Vector2<T> point) const
 
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr std::optional<Rect<T>> Rect<T>::findIntersection(const Rect<T>& rectangle) const
+constexpr std::optional<Rect<T>> Rect<T>::findIntersection(const Rect& rectangle) const
 {
     // Not using 'std::min' and 'std::max' to avoid depending on '<algorithm>'
     const auto min = [](T a, T b) { return (a < b) ? a : b; };
@@ -97,7 +97,7 @@ constexpr std::optional<Rect<T>> Rect<T>::findIntersection(const Rect<T>& rectan
     // If the intersection is valid (positive non zero area), then there is an intersection
     if ((interLeft < interRight) && (interTop < interBottom))
     {
-        return Rect<T>({interLeft, interTop}, {interRight - interLeft, interBottom - interTop});
+        return Rect({interLeft, interTop}, {interRight - interLeft, interBottom - interTop});
     }
 
     return std::nullopt;

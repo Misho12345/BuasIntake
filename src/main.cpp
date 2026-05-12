@@ -5,10 +5,11 @@
 int main()
 {
     game::Game::initialize({
-        .title = "BuasIntake",
-        .win_size = { 800, 600 },
+        .title       = "BuasIntake",
+        .win_size    = { 800, 600 },
         .clear_color = 0x0E1621_rgb,
     });
 
     game::Game::run();
+    game::Game::shutdown();
 }

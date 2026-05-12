@@ -226,7 +226,7 @@ public:
     /// \param right Instance to swap with
     ///
     ////////////////////////////////////////////////////////////
-    void swap(VertexBuffer& right) noexcept;
+    void swap(VertexBuffer& right);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the underlying OpenGL handle of the vertex buffer.
@@ -347,7 +347,7 @@ private:
 /// \param right Second instance to swap
 ///
 ////////////////////////////////////////////////////////////
-SFML_GRAPHICS_API void swap(VertexBuffer& left, VertexBuffer& right) noexcept;
+SFML_GRAPHICS_API void swap(VertexBuffer& left, VertexBuffer& right);
 
 } // namespace sf
 
