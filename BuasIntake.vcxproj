@@ -191,6 +191,8 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClCompile Include="src\tools\WaterTool.cpp" />
     <ClCompile Include="src\ui\GoalProgressHud.cpp" />
     <ClCompile Include="src\ui\InventoryHud.cpp" />
+    <ClCompile Include="src\ui\TutorialOverlay.cpp" />
+    <ClCompile Include="src\ui\UiFont.cpp" />
     <ClCompile Include="src\ui\UpgradeMenu.cpp" />
     <ClCompile Include="src\resources\ResourceSystem.cpp" />
     <ClCompile Include="src\render\CameraController.cpp" />
@@ -261,6 +263,8 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClInclude Include="src\tools\WaterTool.hpp" />
     <ClInclude Include="src\ui\GoalProgressHud.hpp" />
     <ClInclude Include="src\ui\InventoryHud.hpp" />
+    <ClInclude Include="src\ui\TutorialOverlay.hpp" />
+    <ClInclude Include="src\ui\UiFont.hpp" />
     <ClInclude Include="src\ui\UpgradeMenu.hpp" />
     <ClInclude Include="src\resources\Inventory.hpp" />
     <ClInclude Include="src\resources\ResourceNode.hpp" />
@@ -336,6 +340,7 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <None Include="assets\shaders\terrain\terrain_mesh.frag" />
     <None Include="assets\shaders\water\water_mesh.frag" />
     <None Include="assets\shaders\water\water_smooth.comp" />
+    <None Include="assets\images\tutorial.png" />
     <None Include=".gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

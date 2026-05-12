@@ -172,8 +172,8 @@ namespace game::terrain
                 }
             }
 
-            static constexpr std::array<std::size_t, 5> dry_floor_dead_families{ 0u, 2u, 3u, 8u, 9u };
-            static constexpr std::array<std::size_t, 5> damp_floor_dead_families{ 1u, 2u, 4u, 8u, 9u };
+            static constexpr std::array<std::size_t, 5> dry_floor_dead_families{ 0u, 2u, 3u, 5u, 8u };
+            static constexpr std::array<std::size_t, 5> damp_floor_dead_families{ 1u, 2u, 4u, 5u, 8u };
             static constexpr std::array<std::size_t, 5> shelf_dead_families{ 0u, 2u, 3u, 5u, 8u };
 
             // cave plants after resource placement has claimed important cells
@@ -202,10 +202,10 @@ namespace game::terrain
                     const float roll    = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 4073u);
 
                     const float density = alignment > 0.96f
-                                              ? (sample.wetness > 0.18f ? 0.98f : 0.92f)
+                                              ? (sample.wetness > 0.18f ? 0.36f : 0.30f)
                                               : alignment > 0.86f
-                                                    ? (sample.wetness > 0.18f ? 0.90f : 0.82f)
-                                                    : 0.56f;
+                                                    ? (sample.wetness > 0.18f ? 0.28f : 0.22f)
+                                                    : 0.14f;
                     if (roll > density) continue;
 
                     if (placement.is_occupied(coord)) continue;
@@ -226,8 +226,8 @@ namespace game::terrain
 
                     const float large_prop_roll = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 4937u);
 
-                    if (alignment > 0.988f && large_prop_roll > (damp_family ? 0.86f : 0.68f)) family_index = 9u;
-                    else if (alignment > 0.94f && large_prop_roll > 0.42f) family_index = 8u;
+                    if (alignment > 0.988f && large_prop_roll > (damp_family ? 0.96f : 0.92f)) family_index = 9u;
+                    else if (alignment > 0.94f && large_prop_roll > 0.74f) family_index = 8u;
 
                     const std::uint8_t variant = static_cast<std::uint8_t>(
                         family_index * 16u + TerrainResourceNoise::choose_variant_row(coord, seed, 4673u));

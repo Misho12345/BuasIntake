@@ -3,6 +3,7 @@
 #include "ui/InventoryHud.hpp"
 
 #include "resources/ResourceSystem.hpp"
+#include "ui/UiFont.hpp"
 
 namespace game::ui
 {
@@ -49,11 +50,6 @@ namespace game::ui
         TRY(load_texture(processed_resource_texture_, "assets/images/ores/processed_ores.png"));
         TRY(load_texture(seed_icon_texture_, "assets/images/vegetation/ground_plants.png"));
 
-        if (!font_.openFromFile("assets/fonts/arial.ttf"))
-        {
-            return fail("Failed to load font 'assets/fonts/arial.ttf'");
-        }
-
         assets_ready_ = true;
         return {};
     }
@@ -62,7 +58,6 @@ namespace game::ui
     {
         processed_resource_texture_ = sf::Texture{};
         seed_icon_texture_          = sf::Texture{};
-        font_                       = sf::Font{};
         assets_ready_               = false;
     }
 
@@ -116,7 +111,7 @@ namespace game::ui
             icon.setPosition({ icon_center_x, row_center_y });
             target.draw(icon);
 
-            auto       text        = make_counter_text(font_, count, 28u);
+            auto       text        = make_counter_text(ui_font(), count, 28u);
             const auto text_bounds = text.getLocalBounds();
 
             text.setOrigin({
@@ -134,7 +129,7 @@ namespace game::ui
             const auto        alpha       = static_cast<std::uint8_t>(alpha_value);
             const std::string delta_value = std::format("{}{}", feedback_amount > 0 ? "+" : "",
                                                         feedback_amount);
-            sf::Text   delta_text{ font_, delta_value, 20u };
+            sf::Text   delta_text{ ui_font(), delta_value, 20u };
             const auto delta_bounds = delta_text.getLocalBounds();
             delta_text.setOrigin({
                 delta_bounds.position.x + delta_bounds.size.x, delta_bounds.position.y + delta_bounds.size.y * 0.5f

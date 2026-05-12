@@ -20,16 +20,14 @@ namespace game::render
             Dead64 = 3
         };
 
-        inline constexpr std::array<float, 10> dead_plant_world_heights{
+        inline constexpr std::array dead_plant_world_heights{
             2.90f,
-            2.00f,
             3.00f,
             3.16f,
             3.50f,
             3.24f,
             3.90f,
             3.76f,
-            3.70f,
             7.90f
         };
 

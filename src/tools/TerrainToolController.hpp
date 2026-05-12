@@ -90,7 +90,6 @@ namespace game::tools
 
         sf::Texture tools_texture_{};
         sf::Texture seed_icon_texture_{};
-        sf::Font    ui_font_{};
 
         bool ui_assets_ready_{ false };
         bool upgrade_menu_open_{ false };

@@ -2,6 +2,11 @@
 
 #include "Game.hpp"
 
+#include "ui/UiFont.hpp"
+
+#include "platform/InputSystem.hpp"
+#include "terrain/PlanetTerrain.hpp"
+
 namespace game
 {
     using platform::InputSystem;
@@ -9,13 +14,14 @@ namespace game
     namespace
     {
         #ifndef NDEBUG
-        void gl_debug_callback(const GLenum source,
-                               const GLenum type,
-                               const GLuint /*id*/,
-                               const GLenum severity,
-                               const GLsizei /*length*/,
-                               const GLchar* message,
-                               const void* /*user_param*/)
+        void gl_debug_callback(
+            const GLenum source,
+            const GLenum type,
+            const GLuint /*id*/,
+            const GLenum severity,
+            const GLsizei /*length*/,
+            const GLchar* message,
+            const void* /*user_param*/)
         {
             if (severity == GL_DEBUG_SEVERITY_NOTIFICATION) return;
 
@@ -60,10 +66,24 @@ namespace game
             };
 
             const std::string_view safe_message = message != nullptr ? std::string_view{ message } : std::string_view{};
-            if (severity == GL_DEBUG_SEVERITY_HIGH) Log::error("OpenGL [{}:{}:{}] {}", source_name(source),
-                                                               type_name(type), severity_name(severity), safe_message);
-            else Log::warn("OpenGL [{}:{}:{}] {}", source_name(source), type_name(type), severity_name(severity),
-                           safe_message);
+            if (severity == GL_DEBUG_SEVERITY_HIGH)
+            {
+                Log::error(
+                    "OpenGL [{}:{}:{}] {}",
+                    source_name(source),
+                    type_name(type),
+                    severity_name(severity),
+                    safe_message);
+            }
+            else
+            {
+                Log::warn(
+                    "OpenGL [{}:{}:{}] {}",
+                    source_name(source),
+                    type_name(type),
+                    severity_name(severity),
+                    safe_message);
+            }
         }
         #endif
     }
@@ -73,7 +93,6 @@ namespace game
     void Game::initialize(GameSettings settings) { instance().initialize_impl(std::move(settings)); }
 
     void Game::run() { instance().run_impl(); }
-
     void Game::shutdown() { instance().shutdown_impl(); }
 
     Game& Game::instance()
@@ -95,56 +114,63 @@ namespace game
         settings_    = std::move(settings);
         initialized_ = true;
 
-        if (const auto result = initialize_window();
-            !result)
+        if (const auto result = initialize_window(); !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = initialize_graphics();
-            !result)
+        if (const auto result = initialize_graphics(); !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = terrain_tools_.initialize_ui_assets();
-            !result)
+        if (const auto result = ui::initialize_ui_font(); !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = inventory_hud_.initialize_assets();
-            !result)
+        if (const auto result = terrain_tools_.initialize_ui_assets(); !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = world_renderer_.initialize_assets();
-            !result)
+        if (const auto result = inventory_hud_.initialize_assets(); !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = goal_hud_.initialize_assets();
-            !result)
+        if (const auto result = world_renderer_.initialize_assets(); !result)
         {
             Log::error(result.error());
             failed_ = true;
             return;
         }
 
-        if (const auto result = initialize_world_state();
-            !result)
+        if (const auto result = goal_hud_.initialize_assets(); !result)
+        {
+            Log::error(result.error());
+            failed_ = true;
+            return;
+        }
+
+        if (const auto result = tutorial_.initialize_assets(); !result)
+        {
+            Log::error(result.error());
+            failed_ = true;
+            return;
+        }
+
+        if (const auto result = initialize_world_state(); !result)
         {
             Log::error(result.error());
             failed_ = true;
@@ -289,8 +315,10 @@ namespace game
 
         inventory_hud_.destroy_graphics_resources();
         goal_hud_.destroy_graphics_resources();
+        tutorial_.destroy_graphics_resources();
         world_renderer_.destroy_graphics_resources();
         terrain_tools_.destroy_graphics_resources();
+        ui::destroy_ui_font();
         gfx::Shader::clear_cache();
         gladLoaderUnloadGL();
         gl_loaded_ = false;
@@ -319,6 +347,7 @@ namespace game
         if (world_state_.ready()) inventory_hud_.draw(window_, world_state_.resources().hud_state());
         terrain_tools_.draw_ui(window_);
         if (world_state_.ready()) goal_hud_.draw(window_, restoration_goal_);
+        tutorial_.draw(window_);
     }
 
 
@@ -338,6 +367,12 @@ namespace game
         if (restoration_goal_.completed()) return;
 
         handle_scroll_input();
+        if (tutorial_.active())
+        {
+            handle_tutorial_input();
+            return;
+        }
+
         if (handle_global_shortcuts()) return;
 
         if (terrain_tools_.upgrade_menu_open())
@@ -394,6 +429,35 @@ namespace game
                 const auto ui_position    = window_.mapPixelToCoords(pixel_position, make_ui_view());
                 terrain_tools_.handle_upgrade_menu_click(*context, ui_position, window_.getSize());
             }
+        }
+    }
+
+    void Game::handle_tutorial_input()
+    {
+        if (InputSystem::just_pressed(Key::Escape))
+        {
+            tutorial_.close();
+            return;
+        }
+
+        if (InputSystem::just_pressed(Key::Left) || InputSystem::just_pressed(Key::Backspace))
+        {
+            tutorial_.previous_slide();
+            return;
+        }
+
+        if (InputSystem::just_pressed(Key::Right) || InputSystem::just_pressed(Key::Space) ||
+            InputSystem::just_pressed(Key::Enter))
+        {
+            tutorial_.next_slide();
+            return;
+        }
+
+        if (InputSystem::just_pressed(MouseButton::Left))
+        {
+            const auto pixel_position = sf::Mouse::getPosition(window_);
+            const auto ui_position    = window_.mapPixelToCoords(pixel_position, make_ui_view());
+            tutorial_.handle_click(ui_position, window_.getSize());
         }
     }
 

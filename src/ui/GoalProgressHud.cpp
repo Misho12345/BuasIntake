@@ -2,16 +2,13 @@
 
 #include "ui/GoalProgressHud.hpp"
 
+#include "ui/UiFont.hpp"
+
 namespace game::ui
 {
     Result<void> GoalProgressHud::initialize_assets()
     {
         if (assets_ready_) return {};
-
-        if (!win_font_.openFromFile("assets/fonts/Cinzel-SemiBold.ttf"))
-        {
-            return fail("Failed to load font 'assets/fonts/Cinzel-SemiBold.ttf'");
-        }
 
         assets_ready_ = true;
         return {};
@@ -19,7 +16,6 @@ namespace game::ui
 
     void GoalProgressHud::destroy_graphics_resources()
     {
-        win_font_     = sf::Font{};
         assets_ready_ = false;
     }
 
@@ -80,7 +76,7 @@ namespace game::ui
         dim.setFillColor(0x07120CBC_rgba);
         window.draw(dim);
 
-        sf::Text title{ win_font_, "PLANET RESTORED", 54u };
+        sf::Text title{ ui_font(), "PLANET RESTORED", 54u };
         title.setFillColor(0x9CFF7CFF_rgba);
         title.setOutlineColor(0x061006E6_rgba);
         title.setOutlineThickness(2.4f);
@@ -93,7 +89,7 @@ namespace game::ui
         title.setPosition({ center.x, center.y - 24.0f });
         window.draw(title);
 
-        sf::Text subtitle{ win_font_, "The planet is green again", 22u };
+        sf::Text subtitle{ ui_font(), "The planet is green again", 22u };
         subtitle.setFillColor(0xECFFE7FF_rgba);
         subtitle.setOutlineColor(0x061006D0_rgba);
         subtitle.setOutlineThickness(1.4f);

@@ -376,10 +376,10 @@ namespace game::vegetation
         {
             if (index >= plant_samples_.size()) continue;
             auto& plant = plant_samples_[index];
-            const float spread_interval = plant.family == PlantFamily::Tree      ? 3.4f
-                                          : plant.family == PlantFamily::Bush    ? 4.8f
-                                          : plant.family == PlantFamily::Flowers ? 6.2f
-                                                                                 : 5.2f;
+            const float spread_interval = plant.family == PlantFamily::Tree      ? 225.0f
+                                          : plant.family == PlantFamily::Bush    ? 175.0f
+                                          : plant.family == PlantFamily::Flowers ? 150.0f
+                                                                                 : 130.0f;
             if (plant.stage != PlantStage::Mature || plant.spread_age < spread_interval)
                 continue;
             plant.spread_age = 0.0f;

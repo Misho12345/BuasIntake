@@ -76,7 +76,7 @@ namespace game::tools
 
         std::size_t material_index_{ 0u };
         std::size_t level_index_{ 0u };
-        std::uint32_t current_amount_{ 24u };
+        std::uint32_t current_amount_{ 0u };
         bool placement_mode_{ false };
         std::uint32_t desired_place_amount_{ 0u };
         mutable PreviewCache preview_cache_{};

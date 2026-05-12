@@ -20,7 +20,6 @@ namespace game::ui
     private:
         sf::Texture processed_resource_texture_{};
         sf::Texture seed_icon_texture_{};
-        sf::Font    font_{};
         bool        assets_ready_{ false };
     };
 }

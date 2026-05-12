@@ -18,7 +18,6 @@ namespace game::ui
         void draw_progress_bar(sf::RenderWindow& window, const world::PlanetRestorationGoal& goal) const;
         void draw_win_overlay(sf::RenderWindow& window) const;
 
-        sf::Font win_font_{};
-        bool     assets_ready_{ false };
+        bool assets_ready_{ false };
     };
 }

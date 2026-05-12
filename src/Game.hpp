@@ -2,14 +2,13 @@
 
 #include "pch.hpp"
 
-#include "platform/InputSystem.hpp"
 #include "player/Player.hpp"
 #include "render/CameraController.hpp"
 #include "render/WorldRenderer.hpp"
-#include "terrain/PlanetTerrain.hpp"
 #include "tools/TerrainToolController.hpp"
 #include "ui/GoalProgressHud.hpp"
 #include "ui/InventoryHud.hpp"
+#include "ui/TutorialOverlay.hpp"
 #include "world/World.hpp"
 #include "world/PlanetRestorationGoal.hpp"
 
@@ -51,6 +50,7 @@ namespace game
         void handle_scroll_input();
         bool handle_global_shortcuts();
         void handle_modal_input();
+        void handle_tutorial_input();
         void handle_gameplay_input();
 
         // window and gl setup are split out because if any one of these dies we want a clean early exit
@@ -104,6 +104,7 @@ namespace game
         tools::TerrainToolController terrain_tools_{};
         ui::InventoryHud             inventory_hud_{};
         ui::GoalProgressHud          goal_hud_{};
+        ui::TutorialOverlay          tutorial_{};
         float                        debug_validation_timer_{ 0.0f };
 
         bool initialized_{ false };

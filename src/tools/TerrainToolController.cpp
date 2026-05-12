@@ -5,6 +5,7 @@
 #include "platform/InputSystem.hpp"
 #include "resources/ResourceSystem.hpp"
 #include "tools/ToolUpgradeModel.hpp"
+#include "ui/UiFont.hpp"
 
 namespace game::tools
 {
@@ -25,11 +26,6 @@ namespace game::tools
         }
 
         seed_icon_texture_.setSmooth(false);
-
-        if (!ui_font_.openFromFile("assets/fonts/Cinzel-SemiBold.ttf"))
-        {
-            return fail("Failed to load font 'assets/fonts/Cinzel-SemiBold.ttf'");
-        }
 
         ui_assets_ready_ = true;
         return {};
@@ -147,7 +143,6 @@ namespace game::tools
         water_tool_.destroy_preview_resources();
         tools_texture_ = sf::Texture{};
         seed_icon_texture_ = sf::Texture{};
-        ui_font_ = sf::Font{};
         ui_assets_ready_ = false;
     }
 
@@ -168,7 +163,7 @@ namespace game::tools
 
         upgrade_menu_.draw(
             target,
-            ui_font_,
+            ui::ui_font(),
             tools_texture_,
             upgrade_model::build_menu_cards(
                 terrain_tool_,

@@ -193,7 +193,7 @@ namespace game::ui
         };
 
         draw_text(
-            "Upgrade Bench",
+            "Upgrade Menu",
             panel_point(preferred_upgrade_panel_size.x * 0.5f, 43.0f),
             46u, 0xFFE797FF_rgba,
             true, true);
