@@ -7,7 +7,6 @@ namespace game::render
     Result<void> WorldRenderer::initialize_assets()
     {
         TRY(resource_renderer_.initialize_assets());
-        TRY(tool_preview_renderer_.initialize_assets());
         TRY(vegetation_renderer_.initialize_assets());
         return {};
     }
@@ -22,7 +21,7 @@ namespace game::render
     void WorldRenderer::draw(
         const world::World&                                  world,
         const std::optional<tools::WaterTool::PreviewState>& preview_state,
-        const sf::View&                                      view) const
+        const sf::View&                                      view)
     {
         if (!world.ready()) return;
 

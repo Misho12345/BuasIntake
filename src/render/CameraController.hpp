@@ -11,7 +11,6 @@ namespace game::render
     public:
         // these are the only knobs game code really needs the rest of the camera state stays internal
         void set_world_span(vec2 world_span);
-        void reset_follow();
         void zoom_by_scroll(float scroll_delta);
         void update_view_size(uvec2 size);
         // sync_to_player is the follow and rotate brain for the camera and it is called every frame after simulation

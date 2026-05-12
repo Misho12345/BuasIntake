@@ -30,9 +30,6 @@ namespace game::platform
         static bool just_pressed(Key key);
         static bool just_pressed(MouseButton button);
 
-        static bool released(Key key);
-        static bool released(MouseButton button);
-
         static float mouse_wheel_delta() { return instance().mouse_wheel_delta_; }
 
     private:
@@ -54,9 +51,7 @@ namespace game::platform
         InputFrameState current_{};
 
         std::array<bool, key_count>          key_pressed_events_{};
-        std::array<bool, key_count>          key_released_events_{};
         std::array<bool, mouse_button_count> mouse_pressed_events_{};
-        std::array<bool, mouse_button_count> mouse_released_events_{};
 
         float mouse_wheel_delta_{ 0.0f };
     };

@@ -4,33 +4,18 @@
 
 namespace game::resources
 {
-    std::uint64_t ResourceSystem::sample_key(const ivec2 coord)
-    {
-        return static_cast<std::uint64_t>(static_cast<std::uint32_t>(coord.x)) << 32ull |
-                static_cast<std::uint32_t>(coord.y);
-    }
-
     HudState ResourceSystem::hud_state() const
     {
-        HudState                    state{};
+        HudState state{};
 
-        static constexpr std::array hud_kinds{
-            HudKind::Rock,
-            HudKind::CopperBar,
-            HudKind::IronBar,
-            HudKind::GoldBar,
-            HudKind::Diamond,
-            HudKind::Seeds
-        };
-
-        auto assign_counter = [&](const HudKind hud_kind, const InventoryItem item)
+        auto assign_counter = [&](const InventoryItem item)
         {
             auto& [
                 count,
                 feedback_amount,
                 feedback_alpha,
                 feedback_offset_y
-            ] = state.counters[static_cast<std::size_t>(hud_kind)];
+            ] = state.counters[inventory_item_index(item)];
 
             count = inventory_.count(item);
 
@@ -49,15 +34,15 @@ namespace game::resources
             feedback_offset_y = elapsed * 8.0f;
         };
 
-        for (std::size_t i = 0; i < hud_inventory_order.size(); ++i)
+        for (const auto& entry : resource_inventory_entries)
         {
-            assign_counter(hud_kinds[i], hud_inventory_order[i]);
+            assign_counter(entry.item);
         }
 
         return state;
     }
 
-    bool ResourceSystem::has_at(const ivec2 coord) const { return occupied_node_keys_.contains(sample_key(coord)); }
+    bool ResourceSystem::has_at(const ivec2 coord) const { return occupied_node_keys_.contains(game::sample_key(coord)); }
 
     Result<void> ResourceSystem::harvest_at(const vec2 world_position)
     {
@@ -86,7 +71,7 @@ namespace game::resources
         }
 
         collect_kind(nodes_[*best_index].kind);
-        occupied_node_keys_.erase(sample_key(nodes_[*best_index].coord));
+        occupied_node_keys_.erase(game::sample_key(nodes_[*best_index].coord));
         nodes_.erase(nodes_.begin() + static_cast<std::ptrdiff_t>(*best_index));
         ++nodes_revision_;
         return {};
@@ -101,24 +86,12 @@ namespace game::resources
     {
         if (!can_afford(cost)) return false;
 
-        add_count(InventoryItem::Rock, -static_cast<std::int32_t>(cost.rocks));
-        add_count(InventoryItem::CopperBar, -static_cast<std::int32_t>(cost.copper_bars));
-        add_count(InventoryItem::IronBar, -static_cast<std::int32_t>(cost.iron_bars));
-        add_count(InventoryItem::GoldBar, -static_cast<std::int32_t>(cost.gold_bars));
-        add_count(InventoryItem::Diamond, -static_cast<std::int32_t>(cost.diamonds));
-        add_count(InventoryItem::Seeds, -static_cast<std::int32_t>(cost.seeds));
+        for (const auto& entry : resource_inventory_entries)
+        {
+            add_count(entry.item, -static_cast<std::int32_t>(cost.*(entry.amount)));
+        }
 
         return true;
-    }
-
-    void ResourceSystem::grant(const ResourceInventory& reward)
-    {
-        add_count(InventoryItem::Rock, static_cast<std::int32_t>(reward.rocks));
-        add_count(InventoryItem::CopperBar, static_cast<std::int32_t>(reward.copper_bars));
-        add_count(InventoryItem::IronBar, static_cast<std::int32_t>(reward.iron_bars));
-        add_count(InventoryItem::GoldBar, static_cast<std::int32_t>(reward.gold_bars));
-        add_count(InventoryItem::Diamond, static_cast<std::int32_t>(reward.diamonds));
-        add_count(InventoryItem::Seeds, static_cast<std::int32_t>(reward.seeds));
     }
 
     void ResourceSystem::update(const float dt)
@@ -138,7 +111,7 @@ namespace game::resources
         seen_nodes.reserve(nodes_.size());
         for (const auto& node : nodes_)
         {
-            const auto key = sample_key(node.coord);
+            const auto key = game::sample_key(node.coord);
             if (!seen_nodes.insert(key).second)
             {
                 Log::error("ResourceSystem validation failed: duplicate node at ({}, {})", node.coord.x, node.coord.y);
@@ -162,7 +135,7 @@ namespace game::resources
 
     void ResourceSystem::add_node(const ResourceNode& node)
     {
-        if (!occupied_node_keys_.insert(sample_key(node.coord)).second) return;
+        if (!occupied_node_keys_.insert(game::sample_key(node.coord)).second) return;
 
         nodes_.push_back(node);
         ++nodes_revision_;
@@ -178,8 +151,8 @@ namespace game::resources
             nodes_,
             [this, &cleared_keys, collect_removed](const ResourceNode& node)
             {
-                if (!cleared_keys.contains(sample_key(node.coord))) return false;
-                occupied_node_keys_.erase(sample_key(node.coord));
+                if (!cleared_keys.contains(game::sample_key(node.coord))) return false;
+                occupied_node_keys_.erase(game::sample_key(node.coord));
                 if (collect_removed) collect_kind(node.kind);
                 return true;
             });

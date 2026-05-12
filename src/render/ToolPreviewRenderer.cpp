@@ -6,7 +6,7 @@
 
 namespace game::render
 {
-    Result<void> ToolPreviewRenderer::initialize_assets() const
+    Result<void> ToolPreviewRenderer::initialize_assets()
     {
         if (preview_renderable_.has_value() && current_mesh_.has_value() && future_mesh_.has_value()) return {};
 
@@ -35,7 +35,7 @@ namespace game::render
 
     void ToolPreviewRenderer::draw_water_preview(
         const std::optional<tools::WaterTool::PreviewState>& preview_state,
-        const sf::View&                                      view) const
+        const sf::View&                                      view)
     {
         if (!preview_state.has_value()) return;
         if (preview_state->preview == nullptr) return;

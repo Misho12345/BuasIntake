@@ -9,11 +9,6 @@ namespace game::vegetation
 {
     namespace
     {
-        std::uint64_t sample_key(const ivec2 coord)
-        {
-            return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(coord.x)) << 32u) | static_cast<std::uint32_t>(coord.y);
-        }
-
         float hash01(const float x, const float y, const std::uint32_t seed)
         {
             const float value = std::sin(x * 12.9898f + y * 78.233f + static_cast<float>(seed) * 0.013f) * 43758.5453f;
@@ -38,12 +33,6 @@ namespace game::vegetation
         bool is_woody_family(const PlantFamily family)
         {
             return family == PlantFamily::Bush || family == PlantFamily::Tree;
-        }
-
-        float radial_dist(const vec2 point, const vec2 center)
-        {
-            const vec2 offset = point - center;
-            return std::sqrt(offset.x * offset.x + offset.y * offset.y);
         }
 
         struct PlantCandidate final
@@ -165,7 +154,7 @@ namespace game::vegetation
             if (plant.stage == PlantStage::Empty) continue;
 
             const ivec2 coord{ static_cast<int>(index % field_size.x), static_cast<int>(index / field_size.x) };
-            if (!affected_keys.contains(sample_key(coord))) continue;
+            if (!affected_keys.contains(game::sample_key(coord))) continue;
 
             const auto anchor = terrain.surface_anchor_world(coord);
             if (!anchor.has_value())
@@ -258,7 +247,7 @@ namespace game::vegetation
                 const PlantCandidate candidate{
                     .coord = coord,
                     .anchor_dist_sq = anchor_delta.x * anchor_delta.x + anchor_delta.y * anchor_delta.y,
-                    .radial = radial_dist(*anchor, terrain.planet_center())
+                    .radial = distance_between(*anchor, terrain.planet_center())
                 };
 
                 if (!best_candidate.has_value() || candidate.anchor_dist_sq < best_candidate->anchor_dist_sq ||
@@ -465,6 +454,7 @@ namespace game::vegetation
             }
         }
 
+        bool committed = false;
         for (const auto& spawned : spawned_plants)
         {
             if (spawned.index >= plant_samples_.size())
@@ -473,9 +463,10 @@ namespace game::vegetation
                 continue;
             plant_samples_[spawned.index] = spawned.plant;
             active_plant_indices_.push_back(spawned.index);
+            committed = true;
         }
 
-        return !spawned_plants.empty();
+        return committed;
     }
 
     void VegetationSystem::compact_active_plants() const

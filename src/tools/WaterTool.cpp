@@ -2,6 +2,8 @@
 
 #include "tools/WaterTool.hpp"
 
+#include "tools/ToolProgression.hpp"
+
 #include "terrain/PlanetTerrain.hpp"
 #include "tools/TerrainTargetResolver.hpp"
 
@@ -14,6 +16,8 @@ namespace game::tools
             52u, 64u, 76u,
             92u, 112u, 132u
         }};
+
+        static_assert(bucket_capacities.size() == (max_tool_material_index + 1u) * tool_levels_per_material);
     }
 
     void WaterTool::deactivate()
@@ -21,12 +25,7 @@ namespace game::tools
         cancel_placement();
     }
 
-    void WaterTool::update(const TerrainToolContext& /*context*/, const TerrainTargetResolver& /*resolver*/, const float /*dt*/)
-    {
-    }
-
-    // right click arms or commits placement and left click either cancels placement or tries pickup
-    // that split sounds tiny but it keeps the bucket from needing a bunch of extra input modes
+    // right click arms or commits placement, left click cancels placement or picks up water
     void WaterTool::handle_mouse_pressed(const TerrainToolContext& context, const TerrainTargetResolver& resolver, const MouseButton button)
     {
         if (context.terrain == nullptr) return;
@@ -112,15 +111,9 @@ namespace game::tools
     {
         if (at_max_upgrade()) return;
 
-        if (level_index_ + 1u < 3u)
-        {
-            ++level_index_;
-        }
-        else
-        {
-            ++material_index_;
-            level_index_ = 0u;
-        }
+        auto [next_material, next_level] = next_tool_material_level(material_index_, level_index_);
+        material_index_ = next_material;
+        level_index_    = next_level;
 
         current_amount_ = std::min(current_amount_, current_capacity());
         invalidate_preview_cache();
@@ -173,7 +166,6 @@ namespace game::tools
         const bool same_amount = preview_cache_.valid && preview_cache_.amount == desired_place_amount_;
         const bool same_terrain = preview_cache_.valid && preview_cache_.terrain_revision == context.terrain->field_revision();
         const bool same_water = preview_cache_.valid && preview_cache_.water_revision == context.terrain->water_revision();
-        // The preview is revision-driven so scrolling or terrain edits only rebuild it when the inputs really changed.
         if (!same_target || !same_amount || !same_terrain || !same_water)
         {
             const auto preview = context.water->build_preview(*context.terrain, *target_position, desired_place_amount_);
@@ -213,15 +205,9 @@ namespace game::tools
         return level_index_;
     }
 
-    std::string_view WaterTool::material_name() const
-    {
-        static constexpr std::array names{ "Wood", "Copper", "Iron" };
-        return names[std::min(material_index_, names.size() - 1u)];
-    }
-
     bool WaterTool::at_max_upgrade() const
     {
-        return material_index_ >= 2u && level_index_ >= 2u;
+        return at_max_tool_upgrade(material_index_, level_index_);
     }
 
     WaterTool::BucketStats WaterTool::current_stats() const
@@ -268,22 +254,15 @@ namespace game::tools
     {
         if (at_max_upgrade()) return std::nullopt;
 
-        std::size_t next_material = material_index_;
-        std::size_t next_level = level_index_ + 1u;
-        if (next_level >= 3u)
-        {
-            next_level = 0u;
-            ++next_material;
-        }
+        auto [next_material, next_level] = next_tool_material_level(material_index_, level_index_);
 
-        const auto next_index = std::min<std::size_t>(next_material, 2u) * 3u + std::min<std::size_t>(next_level, 2u);
         return BucketTier{
-            .capacity = bucket_capacities[std::min(next_index, bucket_capacities.size() - 1u)]
+            .capacity = bucket_capacities[std::min(flat_tool_tier_index(next_material, next_level), bucket_capacities.size() - 1u)]
         };
     }
 
     std::size_t WaterTool::flat_tier_index() const
     {
-        return std::min<std::size_t>(material_index_, 2u) * 3u + std::min<std::size_t>(level_index_, 2u);
+        return flat_tool_tier_index(material_index_, level_index_);
     }
 }

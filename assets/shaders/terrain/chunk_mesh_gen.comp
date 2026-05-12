@@ -1,5 +1,9 @@
 #version 460 core
 
+// second half of the marching-squares style surface rebuild
+// the edge pass has already assigned ids to boundary crossings, so this pass can build triangles and collider edge links per cell
+// masks 5 and 10 are the only ambiguous cases, and both mesh and collider edges use the same center test so they do not disagree
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba32f, binding = 0) uniform readonly image2D uField;
@@ -37,22 +41,7 @@ uniform uint uMaxMeshVertices;
 uniform uint uMaxMeshIndices;
 uniform uint uMaxBoundaryEdges;
 
-float sample_field(ivec2 p)
-{
-    vec4 field = imageLoad(uField, p);
-
-    if (uChannelIndex == 0)
-    {
-        return field.r;
-    }
-
-    return min(-field.r, field.g);
-}
-
-vec2 grid_to_world(vec2 g)
-{
-    return uFieldOrigin + g * uCellSize;
-}
+#include "terrain/field_sampling.glsl"
 
 void emit_polygon(vec2 poly[8], int count)
 {
@@ -194,7 +183,7 @@ void main()
 
     if (mask == 5)
     {
-        // Cases 5 and 10 are ambiguous. Using the cell center makes the tie-break deterministic so edge and mesh passes agree.
+        // cases 5 and 10 are ambiguous, using the cell center makes the edge and mesh output agree
         if (inside_center)
         {
             vec2 poly[8];

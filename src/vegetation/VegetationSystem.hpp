@@ -17,6 +17,11 @@ namespace game::terrain
 
 namespace game::vegetation
 {
+    // living plant grid, stored per terrain sample so plants can follow generated surfaces
+    // tree and bush pixel art was adapted from:
+    // https://github.com/archaicvirus/TreeGenerator
+    // https://tic80.com/play?cart=3424
+    // chatgpt 5.4 helped with the growth transition sprites, bugfixing and quality checks
 	class VegetationSystem final
 	{
 	public:

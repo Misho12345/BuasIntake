@@ -7,6 +7,7 @@
 
 namespace game::gfx
 {
+    // helper for running a sequence of compute shader passes with per-pass barriers
     class ComputeDispatcher final
     {
     public:
@@ -33,6 +34,7 @@ namespace game::gfx
                 return {};
             }
 
+            // calculate the number of work groups needed to cover the extent
             return {
                 .x = ceil_div(extent.x, local_size_x),
                 .y = ceil_div(extent.y, local_size_y),
@@ -56,7 +58,10 @@ namespace game::gfx
                     return fail(use_result.error());
                 }
 
+                // configure pass-specific uniforms and resources before dispatch
                 if (configure) configure(*shader);
+
+                // run the compute workload and apply the optional memory barrier for chained passes
                 glDispatchCompute(groups.x, groups.y, groups.z);
                 if (barrier_after != 0) glMemoryBarrier(barrier_after);
             }

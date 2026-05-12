@@ -31,11 +31,25 @@ namespace game::resources
         std::uint32_t seeds{ 0u };
     };
 
+    struct ResourceInventoryEntry final
+    {
+        InventoryItem   item{ InventoryItem::Rock };
+        std::uint32_t ResourceInventory::* amount{ nullptr };
+        std::string_view label{};
+    };
+
+    inline constexpr std::array resource_inventory_entries{
+        ResourceInventoryEntry{ InventoryItem::Rock, &ResourceInventory::rocks, "rock" },
+        ResourceInventoryEntry{ InventoryItem::CopperBar, &ResourceInventory::copper_bars, "copper" },
+        ResourceInventoryEntry{ InventoryItem::IronBar, &ResourceInventory::iron_bars, "iron" },
+        ResourceInventoryEntry{ InventoryItem::GoldBar, &ResourceInventory::gold_bars, "gold" },
+        ResourceInventoryEntry{ InventoryItem::Diamond, &ResourceInventory::diamonds, "diamond" },
+        ResourceInventoryEntry{ InventoryItem::Seeds, &ResourceInventory::seeds, "seeds" }
+    };
+
     struct InventoryCost final
     {
         std::array<std::uint32_t, inventory_item_count> amounts{};
-
-        std::uint32_t count(const InventoryItem item) const { return amounts[inventory_item_index(item)]; }
     };
 
     struct ResourceReward final
@@ -72,26 +86,19 @@ namespace game::resources
             return true;
         }
 
-        bool spend(const InventoryCost& cost)
-        {
-            if (!can_afford(cost)) return false;
-            for (std::size_t i = 0; i < cost.amounts.size(); ++i)
-            {
-                counts_[i] -= cost.amounts[i];
-            }
-
-            return true;
-        }
-
     private:
         std::array<std::uint32_t, inventory_item_count> counts_{};
     };
 
     constexpr InventoryCost make_inventory_cost(const ResourceInventory& cost)
     {
-        return InventoryCost{
-            .amounts = { cost.rocks, cost.copper_bars, cost.iron_bars, cost.gold_bars, cost.diamonds, cost.seeds }
-        };
+        InventoryCost result{};
+        for (const auto& entry : resource_inventory_entries)
+        {
+            result.amounts[inventory_item_index(entry.item)] = cost.*(entry.amount);
+        }
+
+        return result;
     }
 
     constexpr ResourceReward reward_for(const ResourceNodeKind kind)
@@ -109,12 +116,4 @@ namespace game::resources
         return { InventoryItem::Rock, 0u };
     }
 
-    inline constexpr std::array hud_inventory_order{
-        InventoryItem::Rock,
-        InventoryItem::CopperBar,
-        InventoryItem::IronBar,
-        InventoryItem::GoldBar,
-        InventoryItem::Diamond,
-        InventoryItem::Seeds
-    };
 }

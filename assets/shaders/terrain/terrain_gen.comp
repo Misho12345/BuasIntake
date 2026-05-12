@@ -1,5 +1,15 @@
 #version 460 core
 
+// base terrain generation pass
+// this writes the first density field for the planet shell, then later cave and pond passes carve into it
+// the terrain work was inspired by these resources and older surface nets / marching cubes experiments:
+// https://www.youtube.com/watch?v=0ZONMNUKTfU
+// https://www.youtube.com/watch?v=PLMcCKeJ6f0
+// https://jorisar.github.io/portfolio/posts/smoothvoxelterrain/
+// https://www.youtube.com/watch?v=M3iI2l0ltbE
+// https://github.com/SebLague/Marching-Cubes
+// chatgpt was also used while combining those ideas into the 2d density and contour pipeline, and for bugfixing and quality checks
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba32f, binding = 0) uniform writeonly image2D outImage;
@@ -43,7 +53,7 @@ void main()
     float base_density = target_radius - distance_from_center;
     float density = base_density;
 
-    // Layer broad, medium, and fine noise into the shell.
+    // keep noise near the surface shell so the interior stays stable
     float shell_mask = smoothstep(shell_mask_width, 0.0, abs(density));
     float ridge_detail = ridged_fbm(world * ridge_noise_scale + ridge_seed_offset * uSeed);
     float medium_detail = fbm(world * medium_noise_scale - medium_seed_offset * uSeed);

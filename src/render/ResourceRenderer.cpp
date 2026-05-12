@@ -19,14 +19,11 @@ namespace game::render
                 case resources::ResourceKind::CopperOre: return 2.0f;
                 case resources::ResourceKind::GoldOre: return 3.0f;
                 case resources::ResourceKind::DiamondOre: return 4.0f;
-                case resources::ResourceKind::DeadPlant: return -1.0f;
             }
 
             return -1.0f;
         }
     }
-
-    ResourceRenderer::~ResourceRenderer() = default;
 
     Result<void> ResourceRenderer::initialize_assets()
     {
@@ -113,10 +110,9 @@ namespace game::render
         const terrain::PlanetTerrain&    terrain,
         const resources::ResourceSystem& resources)
     {
-        if (const auto init_result = initialize_assets();
-            !init_result)
+        if (!ore_batch_.valid())
         {
-            Log::error(init_result.error());
+            Log::error("Resource renderer assets are not initialized");
             return;
         }
 

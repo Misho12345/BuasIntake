@@ -13,7 +13,7 @@ namespace game::render
     {
     public:
         ResourceRenderer() = default;
-        ~ResourceRenderer();
+        ~ResourceRenderer() = default;
 
         ResourceRenderer(const ResourceRenderer&)                = delete;
         ResourceRenderer& operator=(const ResourceRenderer&)     = delete;

@@ -5,6 +5,7 @@
 
 namespace game::terrain
 {
+    // box2d collider owned by a terrain chunk
     class TerrainCollider final
     {
     public:
@@ -18,14 +19,10 @@ namespace game::terrain
 
         void build(
             const std::vector<std::vector<vec2>>& loops,
-            const std::vector<std::vector<vec2>>& paths,
-            const std::vector<std::vector<vec2>>& water_loops = {});
-
-        void set_water_enabled(bool enabled) const;
+            const std::vector<std::vector<vec2>>& paths);
 
     private:
         b2WorldId world_id_{ b2_nullWorldId };
         b2BodyId  terrain_body_{ b2_nullBodyId };
-        b2BodyId  water_sensor_body_{ b2_nullBodyId };
     };
 }

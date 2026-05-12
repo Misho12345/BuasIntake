@@ -1,6 +1,6 @@
 float surface_radius(vec2 direction)
 {
-    // Sample in direction space so the shell wraps evenly around the center.
+    // sample in direction space so the shell wraps evenly around the center
     vec2 seed_offset = vec2(0.0137, 0.0211) * uSeed;
 
     float macro = fbm(direction * 1.85 + seed_offset + vec2(3.1, -7.4));

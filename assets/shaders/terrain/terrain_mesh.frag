@@ -15,9 +15,13 @@ uniform float uHardRockStartDepth;
 
 out vec4 FragColor;
 
+// chatgpt 5.4 was used to write a lot of this shader and then tune it into the project style
+// the shader blends dirt, grass, rock, and hard rock based on depth, wetness, and greenness packed into the vertex data
+// the main reason it is layered like this is to hide repeating textures while still keeping the terrain readable
+
 void main()
 {
-    // Wetness and depth ride in the texcoord channel.
+    // wetness and depth ride in the texcoord channel
     vec2 base_uv = vWorldPosition * uTextureScale;
     float wetness = clamp(vTexCoords.x, 0.0, 1.0);
     float depth = clamp(1.0 - vTexCoords.y, 0.0, 1.0);
@@ -25,7 +29,7 @@ void main()
     float rock_mix = smoothstep(uRockBlendStartDepth, uRockBlendEndDepth, depth);
     float hard_rock_mix = step(uHardRockStartDepth, depth);
 
-    // Sample each sheet at a few offsets to break up tiling.
+    // sample each sheet at a few offsets to break up tiling
     vec3 dirt_a = texture(uDirtTexture, base_uv).rgb;
     vec3 dirt_b = texture(uDirtTexture, base_uv * 0.53 + vec2(0.19, -0.11)).rgb;
     vec3 grass_a = texture(uGrassTexture, base_uv * 0.82).rgb;

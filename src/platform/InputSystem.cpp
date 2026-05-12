@@ -17,11 +17,7 @@ namespace game::platform
         InputSystem& input = instance();
 
         input.key_pressed_events_.fill(false);
-        input.key_released_events_.fill(false);
-
         input.mouse_pressed_events_.fill(false);
-        input.mouse_released_events_.fill(false);
-
         input.mouse_wheel_delta_ = 0.0f;
     }
 
@@ -51,11 +47,7 @@ namespace game::platform
                 input.current_ = {};
 
                 input.key_pressed_events_.fill(false);
-                input.key_released_events_.fill(false);
-
                 input.mouse_pressed_events_.fill(false);
-                input.mouse_released_events_.fill(false);
-
                 input.mouse_wheel_delta_ = 0.0f;
 
                 continue;
@@ -79,7 +71,6 @@ namespace game::platform
                     index.has_value())
                 {
                     input.current_.pressed_keys[*index] = false;
-                    input.key_released_events_[*index]  = true;
                 }
 
                 continue;
@@ -103,7 +94,6 @@ namespace game::platform
                     index.has_value())
                 {
                     input.current_.pressed_mouse_buttons[*index] = false;
-                    input.mouse_released_events_[*index]         = true;
                 }
 
                 continue;
@@ -148,22 +138,6 @@ namespace game::platform
         const auto         index = mouse_button_index(button);
         if (!index.has_value()) return false;
         return input.mouse_pressed_events_[*index];
-    }
-
-    bool InputSystem::released(const Key key)
-    {
-        const InputSystem& input = instance();
-        const auto         index = key_index(key);
-        if (!index.has_value()) return false;
-        return input.key_released_events_[*index];
-    }
-
-    bool InputSystem::released(const MouseButton button)
-    {
-        const InputSystem& input = instance();
-        const auto         index = mouse_button_index(button);
-        if (!index.has_value()) return false;
-        return input.mouse_released_events_[*index];
     }
 
     std::optional<std::size_t> InputSystem::key_index(const Key key)

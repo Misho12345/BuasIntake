@@ -5,6 +5,9 @@
 
 namespace game::gfx
 {
+    // shader storage buffer object wrapper
+    // supports both mutable (glNamedBufferData) and immutable (glNamedBufferStorage) storage;
+    // immutable storage is used for persistent mapping - once allocated it cannot be resized
     class SSBO final
     {
     public:
@@ -44,9 +47,12 @@ namespace game::gfx
             return *this;
         }
 
+        // resizes mutable storage; will log an error and no-op if called on immutable storage
         template <typename T> requires std::is_trivially_copyable_v<T>
         void resize(const std::size_t count) { resize_bytes(sizeof(T) * count); }
 
+        // allocates immutable, persistently mapped, coherent read storage
+        // use when the CPU needs continuous read access without explicit sync (e.g. GPU-written readback buffers)
         template <typename T> requires std::is_trivially_copyable_v<T>
         void allocate_persistent_read(const std::size_t count)
         {
@@ -58,30 +64,8 @@ namespace game::gfx
                 GL_MAP_READ_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
         }
 
-        template <typename T> requires std::is_trivially_copyable_v<T>
-        void set_data(const std::span<const T> data)
-        {
-            resize_bytes(data.size_bytes(), data.empty() ? nullptr : data.data());
-        }
-
-        template <typename T> requires std::is_trivially_copyable_v<T>
-        void write(const std::span<const T> data, const std::size_t offset_elements = 0)
-        {
-            const auto offset = offset_elements * sizeof(T);
-            if (offset + data.size_bytes() > size_bytes_)
-            {
-                Log::error("SSBO write exceeds buffer size: offset={}, bytes={}, capacity={}",
-                           offset, data.size_bytes(), size_bytes_);
-                return;
-            }
-
-            glNamedBufferSubData(
-                id_,
-                static_cast<GLintptr>(offset),
-                static_cast<GLsizeiptr>(data.size_bytes()),
-                data.data());
-        }
-
+        // reads count elements starting at offset_elements from the buffer
+        // if the buffer is persistently mapped it reads from the mapped pointer directly, otherwise uses glGetNamedBufferSubData
         template <typename T> requires std::is_trivially_copyable_v<T>
         std::vector<T> read(const std::size_t count, const std::size_t offset_elements = 0) const
         {
@@ -112,6 +96,7 @@ namespace game::gfx
             return output;
         }
 
+        // single-element variant of read(...)
         template <typename T> requires std::is_trivially_copyable_v<T>
         T read_one(const std::size_t offset_elements = 0) const
         {
@@ -166,6 +151,7 @@ namespace game::gfx
             
             glNamedBufferStorage(id_, static_cast<GLsizeiptr>(byte_count), nullptr, storage_flags);
 
+            // immediately map the entire buffer so callers can read without another map call later
             mapped_ptr_ = byte_count == 0
                               ? nullptr
                               : glMapNamedBufferRange(
@@ -174,7 +160,7 @@ namespace game::gfx
                                   map_flags);
         }
 
-        void resize_bytes(const std::size_t byte_count, const void* data = nullptr)
+        void resize_bytes(const std::size_t byte_count)
         {
             if (immutable_storage_)
             {
@@ -183,13 +169,13 @@ namespace game::gfx
             }
 
             size_bytes_ = byte_count;
-            glNamedBufferData(id_, static_cast<GLsizeiptr>(byte_count), data, usage_);
+            glNamedBufferData(id_, static_cast<GLsizeiptr>(byte_count), nullptr, usage_);
         }
 
         GLuint      id_{ 0 };
         GLenum      usage_{ GL_DYNAMIC_COPY };
         std::size_t size_bytes_{ 0 };
-        void*       mapped_ptr_{ nullptr };
+        void*       mapped_ptr_{ nullptr }; // non-null only for persistently mapped immutable storage
         bool        immutable_storage_{ false };
     };
 }

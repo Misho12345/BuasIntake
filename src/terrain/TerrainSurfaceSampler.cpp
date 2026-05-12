@@ -6,8 +6,6 @@ namespace game::terrain
 {
     namespace
     {
-        bool is_solid(const TerrainGenerator::FieldSample& sample) { return sample.terrain >= 0.0f; }
-
         bool field_ready(const TerrainSurfaceFieldView& view)
         {
             return !view.field_samples.empty() &&
@@ -34,15 +32,6 @@ namespace game::terrain
                 view.field_origin.x + static_cast<float>(coord.x) * view.cell_size.x,
                 view.field_origin.y + static_cast<float>(coord.y) * view.cell_size.y
             };
-        }
-
-        float normalized_depth(const TerrainSurfaceFieldView& view, const vec2 world_position)
-        {
-            const float surface_radius = std::max(view.planet_radius, 1e-4f);
-            const vec2  offset         = world_position - view.world_center;
-            const float radius         = std::sqrt(offset.x * offset.x + offset.y * offset.y);
-
-            return std::clamp(1.0f - radius / surface_radius, 0.0f, 1.0f);
         }
 
         ivec2 world_to_global_sample(const TerrainSurfaceFieldView& view, const vec2 world_position)
@@ -73,7 +62,7 @@ namespace game::terrain
                 const auto probe_coord = world_to_global_sample(view, probe);
 
                 if (!is_valid_global_sample(view, probe_coord) ||
-                    !is_solid(view.field_samples[global_field_index(view, probe_coord)]))
+                    !is_solid_sample(view.field_samples[global_field_index(view, probe_coord)]))
                 {
                     vec2 low  = last_solid;
                     vec2 high = probe;
@@ -83,7 +72,7 @@ namespace game::terrain
                         const auto mid_coord = world_to_global_sample(view, mid);
 
                         if (is_valid_global_sample(view, mid_coord) &&
-                            is_solid(view.field_samples[global_field_index(view, mid_coord)]))
+                            is_solid_sample(view.field_samples[global_field_index(view, mid_coord)]))
                             low = mid;
                         else high = mid;
                     }
@@ -98,39 +87,13 @@ namespace game::terrain
         }
     }
 
-    bool terrain_surface_sampler::is_surface_exposed_world(
-        const TerrainSurfaceFieldView& view,
-        const vec2                     world_position,
-        const float                    clearance_distance)
-    {
-        if (!field_ready(view)) return false;
-
-        // This cutoff keeps planting and attachment queries near the playable shell instead of deep caves.
-        if (normalized_depth(view, world_position) > 0.12f) return false;
-
-        const vec2  up        = normalize(world_position - view.world_center);
-        const float step_size = std::max(std::min(view.cell_size.x, view.cell_size.y) * 0.35f, 0.05f);
-        const vec2  start     = world_position + up * step_size;
-
-        for (float distance = 0.0f; distance <= clearance_distance; distance += step_size)
-        {
-            const vec2 probe_world = start + up * distance;
-            const auto probe_coord = world_to_global_sample(view, probe_world);
-
-            if (!is_valid_global_sample(view, probe_coord)) return true;
-            if (is_solid(view.field_samples[global_field_index(view, probe_coord)])) return false;
-        }
-
-        return true;
-    }
-
     std::optional<TerrainSurfaceAttachment> terrain_surface_sampler::exposed_surface_attachment(
         const TerrainSurfaceFieldView& view,
         const ivec2                    coord)
     {
         if (!field_ready(view)) return std::nullopt;
         if (!is_valid_global_sample(view, coord)) return std::nullopt;
-        if (!is_solid(view.field_samples[global_field_index(view, coord)])) return std::nullopt;
+        if (!is_solid_sample(view.field_samples[global_field_index(view, coord)])) return std::nullopt;
 
         const vec2 center    = global_sample_world_position(view, coord);
         const vec2 radial_up = normalize(center - view.world_center);
@@ -146,7 +109,7 @@ namespace game::terrain
                 const ivec2 neighbor{ coord.x + ox, coord.y + oy };
 
                 if (!is_valid_global_sample(view, neighbor)) continue;
-                if (is_solid(view.field_samples[global_field_index(view, neighbor)])) continue;
+                if (is_solid_sample(view.field_samples[global_field_index(view, neighbor)])) continue;
 
                 surface_up += normalize(global_sample_world_position(view, neighbor) - center, { 0.0f, 0.0f });
                 ++open_neighbors;
@@ -178,7 +141,7 @@ namespace game::terrain
     {
         if (!field_ready(view)) return std::nullopt;
         if (!is_valid_global_sample(view, coord)) return std::nullopt;
-        if (!is_solid(view.field_samples[global_field_index(view, coord)])) return std::nullopt;
+        if (!is_solid_sample(view.field_samples[global_field_index(view, coord)])) return std::nullopt;
 
         const vec2 center = global_sample_world_position(view, coord);
         const vec2 up     = normalize(center - view.world_center);

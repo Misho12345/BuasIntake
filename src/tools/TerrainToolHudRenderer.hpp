@@ -27,6 +27,7 @@ namespace game::tools
     class TerrainToolHudRenderer final
     {
     public:
+        // ai helped with this simple ui layout work
         static void draw(
             sf::RenderTarget&                       target,
             std::span<const TerrainToolHudSlotData> slots);

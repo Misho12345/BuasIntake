@@ -1,13 +1,16 @@
 #version 460 core
 
+// first half of the marching-squares style surface rebuild
+// this pass finds every iso crossing on horizontal and vertical grid edges and gives each crossing a shared vertex id
+// doing this separately lets the mesh pass reuse the same boundary vertices for render triangles and collider edge extraction
+// chatgpt helped synthesize this 2d version from earlier surface nets and marching cubes implementations i've made, then it was adjusted for this field format
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba32f, binding = 0) uniform readonly image2D uField;
 
 layout(std430, binding = 1) buffer BoundaryVertices { vec2 data[]; } uBoundaryVertices;
-
 layout(std430, binding = 2) buffer HorizontalEdgeIds { int data[]; } uHorizontalEdgeIds;
-
 layout(std430, binding = 3) buffer VerticalEdgeIds { int data[]; } uVerticalEdgeIds;
 
 layout(std430, binding = 4) buffer VertexCounter
@@ -22,22 +25,7 @@ uniform vec2 uFieldOrigin;
 uniform vec2 uCellSize;
 uniform uint uMaxBoundaryVertices;
 
-float sample_field(ivec2 p)
-{
-    vec4 field = imageLoad(uField, p);
-
-    if (uChannelIndex == 0)
-    {
-        return field.r;
-    }
-
-    return min(-field.r, field.g);
-}
-
-vec2 grid_to_world(vec2 g)
-{
-    return uFieldOrigin + g * uCellSize;
-}
+#include "terrain/field_sampling.glsl"
 
 void main()
 {

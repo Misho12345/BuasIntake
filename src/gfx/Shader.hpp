@@ -6,6 +6,7 @@ namespace game::gfx
 {
     struct ShaderProgram;
 
+    // lightweight handle to a cached compute or graphics shader program
     class Shader final
     {
     public:
@@ -18,13 +19,13 @@ namespace game::gfx
         Shader& operator=(Shader&& other) noexcept = default;
 
         static Result<Shader> from_compute_file(const fs::path& path);
+
         static Result<Shader> from_graphics_files(const fs::path& vertex_path, const fs::path& fragment_path);
-        static void           clear_cache();
+
+        static void clear_cache();
 
         Result<void> use() const;
-
-        GLuint id() const;
-        bool   valid() const;
+        bool         valid() const;
 
         template <typename T>
         void set_uniform(const std::string_view name, const T& value) const

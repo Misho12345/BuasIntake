@@ -3,7 +3,7 @@
 #include "pch.hpp"
 
 
-#include "terrain/TerrainGenerator.hpp"
+#include "terrain/TerrainFieldSample.hpp"
 #include "vegetation/Plant.hpp"
 
 namespace game::terrain
@@ -12,13 +12,13 @@ namespace game::terrain
     {
         template <typename MarkDirty, typename SampleWorldPosition>
         void recompute(
-            std::span<TerrainGenerator::FieldSample> global_field,
-            const uvec2                              global_field_size,
-            const vec2                               terrain_cell_size,
+            std::span<TerrainFieldSample>        global_field,
+            const uvec2                          global_field_size,
+            const vec2                           terrain_cell_size,
             const std::span<const vegetation::Plant> plant_samples,
-            const std::span<const std::size_t>       active_plant_indices,
-            MarkDirty&&                              mark_dirty,
-            SampleWorldPosition&&                    global_sample_world_position)
+            const std::span<const std::size_t>   active_plant_indices,
+            MarkDirty&&                          mark_dirty,
+            SampleWorldPosition&&                global_sample_world_position)
         {
             if (global_field.empty() || plant_samples.empty()) return;
 
@@ -27,8 +27,6 @@ namespace game::terrain
                 return static_cast<std::size_t>(coord.y) * static_cast<std::size_t>(global_field_size.x) +
                         static_cast<std::size_t>(coord.x);
             };
-
-            auto is_solid = [](const TerrainGenerator::FieldSample& sample) { return sample.terrain >= 0.0f; };
 
             auto grass_influence_radius_for = [](const vegetation::PlantFamily family)
             {
@@ -71,7 +69,7 @@ namespace game::terrain
                 };
 
                 const auto& sample = global_field[index];
-                if (!is_solid(sample)) continue;
+                if (!is_solid_sample(sample)) continue;
 
                 const float wetness_factor = std::clamp((sample.wetness - 0.10f) / 0.30f, 0.0f, 1.0f);
                 if (wetness_factor <= 1e-4f) continue;
@@ -102,7 +100,7 @@ namespace game::terrain
                     {
                         const ivec2 target_coord{ x, y };
                         const auto  target_index = global_field_index(target_coord);
-                        if (!is_solid(global_field[target_index])) continue;
+                        if (!is_solid_sample(global_field[target_index])) continue;
 
                         const vec2  world    = global_sample_world_position(target_coord);
                         const vec2  delta    = world - center;
@@ -136,7 +134,7 @@ namespace game::terrain
                 {
                     const ivec2 coord{ x, y };
                     auto&       sample    = global_field[global_field_index(coord)];
-                    const float greenness = is_solid(sample) ? next_greenness[global_field_index(coord)] : 0.0f;
+                    const float greenness = is_solid_sample(sample) ? next_greenness[global_field_index(coord)] : 0.0f;
                     if (std::abs(sample.greenness - greenness) <= 1e-6f) continue;
 
                     sample.greenness = greenness;

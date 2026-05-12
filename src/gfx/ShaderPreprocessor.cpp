@@ -10,6 +10,9 @@ namespace game::gfx
         return preprocess_file(path, include_stack);
     }
 
+    // this function recursively goes through the shaders and tracks what is included and what is not and
+    // combines the inclusion into a final string for compilation
+    // ChatGPT 5.4 was used for this because it's a trivial task
     Result<std::string> ShaderPreprocessor::preprocess_file(const fs::path& path, std::vector<fs::path>& include_stack)
     {
         const fs::path normalized_path = path.lexically_normal();
@@ -41,6 +44,7 @@ namespace game::gfx
             {
                 const fs::path resolved_path   = (shader_root / *include_path).lexically_normal();
                 auto           included_source = preprocess_file(resolved_path, include_stack);
+
                 if (!included_source)
                 {
                     include_stack.pop_back();
@@ -52,7 +56,7 @@ namespace game::gfx
                 output << "\n// end include " << include_path->generic_string() << "\n";
                 output << "#line " << (line_number + 1u) << "\n";
             }
-            else { output << line << '\n'; }
+            else output << line << '\n';
 
             ++line_number;
         }

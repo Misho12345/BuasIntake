@@ -7,6 +7,7 @@
 
 namespace game::tools
 {
+    // bucket tool for water pickup and previewed placement
     class WaterTool final : public TerrainTool
     {
     public:
@@ -15,12 +16,10 @@ namespace game::tools
 
         // this tool is basically a two mode bucket pickup vs armed placement so these calls drive that state machine
         void deactivate() override;
-        void update(const TerrainToolContext& context, const TerrainTargetResolver& resolver, float dt) override;
         void handle_mouse_pressed(const TerrainToolContext& context, const TerrainTargetResolver& resolver, MouseButton button) override;
 
         void adjust_placement_amount(float delta);
         void upgrade();
-        void cancel_placement();
         void destroy_preview_resources();
 
         struct PreviewState final
@@ -40,7 +39,6 @@ namespace game::tools
         bool is_placement_mode() const;
         std::size_t material_index() const;
         std::size_t level_index() const;
-        std::string_view material_name() const;
         bool at_max_upgrade() const;
         BucketStats current_stats() const;
         std::optional<BucketStats> next_stats() const;
@@ -66,6 +64,7 @@ namespace game::tools
         };
 
         void begin_placement();
+        void cancel_placement();
         void confirm_placement(const TerrainToolContext& context, const TerrainTargetResolver& resolver);
         void collect_water(const TerrainToolContext& context, const TerrainTargetResolver& resolver);
         // the preview is cached because rebuilding the water plan every frame for no reason got old fast

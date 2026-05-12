@@ -6,20 +6,27 @@ namespace game::ui
 {
     Result<void> GoalProgressHud::initialize_assets()
     {
+        if (assets_ready_) return {};
+
         if (!win_font_.openFromFile("assets/fonts/Cinzel-SemiBold.ttf"))
         {
             return fail("Failed to load font 'assets/fonts/Cinzel-SemiBold.ttf'");
         }
 
+        assets_ready_ = true;
         return {};
     }
 
-    void GoalProgressHud::destroy_graphics_resources() { win_font_ = sf::Font{}; }
+    void GoalProgressHud::destroy_graphics_resources()
+    {
+        win_font_     = sf::Font{};
+        assets_ready_ = false;
+    }
 
     void GoalProgressHud::draw(sf::RenderWindow& window, const world::PlanetRestorationGoal& goal) const
     {
         draw_progress_bar(window, goal);
-        if (goal.completed()) draw_win_overlay(window);
+        if (assets_ready_ && goal.completed()) draw_win_overlay(window);
     }
 
     void GoalProgressHud::draw_progress_bar(sf::RenderWindow& window, const world::PlanetRestorationGoal& goal) const

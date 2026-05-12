@@ -4,11 +4,6 @@
 
 #include "GameObject.hpp"
 
-namespace game::platform
-{
-    class InputSystem;
-}
-
 namespace game::player
 {
     struct PlayerConfig final
@@ -37,7 +32,7 @@ namespace game::player
         Player(Player&&) noexcept            = delete;
         Player& operator=(Player&&) noexcept = delete;
 
-        // create does the whole spawn body and sensor setup so callers do not have to remember the order
+        // create does the whole spawn body and sensor setup
         Result<void> create(
             b2WorldId           world_id,
             vec2                spawn_position,
@@ -47,14 +42,14 @@ namespace game::player
 
         // this refreshes both walkable ground state and water overlap state because movement logic needs both every frame
         void refresh_grounded_state(vec2 planet_center);
+        void refresh_contact_state(vec2 planet_center, bool terrain_water);
 
         // this is the per step movement entry point used before each box2d step
         // it lines the player up to the planet then applies gravity and input in that order
         void prepare_for_physics_step(
             float                        fixed_step,
             vec2                         planet_center,
-            bool                         in_water,
-            const platform::InputSystem& input);
+            bool                         in_water);
 
         void sync_from_physics(vec2 planet_center);
 
@@ -66,9 +61,8 @@ namespace game::player
         vec2 world_position() const;
         vec2 up_direction(vec2 planet_center) const;
 
-        bool is_move_input_active(const platform::InputSystem& input) const;
+        bool is_move_input_active() const;
         bool is_in_water() const { return in_water_; }
-        void set_in_water(const bool in_water) { in_water_ = in_water; }
 
     private:
         Result<void> create_physics_body(vec2 spawn_position, float spawn_angle);
@@ -81,22 +75,22 @@ namespace game::player
 
         bool sensor_detects_ground() const;
         bool sensor_detects_water() const;
+        bool sensor_detects_overlap(b2ShapeId sensor_shape, bool target_is_sensor) const;
 
         // this is the more reliable ground probe than the overlap sensor because it gives us a usable surface normal
         std::optional<vec2> raycast_ground_normal(vec2 planet_center) const;
 
-        float movement_axis(const platform::InputSystem& input) const;
+        float movement_axis() const;
         vec2  movement_direction(vec2 up_direction) const;
 
         // this does the actual impulse math for walking and braking and it is where the grounded vs water behavior splits
         void apply_horizontal_movement(
             float                        fixed_step,
             vec2                         movement_direction,
-            bool                         in_water,
-            const platform::InputSystem& input);
+            bool                         in_water);
 
         void try_jump(vec2 up_direction, bool jump_held, bool in_water);
-        void apply_input(float fixed_step, vec2 planet_center, bool in_water, const platform::InputSystem& input);
+        void apply_input(float fixed_step, vec2 planet_center, bool in_water);
         void apply_gravity(vec2 planet_center, bool in_water) const;
         void align_to_planet(vec2 planet_center) const;
 

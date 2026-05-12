@@ -4,6 +4,8 @@
 
 namespace game::gfx
 {
+    // because opengl doesn't handle #includes, and because shader code is reused between passes
+    // the shader preprocessor is needed to resolve that problem
     class ShaderPreprocessor final
     {
     public:

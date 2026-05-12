@@ -1,5 +1,9 @@
 #version 460 core
 
+// simple water material for the generated pond mesh
+// it uses world-space waves instead of textures so small ponds still animate without needing uv unwraps
+// I used chatgpt 5.4 to make the effects of this shader because the shader is just playing with math
+
 in vec4 vColor;
 in vec2 vWorldPosition;
 
@@ -17,7 +21,6 @@ const float caustic_y_scale = 1.05;
 
 void main()
 {
-    // A few world-space sine layers are enough for the water motion here.
     float wave_a = sin(vWorldPosition.x * wave_a_scale + uTime * 1.55 + vWorldPosition.y * 0.15);
     float wave_b = sin(vWorldPosition.y * wave_b_scale - uTime * 1.18 + vWorldPosition.x * 0.27);
     float wave_c = sin((vWorldPosition.x + vWorldPosition.y) * wave_c_scale - uTime * 1.95);

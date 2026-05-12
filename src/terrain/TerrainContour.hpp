@@ -8,6 +8,7 @@
 
 namespace game::terrain
 {
+    // turns gpu contour edges into collider-friendly loops and paths
     class TerrainContour final
     {
     public:
@@ -23,8 +24,6 @@ namespace game::terrain
             std::vector<std::uint32_t>     mesh_indices{};
             std::vector<std::vector<vec2>> collider_loops{};
             std::vector<std::vector<vec2>> collider_paths{};
-            std::vector<vec2>              primary_contour{};
-            float                          contour_score{ 0.0f };
         };
 
         TerrainContour() = delete;

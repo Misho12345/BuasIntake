@@ -58,7 +58,7 @@ namespace game::tools
         if (delta == 0.0f) return;
         if (upgrade_menu_open_) return;
 
-        // The wheel adjusts placement amount while the bucket is armed; otherwise it cycles the hotbar.
+        // the wheel adjusts placement amount while the bucket is armed, otherwise it cycles the hotbar
         if (is_water_slot_selected() && water_tool_.is_placement_mode())
         {
             water_tool_.adjust_placement_amount(delta);
@@ -80,7 +80,9 @@ namespace game::tools
 
     void TerrainToolController::close_upgrade_menu()
     {
-        if (upgrade_menu_open_) cancel_active_interaction();
+        if (!upgrade_menu_open_) return;
+
+        cancel_active_interaction();
         upgrade_menu_open_ = false;
         require_fresh_mouse_press_after_modal_ = true;
     }
@@ -90,7 +92,7 @@ namespace game::tools
         if (!require_fresh_mouse_press_after_modal_) return false;
         if (context.input == nullptr) return true;
 
-        // Wait for a fresh mouse press so closing the menu on a held click does not immediately trigger a tool.
+        // wait for a fresh mouse press so closing the menu on a held click does not immediately trigger a tool
         const bool left_pressed = context.input->is_pressed(MouseButton::Left);
         const bool right_pressed = context.input->is_pressed(MouseButton::Right);
 
@@ -140,11 +142,6 @@ namespace game::tools
         seed_tool_.deactivate();
     }
 
-    void TerrainToolController::cancel_bucket_placement()
-    {
-        water_tool_.cancel_placement();
-    }
-
     void TerrainToolController::destroy_graphics_resources()
     {
         water_tool_.destroy_preview_resources();
@@ -185,7 +182,6 @@ namespace game::tools
 
         active_tool().deactivate();
         selected_slot_ = slot;
-        active_tool().activate();
     }
 
     TerrainTool& TerrainToolController::active_tool()
@@ -293,7 +289,6 @@ namespace game::tools
     }
 
     bool TerrainToolController::is_water_slot_selected() const { return selected_slot_ == HotbarSlot::Water; }
-    bool TerrainToolController::is_seed_slot_selected() const { return selected_slot_ == HotbarSlot::Seeds; }
 
     sf::IntRect TerrainToolController::tool_icon_rect(const std::size_t column, const std::size_t row) const
     {

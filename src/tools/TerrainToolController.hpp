@@ -11,6 +11,8 @@
 
 namespace game::tools
 {
+    // owns terrain tool selection, upgrade menu routing, and the construction/placement hud
+    // ai help was used here for the simple ui/hud layout work
     class TerrainToolController final
     {
     public:
@@ -39,7 +41,6 @@ namespace game::tools
             uvec2                     target_size);
 
         void cancel_active_interaction();
-        void cancel_bucket_placement();
         void destroy_graphics_resources();
         bool upgrade_menu_open() const { return upgrade_menu_open_; }
 
@@ -76,7 +77,6 @@ namespace game::tools
         TerrainToolHudSlotData build_seed_slot_data() const;
 
         bool is_water_slot_selected() const;
-        bool is_seed_slot_selected() const;
 
         sf::IntRect tool_icon_rect(std::size_t column, std::size_t row) const;
 

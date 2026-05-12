@@ -25,14 +25,6 @@ using mat4 = sf::Glsl::Mat4;
 using sf::Keyboard::Key;
 using MouseButton = sf::Mouse::Button;
 
-inline sf::Angle operator""_deg(const long double val) { return sf::degrees(static_cast<float>(val)); }
-inline sf::Angle operator""_rad(const long double val) { return sf::radians(static_cast<float>(val)); }
-
-inline sf::Time operator""_sec(const long double val) { return sf::seconds(static_cast<float>(val)); }
-inline sf::Time operator""_ms(const unsigned long long val) { return sf::milliseconds(static_cast<std::int32_t>(val)); }
-inline sf::Time operator""_us(const unsigned long long val) { return sf::microseconds(static_cast<std::int64_t>(val)); }
-
-
 inline sf::Color operator""_rgb(const unsigned long long val)
 {
     return {
@@ -104,6 +96,12 @@ namespace game
         return value / std::sqrt(length_sq);
     }
 
+    inline float distance_between(const vec2& a, const vec2& b)
+    {
+        const vec2 offset = a - b;
+        return std::sqrt(offset.x * offset.x + offset.y * offset.y);
+    }
+
     inline vec2 lerp(const vec2& a, const vec2& b, const float t)
     {
         return {
@@ -121,4 +119,10 @@ namespace game
     inline float dir_to_angle(const vec2& dir) { return std::atan2(dir.y, dir.x) - pi * 0.5f; }
 
     inline float shortest_angle_delta(const float from, const float to) { return std::remainder(to - from, tau); }
+
+    inline std::uint64_t sample_key(const ivec2 coord)
+    {
+        return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(coord.x)) << 32u) |
+                static_cast<std::uint32_t>(coord.y);
+    }
 }

@@ -31,8 +31,6 @@ namespace game::world
         auto& vegetation(this auto& self) { return self.vegetation_; }
 
     private:
-        b2WorldId physics_world_{ b2_nullWorldId };
-
         resources::ResourceSystem             resources_{};
         vegetation::VegetationSystem          vegetation_{};
         water::WaterSystem                    water_{};

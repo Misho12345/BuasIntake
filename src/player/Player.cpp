@@ -13,7 +13,6 @@ namespace game::player
             b2BodyId ignored_body{ b2_nullBodyId };
             bool     hit{ false };
             float    fraction{ 1.0f };
-            vec2     point{ 0.0f, 0.0f };
             vec2     normal{ 0.0f, 1.0f };
         };
 
@@ -36,9 +35,9 @@ namespace game::player
                 const float angle = pi * (1.0f - t);
                 shape->setPoint(
                     i, {
-                                    std::cos(angle) * radius,
-                                    top_center_y + std::sin(angle) * radius
-                                });
+                        std::cos(angle) * radius,
+                        top_center_y + std::sin(angle) * radius
+                    });
             }
 
             for (std::size_t i = 0; i <= arc_segments; ++i)
@@ -58,7 +57,7 @@ namespace game::player
 
         float ground_ray_cast_callback(
             const b2ShapeId shape_id,
-            const b2Vec2 point,
+            const b2Vec2,
             const b2Vec2 normal,
             const float fraction,
             void* context)
@@ -71,7 +70,6 @@ namespace game::player
 
             ray_context.hit      = true;
             ray_context.fraction = fraction;
-            ray_context.point    = { point.x, point.y };
             ray_context.normal   = { normal.x, normal.y };
 
             return fraction;
@@ -173,7 +171,7 @@ namespace game::player
         sensor_shape_def.updateBodyMass     = false;
         sensor_shape_def.density            = 0.0f;
 
-        // Keep this narrower than the capsule so brushing a wall does not count as standing.
+        // Keep this narrower than the capsule so touching a wall does not count as standing.
         const float     sensor_half_width  = config_.capsule_radius * 0.42f;
         constexpr float sensor_half_height = 0.08f;
         const float     sensor_offset_y    = -config_.capsule_half_height - sensor_half_height * 0.35f;
@@ -229,7 +227,7 @@ namespace game::player
 
     void Player::destroy()
     {
-        if (b2Body_IsValid(object_.body)) { b2DestroyBody(object_.body); }
+        if (b2Body_IsValid(object_.body)) b2DestroyBody(object_.body);
 
         object_              = GameObject{};
         world_               = b2_nullWorldId;
@@ -256,39 +254,39 @@ namespace game::player
         if (ray_ground_normal.has_value()) ground_normal_ = *ray_ground_normal;
     }
 
+    void Player::refresh_contact_state(const vec2 planet_center, const bool terrain_water)
+    {
+        refresh_grounded_state(planet_center);
+        in_water_ = in_water_ || terrain_water;
+    }
+
     bool Player::sensor_detects_ground() const
     {
-        if (!b2Shape_IsValid(ground_sensor_shape_)) return false;
-
-        std::array<b2ShapeId, sensor_overlap_capacity> overlaps{};
-        const int overlap_count = b2Shape_GetSensorOverlaps(ground_sensor_shape_, overlaps.data(),
-                                                            overlaps.size());
-        for (int i = 0; i < overlap_count; ++i)
-        {
-            const auto overlap_shape = overlaps[static_cast<std::size_t>(i)];
-            if (!b2Shape_IsValid(overlap_shape)) continue;
-            if (B2_ID_EQUALS(b2Shape_GetBody(overlap_shape), object_.body)) continue;
-            if (b2Shape_IsSensor(overlap_shape)) continue;
-
-            return true;
-        }
-
-        return false;
+        return sensor_detects_overlap(ground_sensor_shape_, false);
     }
 
     bool Player::sensor_detects_water() const
     {
-        if (!b2Shape_IsValid(water_sensor_shape_)) return false;
+        return sensor_detects_overlap(water_sensor_shape_, true);
+    }
+
+    bool Player::sensor_detects_overlap(const b2ShapeId sensor_shape, const bool target_is_sensor) const
+    {
+        if (!b2Shape_IsValid(sensor_shape)) return false;
 
         std::array<b2ShapeId, sensor_overlap_capacity> overlaps{};
-        const int overlap_count = b2Shape_GetSensorOverlaps(water_sensor_shape_, overlaps.data(),
-                                                            overlaps.size());
+        const int overlap_count = b2Shape_GetSensorOverlaps(
+            sensor_shape,
+            overlaps.data(),
+            static_cast<int>(overlaps.size()));
+
         for (int i = 0; i < overlap_count; ++i)
         {
             const auto overlap_shape = overlaps[static_cast<std::size_t>(i)];
             if (!b2Shape_IsValid(overlap_shape)) continue;
             if (B2_ID_EQUALS(b2Shape_GetBody(overlap_shape), object_.body)) continue;
-            if (!b2Shape_IsSensor(overlap_shape)) continue;
+            if (b2Shape_IsSensor(overlap_shape) != target_is_sensor) continue;
+
             return true;
         }
 
@@ -323,14 +321,13 @@ namespace game::player
     void Player::prepare_for_physics_step(
         const float                  fixed_step,
         const vec2                   planet_center,
-        const bool                   in_water,
-        const platform::InputSystem& input)
+        const bool                   in_water)
     {
         if (!valid()) return;
 
         align_to_planet(planet_center);
         apply_gravity(planet_center, in_water);
-        apply_input(fixed_step, planet_center, in_water, input);
+        apply_input(fixed_step, planet_center, in_water);
     }
 
     void Player::sync_from_physics(const vec2 planet_center)
@@ -355,16 +352,15 @@ namespace game::player
 
     vec2 Player::up_direction(const vec2 planet_center) const { return normalize(world_position() - planet_center); }
 
-    bool Player::is_move_input_active(const platform::InputSystem& input) const
+    bool Player::is_move_input_active() const
     {
-        return input.is_pressed(Key::A) ||
-                input.is_pressed(Key::D);
+        return movement_axis() != 0.0f;
     }
 
-    float Player::movement_axis(const platform::InputSystem& input) const
+    float Player::movement_axis() const
     {
-        return (input.is_pressed(Key::D) ? 1.0f : 0.0f) -
-                (input.is_pressed(Key::A) ? 1.0f : 0.0f);
+        return (platform::InputSystem::is_pressed(Key::D) ? 1.0f : 0.0f) -
+                (platform::InputSystem::is_pressed(Key::A) ? 1.0f : 0.0f);
     }
 
     vec2 Player::movement_direction(const vec2 up_direction) const
@@ -385,12 +381,11 @@ namespace game::player
     void Player::apply_horizontal_movement(
         const float                  fixed_step,
         const vec2                   movement_direction,
-        const bool                   in_water,
-        const platform::InputSystem& input)
+        const bool                   in_water)
     {
         const vec2  current_velocity      = from_b2(b2Body_GetLinearVelocity(object_.body));
         const float current_tangent_speed = current_velocity.dot(movement_direction);
-        const float move_axis             = movement_axis(input);
+        const float move_axis             = movement_axis();
         const float player_mass           = b2Body_GetMass(object_.body);
         const float movement_scale        = in_water ? 0.68f : 1.0f;
 
@@ -446,17 +441,17 @@ namespace game::player
     void Player::apply_input(
         const float                  fixed_step,
         const vec2                   planet_center,
-        const bool                   in_water,
-        const platform::InputSystem& input)
+        const bool                   in_water)
     {
         if (!valid()) return;
         jump_cooldown_timer_ = std::max(jump_cooldown_timer_ - fixed_step, 0.0f);
 
         const vec2 up             = up_direction(planet_center);
         const auto move_direction = movement_direction(up);
-        const bool jump_held      = input.is_pressed(Key::W) || input.is_pressed(Key::Space);
+        const bool jump_held      = platform::InputSystem::is_pressed(Key::W) ||
+                                    platform::InputSystem::is_pressed(Key::Space);
 
-        apply_horizontal_movement(fixed_step, move_direction, in_water, input);
+        apply_horizontal_movement(fixed_step, move_direction, in_water);
         try_jump(up, jump_held, in_water);
     }
 

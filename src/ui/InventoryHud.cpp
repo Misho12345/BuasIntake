@@ -24,7 +24,7 @@ namespace game::ui
         sf::Text make_counter_text(
             const sf::Font&     font,
             const std::uint32_t value,
-            const unsigned int  character_size = 18u)
+            const unsigned int  character_size)
         {
             sf::Text text{ font, std::format("{}", value), character_size };
             text.setFillColor(0xEEF4E5FF_rgba);
@@ -75,23 +75,21 @@ namespace game::ui
         const float row_height    = 44.0f;
         const float first_row_y   = 30.0f;
 
-        using HudKind = resources::HudKind;
-
         struct CounterEntry final
         {
-            HudKind            kind{ HudKind::Rock };
+            resources::InventoryItem item{ resources::InventoryItem::Rock };
             const sf::Texture* texture{ nullptr };
             sf::IntRect        icon{};
             float              icon_target_size{ 38.0f };
         };
 
         const std::array entries{
-            CounterEntry{ HudKind::Rock, &processed_resource_texture_, tile_rect(0u, 0u, 64), 38.0f },
-            CounterEntry{ HudKind::CopperBar, &processed_resource_texture_, tile_rect(2u, 0u, 64), 38.0f },
-            CounterEntry{ HudKind::IronBar, &processed_resource_texture_, tile_rect(1u, 0u, 64), 38.0f },
-            CounterEntry{ HudKind::GoldBar, &processed_resource_texture_, tile_rect(3u, 0u, 64), 38.0f },
-            CounterEntry{ HudKind::Diamond, &processed_resource_texture_, tile_rect(4u, 0u, 64), 38.0f },
-            CounterEntry{ HudKind::Seeds, &seed_icon_texture_, tile_rect(7u, 0u, 32), 34.0f }
+            CounterEntry{ resources::InventoryItem::Rock, &processed_resource_texture_, tile_rect(0u, 0u, 64), 38.0f },
+            CounterEntry{ resources::InventoryItem::CopperBar, &processed_resource_texture_, tile_rect(2u, 0u, 64), 38.0f },
+            CounterEntry{ resources::InventoryItem::IronBar, &processed_resource_texture_, tile_rect(1u, 0u, 64), 38.0f },
+            CounterEntry{ resources::InventoryItem::GoldBar, &processed_resource_texture_, tile_rect(3u, 0u, 64), 38.0f },
+            CounterEntry{ resources::InventoryItem::Diamond, &processed_resource_texture_, tile_rect(4u, 0u, 64), 38.0f },
+            CounterEntry{ resources::InventoryItem::Seeds, &seed_icon_texture_, tile_rect(7u, 0u, 32), 34.0f }
         };
 
         for (std::size_t i = 0; i < entries.size(); ++i)
@@ -103,7 +101,7 @@ namespace game::ui
                 feedback_amount,
                 feedback_alpha,
                 feedback_offset_y
-            ] = hud_state.counters[static_cast<std::size_t>(entries[i].kind)];
+            ] = hud_state.counters[resources::inventory_item_index(entries[i].item)];
 
             sf::Sprite icon{ *entries[i].texture, entries[i].icon };
 

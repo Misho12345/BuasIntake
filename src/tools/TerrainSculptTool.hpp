@@ -6,13 +6,13 @@
 
 namespace game::tools
 {
+    // dig and place tool for terrain construction
     class TerrainSculptTool final : public TerrainTool
     {
     public:
         TerrainSculptTool()           = default;
         ~TerrainSculptTool() override = default;
 
-        // the sculpt tool runs as a little state machine for dig and place strokes so these three calls are the whole external flow
         void deactivate() override;
 
         void update(
@@ -37,7 +37,6 @@ namespace game::tools
 
         std::size_t              material_index() const;
         std::size_t              level_index() const;
-        std::string_view         material_name() const;
         bool                     at_max_upgrade() const;
         ToolStats                current_stats() const;
         std::optional<ToolStats> next_stats() const;
@@ -64,15 +63,15 @@ namespace game::tools
         struct BrushStroke final
         {
             bool                active{ false };
-            MouseButton         button{ MouseButton::Left };
             float               emission_accumulator{ 0.0f };
             std::optional<vec2> last_stamp_world{ std::nullopt };
 
-            void begin(MouseButton new_button);
+            void begin();
             void reset();
         };
 
         const ToolTier& current_tier() const;
+        static const ToolTier& terrain_tool_tier(std::size_t tier_index);
         std::size_t     flat_tier_index() const;
 
         // this is the actual sculpting loop and it is used for both digging and placing

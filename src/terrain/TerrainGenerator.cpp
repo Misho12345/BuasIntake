@@ -74,7 +74,7 @@ namespace game::terrain
 
     Result<void> TerrainGenerator::initialize(const ChunkSettings& settings)
     {
-        // FieldSample is uploaded and read back as raw RGBA32F data, so its CPU layout must stay exact.
+        // fields are uploaded and read back as raw rgba32f data, so the cpu layout must stay exact
         static_assert(sizeof(FieldSample) == sizeof(float) * 4);
         settings_ = settings;
 
@@ -89,16 +89,14 @@ namespace game::terrain
         TRY(load_compute_shader("assets/shaders/terrain/terrain_gen.comp", terrain_shader_));
         TRY(load_compute_shader("assets/shaders/terrain/cave_gen.comp", cave_shader_));
         TRY(load_compute_shader("assets/shaders/terrain/pond_gen.comp", pond_shader_));
-        TRY(load_compute_shader("assets/shaders/water/water_smooth.comp", water_smooth_shader_));
         TRY(load_compute_shader("assets/shaders/terrain/chunk_edges_gen.comp", edge_shader_));
         TRY(load_compute_shader("assets/shaders/terrain/chunk_mesh_gen.comp", mesh_shader_));
 
-        // The field texture is the shared source of truth for generation, smoothing, and later mesh extraction.
-        TRY(field_texture_.create(padded_field_size(settings_), gfx::TextureFormat::RGBA32F));
-        TRY(scratch_field_texture_.create(padded_field_size(settings_), gfx::TextureFormat::RGBA32F));
+        TRY(field_texture_.create_rgba32f(padded_field_size(settings_)));
+        TRY(water_smoother_.initialize(padded_field_size(settings_)));
 
         const auto padded_size = padded_field_size(settings_);
-        // These sizes are the worst-case marching-squares output, so the rebuild can stay fully on the GPU.
+        // worst-case marching-squares output sizes so the rebuild can stay on the gpu
         boundary_vertices_buffer_.allocate_persistent_read<vec2>(max_boundary_vertex_count(settings_));
         horizontal_edge_ids_buffer_.resize<std::int32_t>(padded_size.y * (padded_size.x - 1u));
         vertical_edge_ids_buffer_.resize<std::int32_t>(padded_size.y * padded_size.x);
@@ -117,11 +115,10 @@ namespace game::terrain
           terrain_shader_{ std::move(other.terrain_shader_) },
           cave_shader_{ std::move(other.cave_shader_) },
           pond_shader_{ std::move(other.pond_shader_) },
-          water_smooth_shader_{ std::move(other.water_smooth_shader_) },
           edge_shader_{ std::move(other.edge_shader_) },
           mesh_shader_{ std::move(other.mesh_shader_) },
           field_texture_{ std::move(other.field_texture_) },
-          scratch_field_texture_{ std::move(other.scratch_field_texture_) },
+          water_smoother_{ std::move(other.water_smoother_) },
           boundary_vertices_buffer_{ std::move(other.boundary_vertices_buffer_) },
           horizontal_edge_ids_buffer_{ std::move(other.horizontal_edge_ids_buffer_) },
           vertical_edge_ids_buffer_{ std::move(other.vertical_edge_ids_buffer_) },
@@ -143,11 +140,10 @@ namespace game::terrain
         terrain_shader_                 = std::move(other.terrain_shader_);
         cave_shader_                    = std::move(other.cave_shader_);
         pond_shader_                    = std::move(other.pond_shader_);
-        water_smooth_shader_            = std::move(other.water_smooth_shader_);
         edge_shader_                    = std::move(other.edge_shader_);
         mesh_shader_                    = std::move(other.mesh_shader_);
         field_texture_                  = std::move(other.field_texture_);
-        scratch_field_texture_          = std::move(other.scratch_field_texture_);
+        water_smoother_                 = std::move(other.water_smoother_);
         boundary_vertices_buffer_       = std::move(other.boundary_vertices_buffer_);
         horizontal_edge_ids_buffer_     = std::move(other.horizontal_edge_ids_buffer_);
         vertical_edge_ids_buffer_       = std::move(other.vertical_edge_ids_buffer_);
@@ -161,8 +157,7 @@ namespace game::terrain
         return *this;
     }
 
-    // generation is staged on purpose
-    // base shell first then caves then ponds then smoothing and only after that do we extract the renderable surface
+    // generation is staged: base shell, caves, ponds, water smoothing, then surface extraction
     Result<void> TerrainGenerator::dispatch()
     {
         if (pending_readback_) { return fail("TerrainGenerator dispatch called before previous readback completed"); }
@@ -170,7 +165,6 @@ namespace game::terrain
         const auto layout = field_layout();
         const auto groups = gfx::ComputeDispatcher::groups_for(layout.padded_size, 16, 16);
 
-        // Build the chunk in stages: base shell first, then caves, then ponds.
         const std::array generation_passes{
             gfx::ComputeDispatcher::Pass{
                 .shader        = &terrain_shader_,
@@ -193,7 +187,6 @@ namespace game::terrain
         };
 
         TRY(gfx::ComputeDispatcher::run(generation_passes));
-        // Smooth the raw water field before extracting any contours from it.
         TRY(smooth_water_field());
 
         return dispatch_surface_rebuild(terrain_channel_index, terrain_iso);
@@ -202,58 +195,7 @@ namespace game::terrain
     // the smoothing pass ping pongs between textures because each iteration needs a stable previous state to read from
     Result<void> TerrainGenerator::smooth_water_field(const std::uint32_t iterations)
     {
-        if (iterations == 0u) return {};
-
-        const auto size   = field_texture_.size();
-        const auto groups = gfx::ComputeDispatcher::groups_for(size, 16, 16);
-        for (std::uint32_t iteration = 0; iteration < iterations; ++iteration)
-        {
-            // Ping-pong between two textures so each pass reads stable values from the previous step.
-            const bool  write_to_scratch = (iteration % 2u) == 0u;
-            const auto& input_texture    = write_to_scratch ? field_texture_ : scratch_field_texture_;
-            const auto& output_texture   = write_to_scratch ? scratch_field_texture_ : field_texture_;
-
-            const std::array smooth_passes{
-                gfx::ComputeDispatcher::Pass{
-                    .shader    = &water_smooth_shader_,
-                    .groups    = groups,
-                    .configure = [this, &input_texture, &output_texture](const gfx::Shader& shader)
-                    {
-                        bind_water_smooth_pass(shader, input_texture, output_texture);
-                    },
-                    .barrier_after = GL_SHADER_IMAGE_ACCESS_BARRIER_BIT
-                }
-            };
-
-            if (auto res = gfx::ComputeDispatcher::run(smooth_passes);
-                !res)
-                return fail(res.error());
-        }
-
-        if ((iterations % 2u) != 0u)
-        {
-            const auto size = field_texture_.size();
-            glCopyImageSubData(
-                scratch_field_texture_.native_handle(),
-                GL_TEXTURE_2D,
-                0,
-                0,
-                0,
-                0,
-                field_texture_.native_handle(),
-                GL_TEXTURE_2D,
-                0,
-                0,
-                0,
-                0,
-                static_cast<GLsizei>(size.x),
-                static_cast<GLsizei>(size.y),
-                1);
-
-            glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-        }
-
-        return {};
+        return water_smoother_.smooth(field_texture_, iterations);
     }
 
     Result<void> TerrainGenerator::dispatch_surface_rebuild(const std::uint32_t channel_index, const float iso)
@@ -263,7 +205,7 @@ namespace game::terrain
         const auto layout = field_layout();
         const auto groups = gfx::ComputeDispatcher::groups_for(layout.padded_size, 16, 16);
 
-        // First find the contour crossings, then let the mesh pass turn those crossings into triangles and edge links.
+        // first find contour crossings, then build triangles and edge links from them
         const std::array rebuild_passes{
             gfx::ComputeDispatcher::Pass{
                 .shader    = &edge_shader_,
@@ -358,14 +300,16 @@ namespace game::terrain
         };
     }
 
-    void TerrainGenerator::bind_chunk_uniforms(const gfx::Shader& shader, const FieldLayout& layout) const
+    void TerrainGenerator::bind_field_uniforms(const gfx::Shader& shader, const FieldLayout& layout) const
     {
-        shader.set_uniform("uChunkCoord", settings_.chunk_coord);
-        shader.set_uniform("uChunkGridSize", settings_.chunk_grid_size);
-        shader.set_uniform("uChunkSize", settings_.chunk_size);
-        shader.set_uniform("uWorldCenter", settings_.world_center);
         shader.set_uniform("uFieldOrigin", layout.field_origin);
         shader.set_uniform("uCellSize", layout.cell_size);
+    }
+
+    void TerrainGenerator::bind_chunk_uniforms(const gfx::Shader& shader, const FieldLayout& layout) const
+    {
+        bind_field_uniforms(shader, layout);
+        shader.set_uniform("uWorldCenter", settings_.world_center);
     }
 
     void TerrainGenerator::bind_generation_pass(const gfx::Shader& shader, const FieldLayout& layout) const
@@ -392,16 +336,6 @@ namespace game::terrain
         shader.set_uniform("uPlanetRadius", settings_.planet_radius);
     }
 
-    void TerrainGenerator::bind_water_smooth_pass(
-        const gfx::Shader&    shader,
-        const gfx::Texture2D& input_texture,
-        const gfx::Texture2D& output_texture) const
-    {
-        input_texture.bind_image(0u, GL_READ_ONLY);
-        output_texture.bind_image(1u, GL_WRITE_ONLY);
-        static_cast<void>(shader);
-    }
-
     void TerrainGenerator::bind_surface_edge_pass(
         const gfx::Shader&  shader,
         const FieldLayout&  layout,
@@ -413,7 +347,7 @@ namespace game::terrain
         horizontal_edge_ids_buffer_.bind_base(horizontal_edge_ids_binding);
         vertical_edge_ids_buffer_.bind_base(vertical_edge_ids_binding);
         boundary_vertex_counter_buffer_.bind_base(boundary_vertex_counter_binding);
-        bind_chunk_uniforms(shader, layout);
+        bind_field_uniforms(shader, layout);
         shader.set_uniform("uIso", iso);
         shader.set_uniform("uChannelIndex", static_cast<std::int32_t>(channel_index));
         shader.set_uniform("uMaxBoundaryVertices", max_boundary_vertex_count(settings_));
@@ -434,7 +368,7 @@ namespace game::terrain
         boundary_edges_buffer_.bind_base(boundary_edges_binding);
         counters_buffer_.bind_base(counters_binding);
 
-        bind_chunk_uniforms(shader, layout);
+        bind_field_uniforms(shader, layout);
         shader.set_uniform("uIso", iso);
         shader.set_uniform("uChannelIndex", static_cast<std::int32_t>(channel_index));
         shader.set_uniform("uFieldPadding", layout.field_padding);
@@ -452,12 +386,9 @@ namespace game::terrain
 
     void TerrainGenerator::reset_surface_buffers()
     {
-        static constexpr std::int32_t  minus_one = -1;
         static constexpr std::uint32_t zero      = 0;
 
-        // The compute passes append into these buffers, so every rebuild starts from a clean set of ids and counters.
-        glClearNamedBufferData(horizontal_edge_ids_buffer_.id(), GL_R32I, GL_RED_INTEGER, GL_INT, &minus_one);
-        glClearNamedBufferData(vertical_edge_ids_buffer_.id(), GL_R32I, GL_RED_INTEGER, GL_INT, &minus_one);
+        // the compute passes append into these counters, so every rebuild starts from zero
         glClearNamedBufferData(boundary_vertex_counter_buffer_.id(), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
         glClearNamedBufferData(counters_buffer_.id(), GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
     }
@@ -468,7 +399,7 @@ namespace game::terrain
         completion_fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         if (completion_fence_ == nullptr) { return fail("Failed to create terrain generator GPU completion fence"); }
 
-        // Readback is delayed until the caller actually asks for it, which lets multiple chunks overlap GPU work.
+        // readback is delayed until the caller asks for it so chunks can overlap gpu work
         pending_readback_ = true;
         return {};
     }
@@ -509,7 +440,7 @@ namespace game::terrain
         RawPipelineResult result{};
         if (!pending_readback_) return result;
 
-        // The buffers are persistently mapped, so this barrier is the handoff point from compute writes to CPU reads.
+        // the buffers are persistently mapped, so this barrier is the handoff point from compute writes to cpu reads
         glMemoryBarrier(GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
         const auto [boundary_vertex_count, boundary_vertex_overflowed] =
@@ -558,16 +489,12 @@ namespace game::terrain
 
         if (boundary_vertex_count > 0)
         {
-            const auto gpu_boundary_vertices = boundary_vertices_buffer_.read<vec2>(boundary_vertex_count);
-            result.boundary_vertices.reserve(gpu_boundary_vertices.size());
-            for (const auto& vertex : gpu_boundary_vertices) { result.boundary_vertices.push_back(vertex); }
+            result.boundary_vertices = boundary_vertices_buffer_.read<vec2>(boundary_vertex_count);
         }
 
         if (vertex_count > 0)
         {
-            const auto gpu_mesh_vertices = mesh_vertices_buffer_.read<vec2>(vertex_count);
-            result.mesh_vertices.reserve(gpu_mesh_vertices.size());
-            for (const auto& vertex : gpu_mesh_vertices) { result.mesh_vertices.push_back(vertex); }
+            result.mesh_vertices = mesh_vertices_buffer_.read<vec2>(vertex_count);
         }
 
         if (index_count > 0) { result.mesh_indices = mesh_indices_buffer_.read<std::uint32_t>(index_count); }

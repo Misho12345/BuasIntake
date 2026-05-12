@@ -7,16 +7,12 @@
 
 namespace game::tools
 {
+    // small tool that forwards planting clicks into the vegetation system
     class SeedTool final : public TerrainTool
     {
     public:
         SeedTool()           = default;
         ~SeedTool() override = default;
-
-        void update(
-            const TerrainToolContext&    context,
-            const TerrainTargetResolver& resolver,
-            float                        dt) override;
 
         void handle_mouse_pressed(
             const TerrainToolContext&    context,

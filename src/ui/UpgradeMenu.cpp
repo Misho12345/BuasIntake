@@ -43,6 +43,14 @@ namespace game::ui
             };
         }
 
+        vec2 card_position_for(const UpgradeMenuLayout& layout, const std::size_t card_index)
+        {
+            return {
+                layout.panel_position.x + (34.0f + static_cast<float>(card_index) * 550.0f) * layout.scale,
+                layout.panel_position.y + 108.0f * layout.scale
+            };
+        }
+
         std::string roman_tier(const std::size_t level_index)
         {
             static constexpr std::array tiers{ "I", "II", "III" };
@@ -203,7 +211,7 @@ namespace game::ui
                 maxed
             ] = cards[index];
 
-            const vec2         card_position = panel_point(34.0f + static_cast<float>(index) * 550.0f, 108.0f);
+            const vec2         card_position = card_position_for(layout, index);
             sf::RectangleShape card{ scaled_size(525.0f, 458.0f) };
             card.setPosition(card_position);
             card.setFillColor(0x171D22F6_rgba);
@@ -314,12 +322,9 @@ namespace game::ui
 
     sf::FloatRect UpgradeMenu::button_rect(const uvec2 target_size, const std::size_t action_index)
     {
-        const auto  layout = make_upgrade_menu_layout(target_size);
-        const float scale  = layout.scale;
-        const vec2  card_position{
-            layout.panel_position.x + (34.0f + static_cast<float>(action_index) * 550.0f) * scale,
-            layout.panel_position.y + 108.0f * scale
-        };
+        const auto  layout        = make_upgrade_menu_layout(target_size);
+        const float scale         = layout.scale;
+        const vec2  card_position = card_position_for(layout, action_index);
 
         return {
             card_position + vec2{ 125.0f, 389.0f } * scale,

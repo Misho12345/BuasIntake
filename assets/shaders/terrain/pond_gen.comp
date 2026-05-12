@@ -1,5 +1,10 @@
 #version 460 core
 
+// pond pass
+// ponds are generated from the cave slot layout instead of pure random positions so they feel like part of the cave floor
+// the pass first carves a basin, then writes water, then rebuilds a small support shell so caves do not leak through around the water
+// chatgpt helped with shaping and debugging this pass because most of the work is tuning overlapping profiles
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba32f, binding = 0) uniform coherent image2D ioField;
@@ -10,26 +15,11 @@ uniform vec2 uCellSize;
 uniform uint uSeed;
 uniform float uPlanetRadius;
 
-const float tau = 6.28318530718;
-
-const int cave_slot_count = 16;
-const float cave_activation_threshold = 0.14;
-const float min_cave_depth = 0.22;
-const float max_cave_depth = 0.43;
-const float min_cave_radius_tangent = 5.8;
-const float max_cave_radius_tangent = 10.8;
-const float min_cave_radius_up = 4.2;
-const float max_cave_radius_up = 7.0;
 const float shallow_pond_depth = 3.4;
 const float deep_pond_depth = 6.2;
 
 #include "terrain/noise.glsl"
-
-float smooth_profile(float value)
-{
-    float t = clamp(value, 0.0, 1.0);
-    return t * t * (3.0 - 2.0 * t);
-}
+#include "terrain/cave_slots.glsl"
 
 void main()
 {
@@ -43,31 +33,21 @@ void main()
 
     vec2 world = uFieldOrigin + vec2(pixel) * uCellSize;
 
-    // Reuse the cave-slot layout so ponds stay tucked into cave floors.
     for (int slot = 0; slot < cave_slot_count; ++slot)
     {
         float slot_id = float(slot);
-        float activation = hash(vec2(slot_id + 11.3, 7.9));
-        if (activation < cave_activation_threshold) continue;
+        if (!cave_slot_active(slot_id)) continue;
 
-        float angle = tau * ((slot_id + 0.5) / float(cave_slot_count));
-        angle += (hash(vec2(slot_id + 3.7, 19.1)) - 0.5) * (tau / float(cave_slot_count)) * 0.74;
+        CaveSlotProfile slot_profile = cave_slot_profile(slot);
+        vec2 cave_up = slot_profile.cave_up;
+        vec2 tangent = slot_profile.tangent;
+        vec2 cave_center = slot_profile.cave_center;
+        float size_roll = slot_profile.size_roll;
+        float base_radius_tangent = slot_profile.base_radius_tangent;
+        float base_radius_up = slot_profile.base_radius_up;
+        float lobe_span = slot_profile.lobe_span;
 
-        vec2 cave_up = vec2(cos(angle), sin(angle));
-        vec2 tangent = vec2(cave_up.y, -cave_up.x);
-        float cave_depth = mix(min_cave_depth, max_cave_depth, hash(vec2(slot_id + 5.1, 13.7)));
-        float cave_radius = uPlanetRadius * (1.0 - cave_depth);
-        vec2 cave_center = uWorldCenter + cave_up * cave_radius;
-
-        float size_roll = hash(vec2(slot_id + 17.1, 2.6));
-        float height_roll = hash(vec2(slot_id + 23.4, 9.2));
-        float base_radius_tangent = mix(min_cave_radius_tangent, max_cave_radius_tangent, size_roll);
-        float base_radius_up = mix(min_cave_radius_up, max_cave_radius_up, height_roll) * 0.75;
-        int lobe_count = 2 + int(floor(hash(vec2(slot_id + 31.4, 4.8)) * 4.0));
-        float lobe_spacing = mix(5.6, 10.8, hash(vec2(slot_id + 27.2, 12.3)));
-        float lobe_span = lobe_spacing * 0.5 * float(max(lobe_count - 1, 0));
-
-        // Large cave slots can host several ponds, but only one basin goes deeper so the pattern does not repeat too evenly.
+        // only one basin goes deeper so the pattern does not repeat too evenly
         int pond_count = size_roll > 0.85 ? 4 : (size_roll > 0.58 ? 3 : (size_roll > 0.28 ? 2 : 1));
         int deep_pond_index = pond_count > 1 ? int(floor(hash(vec2(slot_id + 161.0, 23.0)) * float(pond_count))) : 0;
 
@@ -102,7 +82,6 @@ void main()
             float basin_profile = smooth_profile(clamp(basin_signed / max(local_pond_depth * 0.32, 0.28), 0.0, 1.0));
             if (basin_profile > 1e-4)
             {
-                // Cut the visible pond floor a bit deeper without tunnelling toward the planet core.
                 float basin_cavity_target = deep_pond ? -6.6 : -4.8;
                 density = min(density, mix(density, basin_cavity_target, basin_profile));
             }
@@ -111,7 +90,7 @@ void main()
             float water_signed = min(lateral_signed, min(pond_down - water_surface_down, local_pond_depth - pond_down));
             float water_profile = smooth_profile(clamp(water_signed / max(local_pond_depth * 0.24, 0.24), 0.0, 1.0));
 
-            // Build the pond shell back up after carving so cave noise does not leave paper-thin walls around the water.
+            // rebuild a small shell after carving so cave noise does not leave paper-thin walls around the water
             float outer_lateral_signed = lateral_signed + wall_thickness;
             float outer_vertical_signed = min(pond_down - water_surface_down, (local_pond_depth + floor_thickness) - pond_down);
             float shell_signed = min(outer_lateral_signed, min(outer_vertical_signed, -water_signed));
@@ -121,7 +100,6 @@ void main()
                 density = max(density, shell_signed * shell_strength);
             }
 
-            // Add a little extra support below the pond so stacked cave spaces do not leak straight through each other.
             float support_lateral_signed = (pond_half_length + wall_thickness * 0.75) - abs(pond_along_distance);
             float support_vertical_signed = min(pond_down - (local_pond_depth - 0.10), (local_pond_depth + floor_thickness + support_depth) - pond_down);
             float support_signed = min(support_lateral_signed, support_vertical_signed);

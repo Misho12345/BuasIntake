@@ -11,8 +11,7 @@ namespace game::world
         destroy();
         if (!b2World_IsValid(physics_world)) return fail("World requires a valid Box2D world");
 
-        physics_world_ = physics_world;
-        terrain_.emplace(physics_world_, resources_, vegetation_);
+        terrain_.emplace(physics_world, resources_, vegetation_);
         if (const auto result = terrain_->initialize();
             !result)
         {
@@ -24,7 +23,7 @@ namespace game::world
             player_config.capsule_half_height +
             player_config.spawn_air_clearance);
 
-        if (const auto result = player_.create(physics_world_, spawn, terrain_->planet_center(), player_config);
+        if (const auto result = player_.create(physics_world, spawn, terrain_->planet_center(), player_config);
             !result)
         {
             terrain_.reset();
@@ -41,7 +40,6 @@ namespace game::world
         resources_     = resources::ResourceSystem{};
         vegetation_    = vegetation::VegetationSystem{};
         water_         = water::WaterSystem{};
-        physics_world_ = b2_nullWorldId;
     }
 
     // flush terrain edits first so vegetation is not looking at stale ground data for this frame
@@ -62,6 +60,5 @@ namespace game::world
         terrain_->validate();
         resources_.validate();
         vegetation_.validate();
-        water_.validate();
     }
 }

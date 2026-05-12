@@ -18,11 +18,11 @@ namespace game::render
         void draw(
             const world::World&                                  world,
             const std::optional<tools::WaterTool::PreviewState>& preview_state,
-            const sf::View&                                      view) const;
+            const sf::View&                                      view);
 
     private:
-        mutable ResourceRenderer    resource_renderer_{};
-        mutable ToolPreviewRenderer tool_preview_renderer_{};
-        mutable VegetationRenderer  vegetation_renderer_{};
+        ResourceRenderer    resource_renderer_{};
+        ToolPreviewRenderer tool_preview_renderer_{};
+        VegetationRenderer  vegetation_renderer_{};
     };
 }

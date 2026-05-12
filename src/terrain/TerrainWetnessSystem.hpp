@@ -3,7 +3,7 @@
 #include "pch.hpp"
 
 
-#include "terrain/TerrainGenerator.hpp"
+#include "terrain/TerrainFieldSample.hpp"
 
 namespace game::terrain
 {
@@ -51,14 +51,6 @@ namespace game::terrain
                 field_size);
         }
 
-        inline TerrainSampleBounds merge_sample_bounds(const TerrainSampleBounds& lhs, const TerrainSampleBounds& rhs)
-        {
-            return {
-                .min = { std::min(lhs.min.x, rhs.min.x), std::min(lhs.min.y, rhs.min.y) },
-                .max = { std::max(lhs.max.x, rhs.max.x), std::max(lhs.max.y, rhs.max.y) }
-            };
-        }
-
         inline bool sample_bounds_intersect(const TerrainSampleBounds& lhs, const TerrainSampleBounds& rhs)
         {
             return lhs.min.x <= rhs.max.x &&
@@ -81,12 +73,12 @@ namespace game::terrain
         // later the recompute pass can walk outward from those blobs instead of pretending all water is one giant source
         template <typename CollectWaterComponent>
         std::vector<TerrainWetnessComponent> collect_wetness_components(
-            const std::span<const TerrainGenerator::FieldSample> global_field,
-            const uvec2                                          global_field_size,
-            const TerrainSampleBounds&                           discovery_bounds,
-            const float                                          min_cell_extent,
-            const int                                            max_wetness_radius_cells,
-            CollectWaterComponent&&                              collect_water_component)
+            const std::span<const TerrainFieldSample> global_field,
+            const uvec2                              global_field_size,
+            const TerrainSampleBounds&               discovery_bounds,
+            const float                              min_cell_extent,
+            const int                                max_wetness_radius_cells,
+            CollectWaterComponent&&                  collect_water_component)
         {
             static constexpr float base_wetness_radius_cells = 16.0f;
             static constexpr float pond_radius_scale         = 5.75f;
@@ -95,17 +87,6 @@ namespace game::terrain
             {
                 return static_cast<std::size_t>(coord.y) * static_cast<std::size_t>(global_field_size.x) +
                         static_cast<std::size_t>(coord.x);
-            };
-
-            auto has_water = [](const TerrainGenerator::FieldSample& sample)
-            {
-                return std::min(-sample.terrain, sample.water) > 1e-4f;
-            };
-
-            auto sample_key = [](const ivec2 coord)
-            {
-                return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(coord.x)) << 32u) | static_cast<
-                    std::uint32_t>(coord.y);
             };
 
             auto component_wetness_distance = [min_cell_extent, max_wetness_radius_cells
@@ -127,13 +108,13 @@ namespace game::terrain
                 for (int x = discovery_bounds.min.x; x <= discovery_bounds.max.x; ++x)
                 {
                     const ivec2 coord{ x, y };
-                    if (!has_water(global_field[field_index(coord)])) continue;
+                    if (!has_water_sample(global_field[field_index(coord)])) continue;
 
-                    const auto key = sample_key(coord);
+                    const auto key = game::sample_key(coord);
                     if (!visited_water.insert(key).second) continue;
 
                     auto water_cells = collect_water_component(coord, false);
-                    for (const auto water_coord : water_cells) { visited_water.insert(sample_key(water_coord)); }
+                    for (const auto water_coord : water_cells) { visited_water.insert(game::sample_key(water_coord)); }
 
                     if (water_cells.empty()) continue;
 
@@ -170,12 +151,12 @@ namespace game::terrain
         // doing it this way is a lot cheaper than rebuilding the whole planet every time someone digs one hole
         template <typename MarkDirty, typename CollectWaterComponent>
         void recompute_around(
-            std::span<TerrainGenerator::FieldSample> global_field,
-            const uvec2                              global_field_size,
-            const vec2                               terrain_cell_size,
-            const std::span<const ivec2>             changed_coords,
-            MarkDirty&&                              mark_dirty,
-            CollectWaterComponent&&                  collect_water_component)
+            std::span<TerrainFieldSample>    global_field,
+            const uvec2                      global_field_size,
+            const vec2                       terrain_cell_size,
+            const std::span<const ivec2>     changed_coords,
+            MarkDirty&&                      mark_dirty,
+            CollectWaterComponent&&          collect_water_component)
         {
             if (changed_coords.empty() || global_field.empty()) return;
 
@@ -189,12 +170,6 @@ namespace game::terrain
             {
                 return coord.x >= 0 && coord.y >= 0 && coord.x < static_cast<int>(global_field_size.x) &&
                         coord.y < static_cast<int>(global_field_size.y);
-            };
-
-            auto is_solid  = [](const TerrainGenerator::FieldSample& sample) { return sample.terrain >= 0.0f; };
-            auto has_water = [](const TerrainGenerator::FieldSample& sample)
-            {
-                return std::min(-sample.terrain, sample.water) > 1e-4f;
             };
 
             auto wetness_strength = [](const float distance, const float max_distance)
@@ -262,6 +237,22 @@ namespace game::terrain
                 max_wetness_radius_cells,
                 global_field_size);
 
+            auto clear_affected_wetness = [&]
+            {
+                for (int y = affected_bounds.min.y; y <= affected_bounds.max.y; ++y)
+                {
+                    for (int x = affected_bounds.min.x; x <= affected_bounds.max.x; ++x)
+                    {
+                        const ivec2 coord{ x, y };
+                        auto&       sample = global_field[field_index(coord)];
+                        if (std::abs(sample.wetness) <= 1e-6f) continue;
+
+                        sample.wetness = 0.0f;
+                        mark_dirty(coord);
+                    }
+                }
+            };
+
             bool has_water_in_discovery   = false;
             bool has_wetness_in_discovery = false;
             for (int y = component_discovery_bounds.min.y;
@@ -272,7 +263,7 @@ namespace game::terrain
                 for (int x = component_discovery_bounds.min.x; x <= component_discovery_bounds.max.x; ++x)
                 {
                     const auto& sample       = global_field[field_index({ x, y })];
-                    has_water_in_discovery   = has_water_in_discovery || has_water(sample);
+                    has_water_in_discovery   = has_water_in_discovery || has_water_sample(sample);
 
                     has_wetness_in_discovery =
                             has_wetness_in_discovery ||
@@ -287,19 +278,7 @@ namespace game::terrain
             {
                 if (!has_wetness_in_discovery) return;
 
-                for (int y = affected_bounds.min.y; y <= affected_bounds.max.y; ++y)
-                {
-                    for (int x = affected_bounds.min.x; x <= affected_bounds.max.x; ++x)
-                    {
-                        const ivec2 coord{ x, y };
-                        auto&       sample       = global_field[field_index(coord)];
-                        const float next_wetness = 0.0f;
-                        if (std::abs(sample.wetness - next_wetness) <= 1e-6f) continue;
-
-                        sample.wetness = next_wetness;
-                        mark_dirty(coord);
-                    }
-                }
+                clear_affected_wetness();
                 return;
             }
 
@@ -316,19 +295,7 @@ namespace game::terrain
             {
                 if (!has_wetness_in_discovery) return;
 
-                for (int y = affected_bounds.min.y; y <= affected_bounds.max.y; ++y)
-                {
-                    for (int x = affected_bounds.min.x; x <= affected_bounds.max.x; ++x)
-                    {
-                        const ivec2 coord{ x, y };
-                        auto&       sample       = global_field[field_index(coord)];
-                        const float next_wetness = 0.0f;
-                        if (std::abs(sample.wetness - next_wetness) <= 1e-6f) continue;
-
-                        sample.wetness = next_wetness;
-                        mark_dirty(coord);
-                    }
-                }
+                clear_affected_wetness();
                 return;
             }
 
@@ -392,7 +359,7 @@ namespace game::terrain
                         !is_valid_global_sample(coord))
                         return;
 
-                    if (!is_solid(global_field[field_index(coord)])) return;
+                    if (!is_solid_sample(global_field[field_index(coord)])) return;
 
                     auto& best_distance = best_distances[propagation_index(coord)];
                     if (distance + 1e-5f >= best_distance || distance > component.max_distance) return;
@@ -437,7 +404,7 @@ namespace game::terrain
                 {
                     const ivec2 coord{ x, y };
                     auto&       sample       = global_field[field_index(coord)];
-                    const float next_wetness = is_solid(sample) ? best_wetness[affected_index(coord)] : 0.0f;
+                    const float next_wetness = is_solid_sample(sample) ? best_wetness[affected_index(coord)] : 0.0f;
 
                     if (std::abs(sample.wetness - next_wetness) <= 1e-6f) continue;
 

@@ -6,53 +6,45 @@ namespace game::gfx
 {
     Mesh::Mesh()
     {
-        glCreateVertexArrays(1, &vao_);
-        glCreateBuffers(1, &vbo_);
-        glCreateBuffers(1, &ebo_);
+        vao_.create();
+        vbo_.create();
+        ebo_.create();
 
-        glVertexArrayVertexBuffer(vao_, 0, vbo_, 0, sizeof(sf::Vertex));
-        glVertexArrayElementBuffer(vao_, ebo_);
+        glVertexArrayVertexBuffer(vao_.id(), 0, vbo_.id(), 0, sizeof(sf::Vertex));
+        glVertexArrayElementBuffer(vao_.id(), ebo_.id());
 
-        static constexpr GLint pos_size = sizeof(sf::Vertex::position) / sizeof(float);
-        glEnableVertexArrayAttrib(vao_, 0);
-        glVertexArrayAttribFormat(vao_, 0, pos_size, GL_FLOAT, GL_FALSE, offsetof(sf::Vertex, position));
-        glVertexArrayAttribBinding(vao_, 0, 0);
+        // layout(location = 0) in vec2 aPosition;
+        static constexpr GLint pos_size = sizeof(sf::Vertex::position) / sizeof(float); // x2 float
+        glEnableVertexArrayAttrib(vao_.id(), 0);
+        glVertexArrayAttribFormat(vao_.id(), 0, pos_size, GL_FLOAT, GL_FALSE, offsetof(sf::Vertex, position));
+        glVertexArrayAttribBinding(vao_.id(), 0, 0);
 
-        static constexpr GLint color_size = 4;
-        glEnableVertexArrayAttrib(vao_, 1);
-        glVertexArrayAttribFormat(vao_, 1, color_size, GL_UNSIGNED_BYTE, GL_TRUE, offsetof(sf::Vertex, color));
-        glVertexArrayAttribBinding(vao_, 1, 0);
+        // layout(location = 1) in vec4 aColor;
+        static constexpr GLint color_size = sizeof(sf::Vertex::color) / sizeof(std::uint8_t); // x4 uint8
+        glEnableVertexArrayAttrib(vao_.id(), 1);
+        glVertexArrayAttribFormat(vao_.id(), 1, color_size, GL_UNSIGNED_BYTE, GL_TRUE, offsetof(sf::Vertex, color));
+        glVertexArrayAttribBinding(vao_.id(), 1, 0);
 
-        static constexpr GLint tex_coords_size = sizeof(sf::Vertex::texCoords) / sizeof(float);
-        glEnableVertexArrayAttrib(vao_, 2);
-        glVertexArrayAttribFormat(vao_, 2, tex_coords_size, GL_FLOAT, GL_FALSE, offsetof(sf::Vertex, texCoords));
-        glVertexArrayAttribBinding(vao_, 2, 0);
-    }
-
-    Mesh::~Mesh()
-    {
-        if (ebo_ != 0) glDeleteBuffers(1, &ebo_);
-        if (vbo_ != 0) glDeleteBuffers(1, &vbo_);
-        if (vao_ != 0) glDeleteVertexArrays(1, &vao_);
+        // layout(location = 2) in vec2 aTexCoords;
+        static constexpr GLint tex_coords_size = sizeof(sf::Vertex::texCoords) / sizeof(float); // x2 float
+        glEnableVertexArrayAttrib(vao_.id(), 2);
+        glVertexArrayAttribFormat(vao_.id(), 2, tex_coords_size, GL_FLOAT, GL_FALSE, offsetof(sf::Vertex, texCoords));
+        glVertexArrayAttribBinding(vao_.id(), 2, 0);
     }
 
     Mesh::Mesh(Mesh&& other) noexcept
-        : vao_{ std::exchange(other.vao_, 0) },
-          vbo_{ std::exchange(other.vbo_, 0) },
-          ebo_{ std::exchange(other.ebo_, 0) },
+        : vao_{ std::move(other.vao_) },
+          vbo_{ std::move(other.vbo_) },
+          ebo_{ std::move(other.ebo_) },
           index_count_{ std::exchange(other.index_count_, 0) } {}
 
     Mesh& Mesh::operator=(Mesh&& other) noexcept
     {
         if (this == &other) return *this;
 
-        if (ebo_ != 0) glDeleteBuffers(1, &ebo_);
-        if (vbo_ != 0) glDeleteBuffers(1, &vbo_);
-        if (vao_ != 0) glDeleteVertexArrays(1, &vao_);
-
-        vao_         = std::exchange(other.vao_, 0);
-        vbo_         = std::exchange(other.vbo_, 0);
-        ebo_         = std::exchange(other.ebo_, 0);
+        vao_         = std::move(other.vao_);
+        vbo_         = std::move(other.vbo_);
+        ebo_         = std::move(other.ebo_);
         index_count_ = std::exchange(other.index_count_, 0);
 
         return *this;
@@ -63,13 +55,13 @@ namespace game::gfx
         index_count_ = static_cast<GLsizei>(indices.size());
 
         glNamedBufferData(
-            vbo_,
+            vbo_.id(),
             static_cast<GLsizeiptr>(vertices.size_bytes()),
             vertices.empty() ? nullptr : vertices.data(),
             GL_STATIC_DRAW);
 
         glNamedBufferData(
-            ebo_,
+            ebo_.id(),
             static_cast<GLsizeiptr>(indices.size_bytes()),
             indices.empty() ? nullptr : indices.data(),
             GL_STATIC_DRAW);
@@ -79,7 +71,7 @@ namespace game::gfx
     {
         if (empty()) return;
 
-        glBindVertexArray(vao_);
+        glBindVertexArray(vao_.id());
         glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, nullptr);
         glBindVertexArray(0);
     }

@@ -1,5 +1,12 @@
 #version 460 core
 
+// instanced resource and vegetation sprite vertex shader
+// sprites are placed in local tangent/up space so trees, bushes, ores, and dead plants sit on the curved terrain surface
+// the tree and bush pixel art pipeline was adapted from procedural tree generator ideas:
+// https://github.com/archaicvirus/TreeGenerator
+// https://tic80.com/play?cart=3424
+// chatgpt 5.4 helped adapt the algorithm, especially for growing transition sprites and checking the generated variants
+
 layout(location = 0) in vec2 aLocalPosition;
 layout(location = 1) in vec2 aLocalUv;
 layout(location = 2) in vec2 aInstanceCenter;
@@ -19,7 +26,7 @@ void main()
     float radial_offset = aInstanceParams0.y;
     vec2 up = normalize(aInstanceUp);
 
-    // Every sprite starts as a flat quad, then gets rebuilt in tangent/up space so it follows the local planet curvature.
+    // rebuild the flat quad in tangent/up space so sprites sit on the curved terrain
     vec2 tangent = vec2(up.y, -up.x);
     vec2 anchor = aInstanceCenter + up * radial_offset;
     float angle = aInstanceAngleOffset;

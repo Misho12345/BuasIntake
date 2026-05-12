@@ -5,6 +5,9 @@
 
 namespace game::gfx
 {
+    // RAII wrappers for OpenGL object handles
+    // these exist to safely manage lifetime without inheriting the full complexity of Mesh, SSBO, etc.
+
     class GlBuffer final
     {
     public:

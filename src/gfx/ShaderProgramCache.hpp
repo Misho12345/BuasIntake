@@ -6,6 +6,7 @@
 
 namespace game::gfx
 {
+    // saves shader programs so that they wouldn't have to be compiled and linked repeatedly
     class ShaderProgramCache final
     {
     public:

@@ -2,13 +2,16 @@
 
 #include "pch.hpp"
 
+#include "gfx/GlHandle.hpp"
+
 namespace game::gfx
 {
+    // owns the opengl buffers for an indexed sf::Vertex mesh
     class Mesh final
     {
     public:
         Mesh();
-        ~Mesh();
+        ~Mesh() = default;
 
         Mesh(const Mesh&)            = delete;
         Mesh& operator=(const Mesh&) = delete;
@@ -21,9 +24,9 @@ namespace game::gfx
         bool empty() const;
 
     private:
-        GLuint  vao_{ 0 };
-        GLuint  vbo_{ 0 };
-        GLuint  ebo_{ 0 };
+        GlVertexArray vao_{};
+        GlBuffer      vbo_{};
+        GlBuffer      ebo_{};
         GLsizei index_count_{ 0 };
     };
 }

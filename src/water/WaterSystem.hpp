@@ -52,8 +52,5 @@ namespace game::water
             vec2                          world_position,
             std::uint32_t                 volume_cap) const;
 
-        // this exists so the game loop can ask the water system to keep collider activation near the player instead of globally hot
-        void update_active_colliders(terrain::PlanetTerrain& terrain, vec2 player_position) const;
-        void validate() const {}
     };
 }

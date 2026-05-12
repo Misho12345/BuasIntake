@@ -35,22 +35,24 @@ namespace game::render
         static constexpr std::size_t batch_count{ 4u };
 
         // this rebuilds all sprite instances from plant and dead plant state when the source revisions changed
-        Result<void> rebuild_instances(
+        void rebuild_instances(
             const terrain::PlanetTerrain&       terrain,
             const vegetation::VegetationSystem& vegetation,
             const resources::ResourceSystem&    resources);
 
-        mutable std::array<InstancedSpriteBatch, batch_count> batch_resources_{};
-        std::array<std::vector<SpriteInstance>, batch_count>  cached_instances_by_batch_{};
+        std::array<InstancedSpriteBatch, batch_count> batch_resources_{};
 
+        std::vector<SpriteInstance> cached_live64_instances_{};
         std::vector<SpriteInstance> cached_low_cover_live32_instances_{};
         std::vector<SpriteInstance> cached_woody_live32_instances_{};
+        std::vector<SpriteInstance> cached_dead32_instances_{};
+        std::vector<SpriteInstance> cached_dead64_instances_{};
 
-        mutable std::vector<SpriteInstance> visible_live64_instances_{};
-        mutable std::vector<SpriteInstance> visible_woody_live32_instances_{};
-        mutable std::vector<SpriteInstance> visible_low_cover_live32_instances_{};
-        mutable std::vector<SpriteInstance> visible_dead32_instances_{};
-        mutable std::vector<SpriteInstance> visible_dead64_instances_{};
+        std::vector<SpriteInstance> visible_live64_instances_{};
+        std::vector<SpriteInstance> visible_woody_live32_instances_{};
+        std::vector<SpriteInstance> visible_low_cover_live32_instances_{};
+        std::vector<SpriteInstance> visible_dead32_instances_{};
+        std::vector<SpriteInstance> visible_dead64_instances_{};
 
         std::uint64_t last_vegetation_revision_{ std::numeric_limits<std::uint64_t>::max() };
         std::uint64_t last_resource_revision_{ std::numeric_limits<std::uint64_t>::max() };

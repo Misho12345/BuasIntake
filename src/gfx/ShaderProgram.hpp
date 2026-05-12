@@ -4,6 +4,9 @@
 
 namespace game::gfx
 {
+    // contains the handle for a compute or graphics shader program
+    // owned by ShaderProgramCache and saved in Shader as an std::shared_ptr
+    // it caches the uniform locations in Shader::uniform_location(...)
     struct ShaderProgram final
     {
         GLuint id{ 0 };

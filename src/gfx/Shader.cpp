@@ -18,10 +18,13 @@ namespace game::gfx
 
     Result<Shader> Shader::from_compute_file(const fs::path& path)
     {
+        // get existing cached shader program or create new and save
         const auto program = ShaderProgramCache::instance().get_or_create(
             std::format("compute:{}", normalized_key(path)),
             [&]() -> Result<GLuint>
             {
+                // resolve includes -> compile individual shader -> link shader program
+
                 auto source = ShaderPreprocessor::preprocess_file(path);
                 if (!source) return fail("{}", source.error().message);
 
@@ -40,6 +43,8 @@ namespace game::gfx
 
     Result<Shader> Shader::from_graphics_files(const fs::path& vertex_path, const fs::path& fragment_path)
     {
+        // same as from_compute_file but 2 compiled individual shaders (vert & frag) are linked into the final shader program
+
         const auto program = ShaderProgramCache::instance().get_or_create(
             std::format("graphics:{}|{}", normalized_key(vertex_path), normalized_key(fragment_path)),
             [&]() -> Result<GLuint>
@@ -84,12 +89,13 @@ namespace game::gfx
         return {};
     }
 
-    GLuint Shader::id() const { return program_ ? program_->id : 0; }
-    bool   Shader::valid() const { return program_ && program_->id != 0; }
+    bool Shader::valid() const { return program_ && program_->id != 0; }
 
     GLint Shader::uniform_location(const std::string_view name) const
     {
         if (!program_ || program_->id == 0) return -1;
+
+        // uses ShaderProgram::uniform_locations to save the already accessed uniforms so as to not have to get them every time
 
         const std::string key{ name };
         if (const auto it = program_->uniform_locations.find(key);

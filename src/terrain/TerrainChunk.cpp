@@ -2,7 +2,6 @@
 
 #include "TerrainChunk.hpp"
 
-#include "gfx/MeshBuilders.hpp"
 #include "terrain/TerrainGridMath.hpp"
 
 namespace game::terrain
@@ -106,7 +105,7 @@ namespace game::terrain
                         renderable_result.error().message);
         }
 
-        if (auto water_renderable_result = water_renderable_.initialize();
+        if (auto water_renderable_result = water_surface_.initialize();
             !water_renderable_result)
         {
             return fail("Failed to initialize water renderer for chunk ({}, {}): {}",
@@ -120,7 +119,7 @@ namespace game::terrain
 
     void TerrainChunk::draw_gl(const sf::View& view) const { renderable_.draw(mesh_, view); }
 
-    void TerrainChunk::draw_water_gl(const sf::View& view) const { water_renderable_.draw(water_mesh_, view); }
+    void TerrainChunk::draw_water_gl(const sf::View& view) const { water_surface_.draw_gl(view); }
 
     Result<void> TerrainChunk::dispatch_generation()
     {
@@ -215,16 +214,12 @@ namespace game::terrain
 
     Result<void> TerrainChunk::dispatch_water_surface_rebuild()
     {
-        return generator_.dispatch_surface_rebuild(TerrainGenerator::water_channel_index, 0.0f);
+        return water_surface_.dispatch_rebuild(generator_);
     }
 
     Result<void> TerrainChunk::finalize_water_surface_rebuild()
     {
-        auto water_result = read_scored_surface();
-        if (!water_result) return fail(water_result.error());
-
-        build_water_mesh(water_result->mesh_vertices, water_result->mesh_indices);
-        return {};
+        return water_surface_.finalize_rebuild(generator_, settings_);
     }
 
     Result<std::vector<TerrainChunk::FieldSample>> TerrainChunk::readback_field() const
@@ -272,11 +267,8 @@ namespace game::terrain
 
         if (!rebuild_water) return {};
 
-        auto water_result = rebuild_scored_surface(TerrainGenerator::water_channel_index, 0.0f);
-        if (!water_result) return fail(water_result.error());
-
-        build_water_mesh(water_result->mesh_vertices, water_result->mesh_indices);
-        return {};
+        TRY(water_surface_.dispatch_rebuild(generator_));
+        return water_surface_.finalize_rebuild(generator_, settings_);
     }
 
     void TerrainChunk::build_chunk(
@@ -287,7 +279,7 @@ namespace game::terrain
         cached_terrain_vertices_ = terrain_result.mesh_vertices;
         cached_terrain_indices_  = terrain_result.mesh_indices;
         build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
-        build_water_mesh(water_result.mesh_vertices, water_result.mesh_indices);
+        water_surface_.rebuild_mesh(water_result.mesh_vertices, water_result.mesh_indices);
         collider_.build(terrain_result.collider_loops, terrain_result.collider_paths);
     }
 
@@ -332,17 +324,4 @@ namespace game::terrain
         mesh_.set_data(mesh_vertices, indices);
     }
 
-    void TerrainChunk::build_water_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices)
-    {
-        if (vertices.empty() || indices.empty())
-        {
-            const std::vector<sf::Vertex>    empty_vertices;
-            const std::vector<std::uint32_t> empty_indices;
-            water_mesh_.set_data(empty_vertices, empty_indices);
-            return;
-        }
-
-        const auto mesh_vertices = gfx::build_vertices(vertices, 0xE8F8FFC4_rgba);
-        water_mesh_.set_data(mesh_vertices, indices);
-    }
 }

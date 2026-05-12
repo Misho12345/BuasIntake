@@ -120,7 +120,16 @@
     <ClCompile Include="src\terrain\TerrainContour.cpp">
       <Filter>Source Files\terrain</Filter>
     </ClCompile>
+    <ClCompile Include="src\terrain\TerrainBrushController.cpp">
+      <Filter>Source Files\terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain\TerrainField.cpp">
+      <Filter>Source Files\terrain</Filter>
+    </ClCompile>
     <ClCompile Include="src\terrain\TerrainCollider.cpp">
+      <Filter>Source Files\terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain\TerrainChunkGrid.cpp">
       <Filter>Source Files\terrain</Filter>
     </ClCompile>
     <ClCompile Include="src\terrain\TerrainRenderable.cpp">
@@ -129,10 +138,28 @@
     <ClCompile Include="src\terrain\PlanetTerrain.cpp">
       <Filter>Source Files\terrain</Filter>
     </ClCompile>
+    <ClCompile Include="src\terrain\TerrainSurfaceAttachmentSystem.cpp">
+      <Filter>Source Files\terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain\TerrainGenerationCoordinator.cpp">
+      <Filter>Source Files\terrain</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain\TerrainMoistureSystem.cpp">
+      <Filter>Source Files\terrain</Filter>
+    </ClCompile>
     <ClCompile Include="src\water\WaterInteraction.cpp">
       <Filter>Source Files\water</Filter>
     </ClCompile>
+    <ClCompile Include="src\water\WaterChunkSurface.cpp">
+      <Filter>Source Files\water</Filter>
+    </ClCompile>
+    <ClCompile Include="src\water\WaterFieldSmoother.cpp">
+      <Filter>Source Files\water</Filter>
+    </ClCompile>
     <ClCompile Include="src\water\WaterRenderable.cpp">
+      <Filter>Source Files\water</Filter>
+    </ClCompile>
+    <ClCompile Include="src\water\TerrainWaterSystem.cpp">
       <Filter>Source Files\water</Filter>
     </ClCompile>
     <ClCompile Include="src\water\WaterSystem.cpp">
@@ -156,6 +183,9 @@
     <ClCompile Include="src\tools\TerrainToolController.cpp">
       <Filter>Source Files\tools</Filter>
     </ClCompile>
+    <ClCompile Include="src\tools\ToolUpgradeModel.cpp">
+      <Filter>Source Files\tools</Filter>
+    </ClCompile>
     <ClCompile Include="src\tools\WaterTool.cpp">
       <Filter>Source Files\tools</Filter>
     </ClCompile>
@@ -172,6 +202,9 @@
       <Filter>Source Files\resources</Filter>
     </ClCompile>
     <ClCompile Include="src\render\CameraController.cpp">
+      <Filter>Source Files\render</Filter>
+    </ClCompile>
+    <ClCompile Include="src\render\InstancedSpriteBatch.cpp">
       <Filter>Source Files\render</Filter>
     </ClCompile>
     <ClCompile Include="src\render\ResourceRenderer.cpp">
@@ -269,9 +302,6 @@
     <ClInclude Include="src\terrain\TerrainBrushSystem.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
-    <ClInclude Include="src\terrain\TerrainColliderManager.hpp">
-      <Filter>Header Files\terrain</Filter>
-    </ClInclude>
     <ClInclude Include="src\terrain\TerrainResourceSpawner.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
@@ -287,13 +317,49 @@
     <ClInclude Include="src\terrain\PlanetTerrain.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
+    <ClInclude Include="src\terrain\TerrainField.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainFieldSample.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainChunkGrid.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainBrushController.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
     <ClInclude Include="src\terrain\TerrainWetnessSystem.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainSurfaceAttachmentSystem.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainResourceNoise.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainResourcePlacement.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainGenerationCoordinator.hpp">
+      <Filter>Header Files\terrain</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainMoistureSystem.hpp">
       <Filter>Header Files\terrain</Filter>
     </ClInclude>
     <ClInclude Include="src\water\WaterInteraction.hpp">
       <Filter>Header Files\water</Filter>
     </ClInclude>
+    <ClInclude Include="src\water\WaterChunkSurface.hpp">
+      <Filter>Header Files\water</Filter>
+    </ClInclude>
+    <ClInclude Include="src\water\WaterFieldSmoother.hpp">
+      <Filter>Header Files\water</Filter>
+    </ClInclude>
     <ClInclude Include="src\water\WaterRenderable.hpp">
+      <Filter>Header Files\water</Filter>
+    </ClInclude>
+    <ClInclude Include="src\water\TerrainWaterSystem.hpp">
       <Filter>Header Files\water</Filter>
     </ClInclude>
     <ClInclude Include="src\water\WaterSystem.hpp">
@@ -315,6 +381,9 @@
       <Filter>Header Files\tools</Filter>
     </ClInclude>
     <ClInclude Include="src\tools\TerrainToolController.hpp">
+      <Filter>Header Files\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\tools\ToolProgression.hpp">
       <Filter>Header Files\tools</Filter>
     </ClInclude>
     <ClInclude Include="src\tools\ToolUpgradeModel.hpp">
@@ -389,17 +458,20 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".gitignore" />
-    <None Include="assets\shaders\cave_gen.comp" />
-    <None Include="assets\shaders\terrain_gen.comp" />
-    <None Include="assets\shaders\chunk_mesh_gen.comp" />
-    <None Include="assets\shaders\chunk_edges_gen.comp" />
-    <None Include="assets\shaders\pond_gen.comp" />
-    <None Include="assets\shaders\terrain_mesh.frag" />
-    <None Include="assets\shaders\water_smooth.comp" />
-    <None Include="assets\shaders\water_mesh.frag" />
-    <None Include="assets\shaders\default.vert" />
-    <None Include="assets\shaders\common\field_common.glsl" />
-    <None Include="assets\shaders\common\noise_common.glsl" />
-    <None Include="assets\shaders\common\terrain_surface_common.glsl" />
+    <None Include="assets\shaders\render\default.vert" />
+    <None Include="assets\shaders\render\resource_instances.frag" />
+    <None Include="assets\shaders\render\resource_instances.vert" />
+    <None Include="assets\shaders\terrain\cave_gen.comp" />
+    <None Include="assets\shaders\terrain\cave_slots.glsl" />
+    <None Include="assets\shaders\terrain\chunk_edges_gen.comp" />
+    <None Include="assets\shaders\terrain\chunk_mesh_gen.comp" />
+    <None Include="assets\shaders\terrain\field_sampling.glsl" />
+    <None Include="assets\shaders\terrain\noise.glsl" />
+    <None Include="assets\shaders\terrain\pond_gen.comp" />
+    <None Include="assets\shaders\terrain\surface_profile.glsl" />
+    <None Include="assets\shaders\terrain\terrain_gen.comp" />
+    <None Include="assets\shaders\terrain\terrain_mesh.frag" />
+    <None Include="assets\shaders\water\water_mesh.frag" />
+    <None Include="assets\shaders\water\water_smooth.comp" />
   </ItemGroup>
 </Project>

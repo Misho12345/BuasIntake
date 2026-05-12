@@ -4,6 +4,7 @@
 
 
 #include "terrain/ChunkSettings.hpp"
+#include "terrain/TerrainFieldSample.hpp"
 #include "terrain/TerrainGenerator.hpp"
 #include "water/WaterInteraction.hpp"
 
@@ -16,8 +17,6 @@ namespace game::terrain
         {
             bool          changed{ false };
             std::uint32_t units{ 0u };
-            std::uint32_t candidates{ 0u };
-            std::uint32_t cleared_samples{ 0u };
             bool          water_changed{ false };
             bool          requires_wetness_rebuild{ false };
         };
@@ -30,7 +29,7 @@ namespace game::terrain
                   typename MarkDirtyChunk,
                   typename ClearSolidSample>
         static Result apply_edit(
-            std::span<TerrainGenerator::FieldSample> global_field,
+            std::span<TerrainFieldSample>            global_field,
             const uvec2                              global_field_size,
             const vec2                               global_field_origin,
             const vec2                               terrain_cell_size,
@@ -57,9 +56,8 @@ namespace game::terrain
             if (!circle_overlaps_rect(edit_center, radius, grid_min, grid_max)) return {};
 
             const float signed_strength  = edit.position_radius_strength.w;
-            const float falloff_exponent = std::max(edit.shape.x, 0.001f);
+            const float falloff_exponent = std::max(edit.falloff_exponent, 0.001f);
             const bool  digging          = signed_strength < 0.0f;
-            const bool  hard_dig         = digging && edit.shape.y >= 0.5f;
 
             auto global_field_index = [global_field_size](const ivec2 coord)
             {
@@ -88,7 +86,6 @@ namespace game::terrain
                 signed_strength,
                 falloff_exponent,
                 digging,
-                hard_dig,
                 blocker,
                 global_field_index,
                 std::forward<IsDigProtected>(is_dig_protected),
@@ -109,18 +106,12 @@ namespace game::terrain
                     return lhs.distance_to_center < rhs.distance_to_center;
                 });
 
-            result.candidates =
-                    static_cast<std::uint32_t>(std::min<std::size_t>(
-                        candidates.size(),
-                        std::numeric_limits<std::uint32_t>::max()));
-
             apply_candidates<Candidate>(
                 global_field,
                 settings,
                 candidates,
                 signed_strength,
                 unit_budget,
-                hard_dig,
                 global_field_index,
                 std::forward<ClampTerrainDensity>(clamp_terrain_density),
                 std::forward<DryWaterDensity>(dry_water_density),
@@ -145,9 +136,9 @@ namespace game::terrain
             return dx * dx + dy * dy <= radius * radius;
         }
 
-        static bool has_water(const TerrainGenerator::FieldSample& sample) { return water::has_water(sample); }
+        static bool has_water(const TerrainFieldSample& sample) { return has_water_sample(sample); }
 
-        static bool is_solid(const TerrainGenerator::FieldSample& sample) { return sample.terrain >= 0.0f; }
+        static bool is_solid(const TerrainFieldSample& sample) { return is_solid_sample(sample); }
 
         static bool point_inside_brush_blocker(const vec2 point, const GroundBrushBlocker& blocker, const vec2 padding)
         {
@@ -172,26 +163,25 @@ namespace game::terrain
                   typename ClampTerrainDensity,
                   typename DryWaterDensity,
                   typename SampleWorldPosition>
-        static void collect_candidates(const std::span<TerrainGenerator::FieldSample> global_field,
-                                       const uvec2                                    global_field_size,
-                                       const vec2                                     global_field_origin,
-                                       const vec2                                     terrain_cell_size,
-                                       const ChunkSettings&                           settings,
-                                       const vec2                                     edit_center,
-                                       const float                                    radius,
-                                       const float                                    signed_strength,
-                                       const float                                    falloff_exponent,
-                                       const bool                                     digging,
-                                       const bool                                     hard_dig,
-                                       const std::optional<GroundBrushBlocker>&       blocker,
-                                       FieldIndex&&                                   global_field_index,
-                                       IsDigProtected&&                               is_dig_protected,
-                                       HasWaterNeighbor&&                             has_water_neighbor,
-                                       ClampTerrainDensity&&                          clamp_terrain_density,
-                                       DryWaterDensity&&                              dry_water_density,
-                                       SampleWorldPosition&&                          sample_world_position,
-                                       std::vector<Candidate>&                        candidates,
-                                       bool&                                          requires_wetness_rebuild)
+        static void collect_candidates(const std::span<TerrainFieldSample>      global_field,
+                                       const uvec2                              global_field_size,
+                                       const vec2                               global_field_origin,
+                                       const vec2                               terrain_cell_size,
+                                       const ChunkSettings&                     settings,
+                                       const vec2                               edit_center,
+                                       const float                              radius,
+                                       const float                              signed_strength,
+                                       const float                              falloff_exponent,
+                                       const bool                               digging,
+                                       const std::optional<GroundBrushBlocker>& blocker,
+                                       FieldIndex&&                             global_field_index,
+                                       IsDigProtected&&                         is_dig_protected,
+                                       HasWaterNeighbor&&                       has_water_neighbor,
+                                       ClampTerrainDensity&&                    clamp_terrain_density,
+                                       DryWaterDensity&&                        dry_water_density,
+                                       SampleWorldPosition&&                    sample_world_position,
+                                       std::vector<Candidate>&                  candidates,
+                                       bool&                                    requires_wetness_rebuild)
         {
             const auto min_x = static_cast<int>(std::floor(
                 (edit_center.x - radius - global_field_origin.x) / terrain_cell_size.x));
@@ -227,21 +217,20 @@ namespace game::terrain
                     if (digging && is_dig_protected(coord)) continue;
 
                     const float normalized = 1.0f - distance_to_center / radius;
-                    const float falloff    = hard_dig ? 1.0f : std::pow(normalized, falloff_exponent);
+                    const float falloff    = std::pow(normalized, falloff_exponent);
                     if (falloff <= 1e-6f) continue;
 
                     const auto& sample             = global_field[global_field_index(coord)];
                     const bool  had_water          = has_water(sample);
                     const bool  had_wetness        = sample.wetness > 1e-4f;
                     const bool  had_water_adjacent = has_water_neighbor(coord);
-                    const float next_terrain       = clamp_terrain_density(
-                        hard_dig
-                            ? std::min(sample.terrain, signed_strength)
-                            : sample.terrain + signed_strength * falloff, world, settings);
+                    const float next_terrain       = clamp_terrain_density(sample.terrain + signed_strength * falloff,
+                                                                           world,
+                                                                           settings);
                     float next_water = sample.water;
                     if (next_terrain >= 0.0f || !had_water)
                     {
-                        next_water = dry_water_density(TerrainGenerator::FieldSample{
+                        next_water = dry_water_density(TerrainFieldSample{
                             .terrain   = next_terrain, .water = sample.water, .wetness = sample.wetness,
                             .greenness = sample.greenness
                         });
@@ -271,21 +260,20 @@ namespace game::terrain
                   typename SampleWorldPosition,
                   typename MarkDirtyChunk,
                   typename ClearSolidSample>
-        static void apply_candidates(std::span<TerrainGenerator::FieldSample> global_field,
-                                     const ChunkSettings&                     settings,
-                                     const std::vector<Candidate>&            candidates,
-                                     const float                              signed_strength,
-                                     const std::uint32_t                      unit_budget,
-                                     const bool                               hard_dig,
-                                     FieldIndex&&                             global_field_index,
-                                     ClampTerrainDensity&&                    clamp_terrain_density,
-                                     DryWaterDensity&&                        dry_water_density,
-                                     SampleWorldPosition&&                    sample_world_position,
-                                     MarkDirtyChunk&&                         mark_dirty_chunk,
-                                     ClearSolidSample&&                       clear_solid_sample,
-                                     std::vector<bool>&                       dirty_chunks,
-                                     std::vector<ivec2>&                      changed_coords,
-                                     Result&                                  result)
+        static void apply_candidates(std::span<TerrainFieldSample>        global_field,
+                                     const ChunkSettings&                 settings,
+                                     const std::vector<Candidate>&        candidates,
+                                     const float                          signed_strength,
+                                     const std::uint32_t                  unit_budget,
+                                     FieldIndex&&                         global_field_index,
+                                     ClampTerrainDensity&&                clamp_terrain_density,
+                                     DryWaterDensity&&                    dry_water_density,
+                                     SampleWorldPosition&&                sample_world_position,
+                                     MarkDirtyChunk&&                     mark_dirty_chunk,
+                                     ClearSolidSample&&                   clear_solid_sample,
+                                     std::vector<bool>&                   dirty_chunks,
+                                     std::vector<ivec2>&                  changed_coords,
+                                     Result&                              result)
         {
             for (std::size_t i = 0; i < candidates.size(); ++i)
             {
@@ -297,12 +285,10 @@ namespace game::terrain
                 auto&       sample       = global_field[sample_index];
                 const bool  had_water    = has_water(sample);
                 const bool  was_solid    = is_solid(sample);
-                const float next_terrain = clamp_terrain_density(hard_dig
-                                                                     ? std::min(sample.terrain, signed_strength)
-                                                                     : sample.terrain + signed_strength * candidates[i].
-                                                                     falloff,
-                                                                 world,
-                                                                 settings);
+                const float next_terrain = clamp_terrain_density(sample.terrain + signed_strength * candidates[i].
+                                                                  falloff,
+                                                                  world,
+                                                                  settings);
                 bool local_changed = std::abs(next_terrain - sample.terrain) > 1e-6f;
                 sample.terrain     = next_terrain;
 
@@ -330,7 +316,6 @@ namespace game::terrain
                 if (was_solid && !is_solid_now)
                 {
                     clear_solid_sample(coord, sample_index);
-                    ++result.cleared_samples;
                 }
             }
         }

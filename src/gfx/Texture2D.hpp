@@ -5,14 +5,8 @@
 
 namespace game::gfx
 {
-    enum class TextureFormat
-    {
-        R32F,
-        RG32F,
-        RGBA8,
-        RGBA32F,
-    };
-
+    // a 2D OpenGL texture with immutable storage (glTextureStorage2D)
+    // supports compute shader image binding and standard sampler use
     class Texture2D final
     {
     public:
@@ -24,18 +18,18 @@ namespace game::gfx
         Texture2D(Texture2D&& other) noexcept;
         Texture2D& operator=(Texture2D&& other) noexcept;
 
-        Result<void> create(uvec2 size, TextureFormat format);
+        // (re)allocates the texture; safe to call multiple times - destroys the previous handle first
+        Result<void> create_rgba32f(uvec2 size);
+
+        // binds as an image for compute shader read/write (e.g. GL_READ_ONLY, GL_WRITE_ONLY, GL_READ_WRITE)
         void bind_image(GLuint unit, GLenum access) const;
 
         GLuint native_handle() const;
         uvec2 size() const;
         bool valid() const;
 
-        static GLenum to_gl_format(TextureFormat format);
-
     private:
         GLuint handle_{ 0 };
         uvec2 size_{ 0, 0 };
-        TextureFormat format_{ TextureFormat::RGBA8 };
     };
 }

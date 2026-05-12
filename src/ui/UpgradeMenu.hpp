@@ -29,6 +29,7 @@ namespace game::ui
     class UpgradeMenu final
     {
     public:
+        // ai help was used for this simple hud/menu layout work
         void draw(
             sf::RenderTarget&            target,
             const sf::Font&              font,

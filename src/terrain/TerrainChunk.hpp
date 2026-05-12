@@ -6,17 +6,19 @@
 #include "ChunkSettings.hpp"
 #include "TerrainCollider.hpp"
 #include "TerrainContour.hpp"
+#include "TerrainFieldSample.hpp"
 #include "TerrainGenerator.hpp"
 #include "TerrainRenderable.hpp"
 #include "gfx/Mesh.hpp"
-#include "water/WaterRenderable.hpp"
+#include "water/WaterChunkSurface.hpp"
 
 namespace game::terrain
 {
+    // one generated chunk of the planet
     class TerrainChunk final
     {
     public:
-        using FieldSample = TerrainGenerator::FieldSample;
+        using FieldSample = TerrainFieldSample;
 
         explicit TerrainChunk(b2WorldId world_id, const ChunkSettings& settings = {});
         ~TerrainChunk() = default;
@@ -31,8 +33,10 @@ namespace game::terrain
         void draw_gl(const sf::View& view) const;
         void draw_water_gl(const sf::View& view) const;
 
+        // generation is split so many chunks can dispatch gpu work first and read back later
         Result<void> dispatch_generation();
         Result<void> finalize_generation();
+
         Result<void> rebuild_from_field(
             std::span<const FieldSample> field_samples,
             bool                         smooth_water             = false,
@@ -72,19 +76,14 @@ namespace game::terrain
             const std::vector<std::uint32_t>& indices,
             std::span<const FieldSample>      field_samples);
 
-        void build_water_mesh(
-            const std::vector<vec2>&          vertices,
-            const std::vector<std::uint32_t>& indices);
-
         ChunkSettings settings_{};
 
-        TerrainGenerator       generator_;
-        TerrainCollider        collider_;
-        TerrainRenderable      renderable_{};
-        water::WaterRenderable water_renderable_{};
+        TerrainGenerator         generator_;
+        TerrainCollider          collider_;
+        TerrainRenderable        renderable_{};
+        water::WaterChunkSurface water_surface_{};
 
         gfx::Mesh                  mesh_{};
-        gfx::Mesh                  water_mesh_{};
         std::vector<vec2>          cached_terrain_vertices_{};
         std::vector<std::uint32_t> cached_terrain_indices_{};
 

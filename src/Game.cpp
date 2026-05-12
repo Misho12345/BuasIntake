@@ -76,19 +76,6 @@ namespace game
 
     void Game::shutdown() { instance().shutdown_impl(); }
 
-    void Game::quit()
-    {
-        Game& game = instance();
-        if (!game.initialized_)
-        {
-            Log::warn("Game::quit() ignored because the game has not been initialized");
-            return;
-        }
-
-        game.window_.close();
-    }
-
-
     Game& Game::instance()
     {
         static Game game;
@@ -418,14 +405,12 @@ namespace game
 
 
     // this runs the deterministic side of the game
-    // collider activation goes first then we burn down the accumulator with fixed steps and keep refreshing contact state around each step
-    // doing the refresh that often is the boring but stable answer when the terrain itself can change under the player
+    // Burn down the accumulator with fixed steps and keep refreshing contact state around each step.
+    // Doing the refresh that often is the boring but stable answer when the terrain itself can change under the player.
     void Game::fixed_update(const float dt)
     {
         if (!b2World_IsValid(world_) || !world_state_.ready()) return;
         if (restoration_goal_.completed()) return;
-        world_state_.water().update_active_colliders(world_state_.terrain(), world_state_.player().world_position());
-
         physics_accumulator_ = std::min(physics_accumulator_ + dt, 0.25f);
 
         static constexpr float fixed_step    = 1.0f / 60.0f;
@@ -437,8 +422,7 @@ namespace game
         auto refresh_player_state = [&player, &terrain, planet_center]
         {
             // sample contacts around each physics step so jump and swim state stays in sync with terrain edits.
-            player.refresh_grounded_state(planet_center);
-            player.set_in_water(player.is_in_water() || terrain.contains_water_volume(player.world_position()));
+            player.refresh_contact_state(planet_center, terrain.contains_water_volume(player.world_position()));
         };
 
         refresh_player_state();
@@ -446,14 +430,14 @@ namespace game
         while (physics_accumulator_ >= fixed_step)
         {
             const bool in_water = player.is_in_water();
-            player.prepare_for_physics_step(fixed_step, planet_center, in_water, InputSystem::instance());
+            player.prepare_for_physics_step(fixed_step, planet_center, in_water);
             b2World_Step(world_, fixed_step, sub_steps);
             refresh_player_state();
             physics_accumulator_ -= fixed_step;
         }
 
         player.sync_from_physics(planet_center);
-        player.set_in_water(player.is_in_water() || terrain.contains_water_volume(player.world_position()));
+        player.refresh_contact_state(planet_center, terrain.contains_water_volume(player.world_position()));
     }
 
     // this is the frame rate side of the update and the order matters
@@ -479,7 +463,6 @@ namespace game
     void Game::sync_camera_to_player(const float dt)
     {
         camera_.sync_to_player(world_state_, dt, is_player_move_input_active());
-        window_.setView(camera_.view());
     }
 
     void Game::update_terrain_editing(const float dt)
@@ -539,6 +522,6 @@ namespace game
 
     bool Game::is_player_move_input_active() const
     {
-        return world_state_.ready() && world_state_.player().is_move_input_active(InputSystem::instance());
+        return world_state_.ready() && world_state_.player().is_move_input_active();
     }
 }

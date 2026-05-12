@@ -3,7 +3,7 @@
 #include "pch.hpp"
 
 
-#include "terrain/TerrainGenerator.hpp"
+#include "terrain/TerrainFieldSample.hpp"
 
 namespace game::terrain
 {
@@ -13,9 +13,8 @@ namespace game::terrain
         vec2  field_origin{ 0.0f, 0.0f };
         vec2  cell_size{ 1.0f, 1.0f };
         uvec2 field_size{ 0u, 0u };
-        float planet_radius{ 1.0f };
 
-        std::span<const TerrainGenerator::FieldSample> field_samples{};
+        std::span<const TerrainFieldSample> field_samples{};
     };
 
     struct TerrainSurfaceAttachment final
@@ -27,11 +26,6 @@ namespace game::terrain
 
     namespace terrain_surface_sampler
     {
-        bool is_surface_exposed_world(
-            const TerrainSurfaceFieldView& view,
-            vec2                           world_position,
-            float                          clearance_distance);
-
         std::optional<TerrainSurfaceAttachment> exposed_surface_attachment(
             const TerrainSurfaceFieldView& view,
             ivec2                          coord);

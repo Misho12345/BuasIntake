@@ -5,6 +5,7 @@
 
 namespace game::gfx
 {
+    // helper for building standard meshes with sf::Vertex format from position data
     inline std::vector<sf::Vertex> build_vertices(
         const std::span<const vec2> positions,
         const sf::Color             color,

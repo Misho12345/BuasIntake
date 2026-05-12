@@ -303,8 +303,6 @@ namespace game::terrain
         const float min_loop_area      = terrain_cell_size.x * terrain_cell_size.y * 0.12f;
         const float min_path_length    = std::min(terrain_cell_size.x, terrain_cell_size.y) * 1.5f;
         const float boundary_epsilon   = std::max(terrain_cell_size.x, terrain_cell_size.y) * 0.1f;
-        float       primary_score      = 0.0f;
-
         for (const auto& loop : loops)
         {
             auto simplified = simplify_contour(loop, true, min_segment_length, collinear_epsilon);
@@ -320,13 +318,6 @@ namespace game::terrain
             if (area < min_loop_area) continue;
 
             result.collider_loops.push_back(simplified);
-            result.contour_score += area;
-
-            if (area > primary_score)
-            {
-                primary_score          = area;
-                result.primary_contour = simplified;
-            }
         }
 
         for (const auto& path : open_paths)
@@ -337,15 +328,7 @@ namespace game::terrain
             const auto length = polyline_length(simplified);
             if (length < min_path_length && !touches_chunk_boundary(simplified, settings, boundary_epsilon)) continue;
 
-            const auto path_score = length * std::max(terrain_cell_size.x, terrain_cell_size.y);
             result.collider_paths.push_back(simplified);
-            result.contour_score += path_score;
-
-            if (path_score > primary_score)
-            {
-                primary_score          = path_score;
-                result.primary_contour = simplified;
-            }
         }
 
         return result;

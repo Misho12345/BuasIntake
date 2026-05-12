@@ -33,7 +33,6 @@ namespace game
         static void initialize(GameSettings settings);
         static void run();
         static void shutdown();
-        static void quit();
 
     private:
         Game() = default;

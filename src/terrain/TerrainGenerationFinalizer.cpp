@@ -3,7 +3,6 @@
 #include "terrain/TerrainGenerationFinalizer.hpp"
 
 #include "terrain/TerrainResourceSpawner.hpp"
-#include "water/WaterInteraction.hpp"
 
 namespace game::terrain
 {
@@ -11,8 +10,6 @@ namespace game::terrain
     {
         constexpr float cave_generation_min_depth{ 0.14f };
         constexpr float cave_generation_max_depth{ 0.54f };
-
-        bool has_water(const TerrainGenerator::FieldSample& sample) { return water::has_water(sample); }
     }
 
     // this is the bridge between raw generated density and gameplay ready terrain
@@ -34,7 +31,7 @@ namespace game::terrain
                 auto&       sample = view.global_field[callbacks.global_field_index(coord)];
                 sample.wetness     = 0.0f;
                 sample.greenness   = 0.0f;
-                if (has_water(sample)) changed_coords.push_back(coord);
+                if (has_water_sample(sample)) changed_coords.push_back(coord);
             }
         }
 

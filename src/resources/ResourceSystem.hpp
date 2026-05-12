@@ -7,18 +7,7 @@
 
 namespace game::resources
 {
-    enum class HudKind : std::uint8_t
-    {
-        Rock,
-        CopperBar,
-        IronBar,
-        GoldBar,
-        Diamond,
-        Seeds,
-        Count
-    };
-
-    static constexpr std::size_t hud_counter_count = static_cast<std::size_t>(HudKind::Count);
+    static constexpr std::size_t hud_counter_count = inventory_item_count;
 
     struct HudCounter final
     {
@@ -48,9 +37,7 @@ namespace game::resources
         // harvest_at finds the nearest node in range and applies both the inventory reward and the node removal in one place
         Result<void> harvest_at(vec2 world_position);
 
-        bool can_afford(const ResourceInventory& cost) const;
         bool spend(const ResourceInventory& cost);
-        void grant(const ResourceInventory& reward);
         void update(float dt);
         void validate() const;
 
@@ -71,7 +58,7 @@ namespace game::resources
                 [this, &predicate](ResourceNode& node)
                 {
                     if (!predicate(node)) return false;
-                    occupied_node_keys_.erase(sample_key(node.coord));
+                    occupied_node_keys_.erase(game::sample_key(node.coord));
                     return true;
                 });
 
@@ -88,10 +75,9 @@ namespace game::resources
 
         static constexpr float feedback_duration = 1.15f;
 
-        // every node lookup is keyed by packed sample coords so duplicate checks stay cheap
-        static std::uint64_t sample_key(ivec2 coord);
-        void                 add_count(InventoryItem kind, std::int32_t amount);
-        void                 collect_kind(ResourceNodeKind kind);
+        void add_count(InventoryItem kind, std::int32_t amount);
+        bool can_afford(const ResourceInventory& cost) const;
+        void collect_kind(ResourceNodeKind kind);
 
         std::vector<ResourceNode>         nodes_{};
         std::unordered_set<std::uint64_t> occupied_node_keys_{};

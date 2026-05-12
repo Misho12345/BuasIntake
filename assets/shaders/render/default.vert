@@ -15,7 +15,6 @@ void main()
     vColor = aColor;
     vTexCoords = aTexCoords;
 
-    // Keep the world position for the fragment pass.
     vWorldPosition = aPosition;
     gl_Position = uProjection * vec4(aPosition, 0.0, 1.0);
 }

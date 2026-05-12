@@ -19,16 +19,17 @@ namespace game::render
         ToolPreviewRenderer(ToolPreviewRenderer&&) noexcept            = default;
         ToolPreviewRenderer& operator=(ToolPreviewRenderer&&) noexcept = default;
 
-        Result<void> initialize_assets() const;
-        void         destroy_graphics_resources();
+        void destroy_graphics_resources();
         void         draw_water_preview(
             const std::optional<tools::WaterTool::PreviewState>& preview_state,
-            const sf::View&                                      view) const;
+            const sf::View&                                      view);
 
     private:
-        mutable std::optional<gfx::Mesh>              current_mesh_{ std::nullopt };
-        mutable std::optional<gfx::Mesh>              future_mesh_{ std::nullopt };
-        mutable std::optional<water::WaterRenderable> preview_renderable_{ std::nullopt };
-        mutable std::uint64_t                         preview_revision_{ std::numeric_limits<std::uint64_t>::max() };
+        Result<void> initialize_assets();
+
+        std::optional<gfx::Mesh>              current_mesh_{ std::nullopt };
+        std::optional<gfx::Mesh>              future_mesh_{ std::nullopt };
+        std::optional<water::WaterRenderable> preview_renderable_{ std::nullopt };
+        std::uint64_t                         preview_revision_{ std::numeric_limits<std::uint64_t>::max() };
     };
 }

@@ -1,9 +1,11 @@
+// hash, noise, fbm - inigo quilez
+// https://iquilezles.org/articles/fbm/
+// https://www.shadertoy.com/view/4dS3Wd
+// mit license - copyright inigo quilez
+
 float hash(vec2 p)
 {
-    float seed = float(uSeed) * 0.0009765625;
-    p = fract(p * vec2(0.1031, 0.11369) + seed);
-    p += dot(p, p.yx + 19.19 + seed * 7.0);
-    return fract((p.x + p.y) * (p.x + 13.37));
+    return fract(1e4 * sin(17.0 * p.x + p.y * 0.1) * (0.1 + abs(sin(p.y * 13.0 + p.x))));
 }
 
 float noise(vec2 p)
@@ -28,7 +30,7 @@ float fbm(vec2 p)
     for (int i = 0; i < 7; ++i)
     {
         v += a * noise(p);
-        p = p * 2.03 + vec2(11.7, -8.3);
+        p  = p * 2.0 + vec2(0.0);
         a *= 0.5;
     }
 

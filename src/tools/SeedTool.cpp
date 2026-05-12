@@ -26,11 +26,6 @@ namespace game::tools
         }
     }
 
-    void SeedTool::update(
-        const TerrainToolContext& /*context*/,
-        const TerrainTargetResolver& /*resolver*/,
-        const float /*dt*/) {}
-
     void SeedTool::handle_mouse_pressed(
         const TerrainToolContext&    context,
         const TerrainTargetResolver& resolver,

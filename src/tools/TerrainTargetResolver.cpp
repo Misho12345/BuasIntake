@@ -48,7 +48,7 @@ namespace game::tools
             const float ray_distance = ray_delta.length();
             if (ray_distance <= eps) return std::nullopt;
 
-            // Keep all tool targeting within the same reach limit.
+            // keep all tool targeting within the same reach limit
             const float clamped_distance = std::min(ray_distance, max_tool_reach);
             const float scale            = clamped_distance / ray_distance;
             return vec2{ ray_delta.x * scale, ray_delta.y * scale };
@@ -118,7 +118,7 @@ namespace game::tools
                     vec2 low  = previous;
                     vec2 high = current;
 
-                    // Tighten the hit a bit so the bucket target sits near the surface instead of deep inside the blob.
+                    // tighten the hit a bit so the bucket target sits near the surface instead of deep inside the blob
                     for (int i = 0; i < 6; ++i)
                     {
                         const vec2 mid = lerp(low, high, 0.5f);

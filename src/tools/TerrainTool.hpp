@@ -30,13 +30,12 @@ namespace game::tools
     public:
         virtual ~TerrainTool() = default;
 
-        virtual void activate() {}
         virtual void deactivate() {}
 
         virtual void update(
-            const TerrainToolContext&    context,
-            const TerrainTargetResolver& resolver,
-            float                        dt) = 0;
+            const TerrainToolContext&,
+            const TerrainTargetResolver&,
+            float) {}
 
         virtual void handle_mouse_pressed(
             const TerrainToolContext&    context,

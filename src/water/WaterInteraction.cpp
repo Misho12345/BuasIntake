@@ -6,23 +6,12 @@ namespace game::water
 {
     namespace
     {
-        float radial_dist(const vec2 point, const vec2 center)
-        {
-            const vec2 offset = point - center;
-            return std::sqrt(offset.x * offset.x + offset.y * offset.y);
-        }
-
         struct WaterCandidate final
         {
             ivec2 coord{ 0, 0 };
             float radial{ 0.0f };
             float click_dist_sq{ 0.0f };
         };
-
-        std::uint64_t sample_key(const ivec2 coord)
-        {
-            return (static_cast<std::uint64_t>(static_cast<std::uint32_t>(coord.x)) << 32u) | static_cast<std::uint32_t>(coord.y);
-        }
 
         bool sample_has_water(const FieldSample& sample)
         {
@@ -34,11 +23,23 @@ namespace game::water
             return !grid.field_samples.empty() && grid.field_size.x > 0u && grid.field_size.y > 0u;
         }
 
+        ivec2 world_to_grid_coord(const GridView& grid, const vec2 world_position)
+        {
+            return {
+                std::clamp(static_cast<int>(std::lround((world_position.x - grid.field_origin.x) / grid.cell_size.x)),
+                           0,
+                           static_cast<int>(grid.field_size.x) - 1),
+                std::clamp(static_cast<int>(std::lround((world_position.y - grid.field_origin.y) / grid.cell_size.y)),
+                           0,
+                           static_cast<int>(grid.field_size.y) - 1)
+            };
+        }
+
         bool has_inward_support(const GridView& grid, const ivec2 coord)
         {
             if (!is_valid_global_sample(grid, coord)) return false;
             // Water needs a bit of solid support toward the planet core or it will look like it is hanging outward.
-            const float sample_radial = radial_dist(global_sample_world_position(grid, coord), grid.world_center);
+            const float sample_radial = distance_between(global_sample_world_position(grid, coord), grid.world_center);
             const float radial_tolerance = std::min(grid.cell_size.x, grid.cell_size.y) * 0.25f;
             for (int y = -1; y <= 1; ++y)
             {
@@ -53,7 +54,7 @@ namespace game::water
                     const auto& neighbor_sample = grid.field_samples[global_field_index(grid, neighbor)];
                     if (neighbor_sample.terrain < 0.0f) continue;
 
-                    const float neighbor_radial = radial_dist(global_sample_world_position(grid, neighbor), grid.world_center);
+                    const float neighbor_radial = distance_between(global_sample_world_position(grid, neighbor), grid.world_center);
                     if (neighbor_radial + radial_tolerance < sample_radial) return true;
                 }
             }
@@ -61,28 +62,11 @@ namespace game::water
             return false;
         }
 
-        bool can_start_water(const GridView& grid, const ivec2 coord)
-        {
-            if (!is_valid_global_sample(grid, coord)) return false;
-
-            const auto& sample = grid.field_samples[global_field_index(grid, coord)];
-            if (sample.terrain >= 0.0f) return false;
-
-            return has_inward_support(grid, coord);
-        }
-
         std::optional<ivec2> find_direct_water_sample(const GridView& grid, const vec2 world_position)
         {
             if (!grid_ready(grid)) return std::nullopt;
 
-            const ivec2 coord{
-                std::clamp(static_cast<int>(std::lround((world_position.x - grid.field_origin.x) / grid.cell_size.x)),
-                           0,
-                           static_cast<int>(grid.field_size.x) - 1),
-                std::clamp(static_cast<int>(std::lround((world_position.y - grid.field_origin.y) / grid.cell_size.y)),
-                           0,
-                           static_cast<int>(grid.field_size.y) - 1)
-            };
+            const ivec2 coord = world_to_grid_coord(grid, world_position);
 
             if (!is_valid_global_sample(grid, coord) ||
                 !sample_has_water(grid.field_samples[global_field_index(grid, coord)]))
@@ -95,11 +79,6 @@ namespace game::water
     bool has_water(const FieldSample& sample)
     {
         return sample_has_water(sample);
-    }
-
-    float combined_water_field(const FieldSample& sample)
-    {
-        return std::min(-sample.terrain, sample.water);
     }
 
     bool is_valid_global_sample(const GridView& grid, const ivec2 coord)
@@ -121,148 +100,14 @@ namespace game::water
         };
     }
 
-    int solid_neighbor_count(const GridView& grid, const ivec2 coord)
-    {
-        int count = 0;
-        for (int y = -1; y <= 1; ++y)
-        {
-            for (int x = -1; x <= 1; ++x)
-            {
-                if (x == 0 && y == 0) continue;
-
-                const ivec2 neighbor{ coord.x + x, coord.y + y };
-                if (!is_valid_global_sample(grid, neighbor)) continue;
-                if (grid.field_samples[global_field_index(grid, neighbor)].terrain >= 0.0f) ++count;
-            }
-        }
-
-        return count;
-    }
-
-    bool has_water_neighbor(const GridView& grid, const ivec2 coord)
-    {
-        for (int y = -1; y <= 1; ++y)
-        {
-            for (int x = -1; x <= 1; ++x)
-            {
-                if (x == 0 && y == 0) continue;
-
-                const ivec2 neighbor{ coord.x + x, coord.y + y };
-                if (!is_valid_global_sample(grid, neighbor)) continue;
-                if (has_water(grid.field_samples[global_field_index(grid, neighbor)])) return true;
-            }
-        }
-
-        return false;
-    }
-
-    // water placement feels wrong if we just trust the clicked sample blindly
-    // first we walk downhill toward a better local basin then we do a bounded flood around that area so a connected pocket can still win
-    // this keeps water from sticking to a slightly higher sample just because the click was a few pixels off
-    ivec2 settle_water_anchor(const GridView& grid, const ivec2 anchor)
-    {
-        if (!is_valid_global_sample(grid, anchor)) return anchor;
-        if (grid.field_samples[global_field_index(grid, anchor)].terrain >= 0.0f) return anchor;
-
-        static constexpr std::array neighbors{
-            ivec2{ 1, 0 },
-            ivec2{ -1, 0 },
-            ivec2{ 0, 1 },
-            ivec2{ 0, -1 }
-        };
-
-        auto sample_radial = [&grid](const ivec2 coord)
-        { return radial_dist(global_sample_world_position(grid, coord), grid.world_center); };
-
-        ivec2 downhill_anchor = anchor;
-        // First walk toward a locally lower basin, then do a bounded flood so nearby connected pockets can win.
-        for (int iteration = 0; iteration < 128; ++iteration)
-        {
-            ivec2 best_neighbor = downhill_anchor;
-            float best_neighbor_radial = sample_radial(downhill_anchor);
-            for (const auto& offset : neighbors)
-            {
-                const ivec2 neighbor{ downhill_anchor.x + offset.x, downhill_anchor.y + offset.y };
-
-                if (!is_valid_global_sample(grid, neighbor) ||
-                    grid.field_samples[global_field_index(grid, neighbor)].terrain >= 0.0f ||
-                    !has_inward_support(grid, neighbor))
-                    continue;
-
-                const float neighbor_radial = sample_radial(neighbor);
-                if (neighbor_radial < best_neighbor_radial - 1e-5f)
-                {
-                    best_neighbor_radial = neighbor_radial;
-                    best_neighbor = neighbor;
-                }
-            }
-
-            if (best_neighbor.x == downhill_anchor.x && 
-                best_neighbor.y == downhill_anchor.y)
-                break;
-
-            downhill_anchor = best_neighbor;
-        }
-
-        std::queue<ivec2> frontier;
-        std::unordered_set<std::uint64_t> visited;
-        frontier.push(downhill_anchor);
-        visited.insert(sample_key(downhill_anchor));
-
-        ivec2 best_coord = downhill_anchor;
-        float best_radial = sample_radial(downhill_anchor);
-
-        static constexpr int max_local_search_radius = 32;
-
-        while (!frontier.empty())
-        {
-            const auto coord = frontier.front();
-            frontier.pop();
-
-            const float radial = sample_radial(coord);
-            if (radial < best_radial - 1e-5f)
-            {
-                best_radial = radial;
-                best_coord = coord;
-            }
-
-            for (const auto& offset : neighbors)
-            {
-                const ivec2 neighbor{ coord.x + offset.x, coord.y + offset.y };
-                if (!is_valid_global_sample(grid, neighbor)) continue;
-
-                if (std::abs(neighbor.x - downhill_anchor.x) > max_local_search_radius ||
-                    std::abs(neighbor.y - downhill_anchor.y) > max_local_search_radius)
-                    continue;
-
-                if (grid.field_samples[global_field_index(grid, neighbor)].terrain >= 0.0f) continue;
-                if (!has_inward_support(grid, neighbor)) continue;
-
-                const auto key = sample_key(neighbor);
-                if (!visited.insert(key).second) continue;
-
-                frontier.push(neighbor);
-            }
-        }
-
-        return best_coord;
-    }
-
     // for pickup we care more about what the player is obviously pointing at than the mathematically deepest part of the blob
     // so this is a small local search around the click with nearest visible wet sample winning first
-    std::optional<ivec2> find_water_sample(const GridView& grid, const vec2 world_position)
+    static std::optional<ivec2> find_water_sample(const GridView& grid, const vec2 world_position)
     {
         if (!grid_ready(grid)) return std::nullopt;
 
         // When picking up water, prefer the closest visible wet sample instead of jumping to a deeper connected blob.
-        const ivec2 center{
-            std::clamp(static_cast<int>(std::lround((world_position.x - grid.field_origin.x) / grid.cell_size.x)),
-                       0,
-                       static_cast<int>(grid.field_size.x) - 1),
-            std::clamp(static_cast<int>(std::lround((world_position.y - grid.field_origin.y) / grid.cell_size.y)),
-                       0,
-                       static_cast<int>(grid.field_size.y) - 1)
-        };
+        const ivec2 center = world_to_grid_coord(grid, world_position);
         static constexpr int search_radius = 3;
 
         std::optional<WaterCandidate> best_candidate;
@@ -280,7 +125,7 @@ namespace game::water
                 const vec2 click_delta = sample_world - world_position;
                 const float click_dist_sq = click_delta.x * click_delta.x + click_delta.y * click_delta.y;
 
-                const WaterCandidate candidate{ coord, radial_dist(sample_world, grid.world_center), click_dist_sq };
+                const WaterCandidate candidate{ coord, distance_between(sample_world, grid.world_center), click_dist_sq };
 
                 if (!best_candidate.has_value() || candidate.click_dist_sq < best_candidate->click_dist_sq ||
                     (std::abs(candidate.click_dist_sq - best_candidate->click_dist_sq) <= 1e-5f &&
@@ -297,34 +142,20 @@ namespace game::water
 
     // placement wants the visible cavity edge not some random sample behind it
     // so we probe outward from the click first and only fall back to the hit sample when that simple guess fails
-    std::optional<ivec2> find_water_anchor(const GridView& grid, const vec2 world_position)
+    static std::optional<ivec2> find_water_anchor(const GridView& grid, const vec2 world_position)
     {
         if (!grid_ready(grid)) return std::nullopt;
 
         // For placement, probe just beyond the click first so water snaps to the visible cavity edge before settling.
-        const ivec2 hit_coord{
-	        std::clamp(static_cast<int>(std::lround((world_position.x - grid.field_origin.x) / grid.cell_size.x)),
-	                   0,
-	                   static_cast<int>(grid.field_size.x) - 1),
-	        std::clamp(static_cast<int>(std::lround((world_position.y - grid.field_origin.y) / grid.cell_size.y)),
-	                   0,
-	                   static_cast<int>(grid.field_size.y) - 1)
-        };
+        const ivec2 hit_coord = world_to_grid_coord(grid, world_position);
 
         const vec2 up = normalize(world_position - grid.world_center, {0.0f, 1.0f});
         const float cell_extent = std::min(grid.cell_size.x, grid.cell_size.y);
         std::optional<WaterCandidate> best_candidate;
         for (int step = 1; step <= 24; ++step)
         {
-	        const vec2  probe_world = world_position + up * (cell_extent * 0.35f * static_cast<float>(step));
-	        const ivec2 probe_coord{
-		        std::clamp(static_cast<int>(std::lround((probe_world.x - grid.field_origin.x) / grid.cell_size.x)),
-		                   0,
-		                   static_cast<int>(grid.field_size.x) - 1),
-		        std::clamp(static_cast<int>(std::lround((probe_world.y - grid.field_origin.y) / grid.cell_size.y)),
-		                   0,
-		                   static_cast<int>(grid.field_size.y) - 1)
-	        };
+            const vec2  probe_world = world_position + up * (cell_extent * 0.35f * static_cast<float>(step));
+            const ivec2 probe_coord = world_to_grid_coord(grid, probe_world);
 
             if (!is_valid_global_sample(grid, probe_coord)) break;
             if (grid.field_samples[global_field_index(grid, probe_coord)].terrain >= 0.0f) break;
@@ -336,7 +167,7 @@ namespace game::water
 
             const WaterCandidate candidate{
                 .coord = probe_coord,
-                .radial = radial_dist(probe_sample_world, grid.world_center),
+                .radial = distance_between(probe_sample_world, grid.world_center),
                 .click_dist_sq = click_dist_sq
 	        };
 
@@ -377,7 +208,7 @@ namespace game::water
         std::vector<ivec2> component;
 
         frontier.push(start_coord);
-        visited.insert(sample_key(start_coord));
+        visited.insert(game::sample_key(start_coord));
 
         while (!frontier.empty())
         {
@@ -391,7 +222,7 @@ namespace game::water
                 if (!is_valid_global_sample(grid, neighbor)) continue;
                 if (!has_water(grid.field_samples[global_field_index(grid, neighbor)])) continue;
 
-                const auto key = sample_key(neighbor);
+                const auto key = game::sample_key(neighbor);
                 if (!visited.insert(key).second) continue;
 
                 frontier.push(neighbor);
@@ -405,7 +236,7 @@ namespace game::water
                 if (!is_valid_global_sample(grid, neighbor)) continue;
                 if (!has_water(grid.field_samples[global_field_index(grid, neighbor)])) continue;
 
-                const auto key = sample_key(neighbor);
+                const auto key = game::sample_key(neighbor);
                 if (!visited.insert(key).second) continue;
 
                 frontier.push(neighbor);
@@ -478,9 +309,9 @@ namespace game::water
             if (sample.terrain >= 0.0f) return;
 
             const vec2 sample_world = global_sample_world_position(grid, coord);
-            const float radial = radial_dist(sample_world, grid.world_center);
+            const float radial = distance_between(sample_world, grid.world_center);
             const float spill_level = std::max(incoming_spill_level, radial);
-            const auto key = sample_key(coord);
+            const auto key = game::sample_key(coord);
 
             if (const auto it = best_spill_levels.find(key);
                 it != best_spill_levels.end() && spill_level >= it->second - 1e-5f)
@@ -496,7 +327,7 @@ namespace game::water
             });
         };
 
-        push_neighbor(start_coord, radial_dist(start_world, grid.world_center));
+        push_neighbor(start_coord, distance_between(start_world, grid.world_center));
 
         std::vector<FillCandidate> selected;
         selected.reserve(desired_wet_sample_count);
@@ -507,7 +338,7 @@ namespace game::water
             const auto node = frontier.top();
             frontier.pop();
 
-            const auto key = sample_key(node.coord);
+            const auto key = game::sample_key(node.coord);
             const auto best_it = best_spill_levels.find(key);
             if (best_it == best_spill_levels.end() || node.spill_level > best_it->second + 1e-5f)
                 continue;
@@ -556,47 +387,14 @@ namespace game::water
         return plan;
     }
 
-    // volume is measured as connected wet samples and we also hand back a lowest cell so later replans start from the most stable point
-    std::uint32_t water_volume_at_anchor(const GridView& grid, const ivec2 anchor, ivec2* const plan_start)
-    {
-        if (plan_start != nullptr) *plan_start = anchor;
-
-        if (!is_valid_global_sample(grid, anchor)) return 0u;
-        if (!has_water(grid.field_samples[global_field_index(grid, anchor)])) return 0u;
-
-        auto component = collect_water_component(grid, anchor, false);
-        if (component.empty()) return 0u;
-
-        ivec2 lowest_coord = component.front();
-        float lowest_radial = radial_dist(global_sample_world_position(grid, lowest_coord), grid.world_center);
-        for (const auto coord : component)
-        {
-            const float radial = radial_dist(global_sample_world_position(grid, coord), grid.world_center);
-            if (radial > lowest_radial + 1e-5f) continue;
-
-            if (std::abs(radial - lowest_radial) <= 1e-5f &&
-                (coord.y > lowest_coord.y || (coord.y == lowest_coord.y && coord.x >= lowest_coord.x)))
-                continue;
-
-            lowest_coord = coord;
-            lowest_radial = radial;
-        }
-
-        if (plan_start != nullptr)
-            *plan_start = lowest_coord;
-        return static_cast<std::uint32_t>(component.size());
-    }
-
     // this is the click facing planner used by the bucket tool
     // resolve a sensible anchor first then either shrink or grow the connected volume around it depending on pickup vs placement
     std::optional<WaterPlan> build_targeted_water_plan(
 	    const GridView&      grid,
 	    const vec2           world_position,
 	    const std::uint32_t  volume_cap,
-	    const bool           pickup,
-	    std::uint32_t* const existing_volume)
+	    const bool           pickup)
     {
-        if (existing_volume != nullptr) *existing_volume = 0u;
         if (!grid_ready(grid) || volume_cap == 0u)  return std::nullopt;
 
         std::optional<ivec2> anchor;
@@ -621,7 +419,6 @@ namespace game::water
             if (component.empty()) return std::nullopt;
 
             current_volume = static_cast<std::uint32_t>(component.size());
-            if (existing_volume != nullptr) *existing_volume = current_volume;
 
             const auto desired_total = current_volume > volume_cap ? current_volume - volume_cap : 0u;
             return build_settled_water_plan(grid, plan_start, std::move(component), desired_total);
@@ -633,45 +430,11 @@ namespace game::water
             {
                 auto component = collect_water_component(grid, *anchor, false);
                 current_volume = static_cast<std::uint32_t>(component.size());
-                if (existing_volume != nullptr) *existing_volume = current_volume;
                 return build_settled_water_plan(grid, plan_start, std::move(component), current_volume + volume_cap);
             }
         }
-        if (existing_volume != nullptr)
-            *existing_volume = current_volume;
 
         return build_settled_water_plan(grid, plan_start, {}, volume_cap);
     }
 
-    // this lower level entry point is for when we already know the sample we want to work from
-    // preserve_existing_water means reuse the current blob instead of pretending we are filling from empty space
-    std::optional<WaterPlan> build_water_plan(
-	    const GridView&     grid,
-	    const ivec2         start_coord,
-	    const std::uint32_t desired_wet_sample_count,
-	    const bool          preserve_existing_water)
-    {
-        if (!is_valid_global_sample(grid, start_coord)) return std::nullopt;
-        if (grid.field_samples[global_field_index(grid, start_coord)].terrain >= 0.0f) return std::nullopt;
-        if (!preserve_existing_water && !can_start_water(grid, start_coord)) return std::nullopt;
-
-        auto previous_water = preserve_existing_water
-	                              ? collect_water_component(grid, start_coord, false)
-	                              : std::vector<ivec2>{};
-
-        ivec2 settled_start = start_coord;
-        if (!previous_water.empty())
-        {
-	        std::ranges::sort(
-		        previous_water,
-		        [&grid](const ivec2 lhs, const ivec2 rhs)
-		        {
-			        return radial_dist(global_sample_world_position(grid, lhs), grid.world_center) <
-					        radial_dist(global_sample_world_position(grid, rhs), grid.world_center);
-		        });
-	        settled_start = previous_water.front();
-        }
-
-        return build_settled_water_plan(grid, settled_start, std::move(previous_water), desired_wet_sample_count);
-    }
 }

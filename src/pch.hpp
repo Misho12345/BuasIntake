@@ -49,7 +49,6 @@ namespace fs = std::filesystem;
 #include <glad/gl.h>
 
 // ----- SFML -----
-#include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 
 #include "core/Log.hpp"

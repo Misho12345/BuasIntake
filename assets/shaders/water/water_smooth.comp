@@ -1,5 +1,8 @@
 #version 460 core
 
+// water smoothing pass
+// pond generation writes a hard field first, this blur softens the surface before mesh extraction
+
 layout(local_size_x = 16, local_size_y = 16) in;
 
 layout(rgba32f, binding = 0) uniform readonly image2D uInputField;
@@ -15,7 +18,6 @@ void main()
     float total_water = center.g * 4.0;
     float total_weight = 4.0;
 
-    // Apply a small weighted blur to soften hard water edges.
     for (int oy = -1; oy <= 1; ++oy)
     {
         for (int ox = -1; ox <= 1; ++ox)
@@ -34,12 +36,10 @@ void main()
     float water = total_water / max(total_weight, 1e-4);
     if (water > 0.0)
     {
-        // Clamp the smoothed water back to the carved cavity.
         water = min(water, max(-center.r, 0.0));
     }
     else
     {
-        // Keep dry samples slightly negative so later passes can still tell them apart.
         water = min(water, -0.02);
     }
 

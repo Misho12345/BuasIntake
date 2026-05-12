@@ -4,9 +4,11 @@
 
 
 #include "ChunkSettings.hpp"
+#include "terrain/TerrainFieldSample.hpp"
 #include "gfx/SSBO.hpp"
 #include "gfx/Shader.hpp"
 #include "gfx/Texture2D.hpp"
+#include "water/WaterFieldSmoother.hpp"
 
 namespace game::terrain
 {
@@ -22,13 +24,7 @@ namespace game::terrain
     class TerrainGenerator final
     {
     public:
-        struct FieldSample final
-        {
-            float terrain{};
-            float water{};
-            float wetness{};
-            float greenness{};
-        };
+        using FieldSample = TerrainFieldSample;
 
         static constexpr std::uint32_t terrain_channel_index = 0u;
         static constexpr std::uint32_t water_channel_index   = 1u;
@@ -36,7 +32,7 @@ namespace game::terrain
         struct TerrainEdit final
         {
             vec4 position_radius_strength{};
-            vec4 shape{};
+            float falloff_exponent{ 1.8f };
 
             static TerrainEdit make(
                 const vec2  world_position,
@@ -46,7 +42,7 @@ namespace game::terrain
             {
                 return {
                     .position_radius_strength = { world_position.x, world_position.y, radius, signed_strength },
-                    .shape                    = { falloff_exponent, 0.0f, 0.0f, 0.0f }
+                    .falloff_exponent         = falloff_exponent
                 };
             }
         };
@@ -76,13 +72,16 @@ namespace game::terrain
         // initialize builds the gpu side buffers and shaders once for a chunk generator instance
         Result<void> initialize(const ChunkSettings& settings);
 
-        // dispatch runs the full generation pipeline base terrain then caves then ponds then smoothing then contour extraction
+        // dispatch runs the full generation pipeline: base terrain, caves, ponds, water smoothing, then terrain contour extraction
         Result<void> dispatch();
         Result<void> smooth_water_field(std::uint32_t iterations = 2u);
+
         Result<void> dispatch_surface_rebuild(std::uint32_t channel_index, float iso);
+
         Result<void> upload_field(std::span<const FieldSample> field_samples);
 
         Result<std::vector<FieldSample>> read_field() const;
+
         Result<RawPipelineResult>        readback();
 
     private:
@@ -100,15 +99,11 @@ namespace game::terrain
         Result<void> wait_for_completion();
         FieldLayout  field_layout() const;
 
+        void bind_field_uniforms(const gfx::Shader& shader, const FieldLayout& layout) const;
         void bind_chunk_uniforms(const gfx::Shader& shader, const FieldLayout& layout) const;
         void bind_generation_pass(const gfx::Shader& shader, const FieldLayout& layout) const;
         void bind_cave_pass(const gfx::Shader& shader, const FieldLayout& layout) const;
         void bind_pond_pass(const gfx::Shader& shader, const FieldLayout& layout) const;
-
-        void bind_water_smooth_pass(
-            const gfx::Shader&    shader,
-            const gfx::Texture2D& input_texture,
-            const gfx::Texture2D& output_texture) const;
 
         void bind_surface_edge_pass(
             const gfx::Shader& shader,
@@ -129,11 +124,10 @@ namespace game::terrain
         gfx::Shader    terrain_shader_{};
         gfx::Shader    cave_shader_{};
         gfx::Shader    pond_shader_{};
-        gfx::Shader    water_smooth_shader_{};
         gfx::Shader    edge_shader_{};
         gfx::Shader    mesh_shader_{};
         gfx::Texture2D field_texture_{};
-        gfx::Texture2D scratch_field_texture_{};
+        water::WaterFieldSmoother water_smoother_{};
 
         gfx::SSBO boundary_vertices_buffer_{};
         gfx::SSBO horizontal_edge_ids_buffer_{};
