@@ -10,6 +10,8 @@
 
 namespace game::world
 {
+    // groups the live gameplay systems that need to know about each other during a run
+    // game code talks through this instead of passing terrain player resources water and vegetation separately
     class World final
     {
     public:

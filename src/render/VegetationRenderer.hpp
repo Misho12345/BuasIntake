@@ -10,6 +10,8 @@ namespace game::vegetation { class VegetationSystem; }
 
 namespace game::render
 {
+    // turns live and dead plant state into a handful of instanced sprite batches
+    // terrain provides the surface anchors while vegetation and resources decide what should be visible
     class VegetationRenderer final
     {
     public:

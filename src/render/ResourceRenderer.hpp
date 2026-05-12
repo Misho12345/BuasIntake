@@ -9,6 +9,8 @@ namespace game::terrain { class PlanetTerrain; }
 
 namespace game::render
 {
+    // builds and draws instanced ore sprites from ResourceSystem nodes anchored to PlanetTerrain samples
+    // cached revisions keep normal frames cheap while still following terrain edits and harvests
     class ResourceRenderer final
     {
     public:

@@ -22,6 +22,8 @@ namespace game::resources
         std::array<HudCounter, hud_counter_count> counters{};
     };
 
+    // owns harvestable ore nodes and the player's resource inventory
+    // terrain generation creates nodes here while tools and hud code consume the inventory-facing API
     class ResourceSystem final
     {
     public:

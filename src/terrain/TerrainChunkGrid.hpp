@@ -7,6 +7,8 @@
 
 namespace game::terrain
 {
+    // owns the fixed grid of terrain chunks and translates between chunk-local fields and the global TerrainField
+    // PlanetTerrain uses this as the rebuild boundary for meshes physics shapes and water surfaces
     class TerrainChunkGrid final
     {
     public:

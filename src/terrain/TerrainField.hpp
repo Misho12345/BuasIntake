@@ -6,6 +6,8 @@
 
 namespace game::terrain
 {
+    // contiguous global terrain sample storage shared by gameplay systems
+    // it provides the coordinate conversions that keep terrain water resources and vegetation using the same grid
     class TerrainField final
     {
     public:

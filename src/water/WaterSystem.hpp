@@ -32,6 +32,8 @@ namespace game::water
         std::vector<std::uint32_t> future_indices{};
     };
 
+    // gameplay-facing water tool service around PlanetTerrain's lower-level water planning and rebuild code
+    // callers ask for place pickup or preview results without touching field samples directly
     class WaterSystem final
     {
     public:

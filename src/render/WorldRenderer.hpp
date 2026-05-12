@@ -9,6 +9,8 @@
 
 namespace game::render
 {
+    // draws the world systems that are not already rendered by PlanetTerrain itself
+    // this keeps resource sprites vegetation sprites and tool previews on the same render path
     class WorldRenderer final
     {
     public:

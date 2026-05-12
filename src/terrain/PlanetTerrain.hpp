@@ -15,18 +15,13 @@
 #include "vegetation/Plant.hpp"
 #include "water/TerrainWaterSystem.hpp"
 
-namespace game::resources
-{
-    class ResourceSystem;
-}
-
-namespace game::vegetation
-{
-    class VegetationSystem;
-}
+namespace game::resources { class ResourceSystem; }
+namespace game::vegetation { class VegetationSystem; }
 
 namespace game::terrain
 {
+    // central terrain facade for gameplay code: it keeps the global sampled field in sync with chunk meshes physics water resources and plants
+    // generation and edits enter here so dependent systems rebuild in a predictable order
     class PlanetTerrain final
     {
     public:

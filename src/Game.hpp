@@ -22,6 +22,8 @@ namespace game
         sf::Color   clear_color;
     };
 
+    // owns the application lifetime: window input physics world gameplay state and both render paths
+    // most subsystems live below this so startup shutdown and frame ordering stay in one place
     class Game final
     {
     public:

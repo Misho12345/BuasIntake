@@ -9,6 +9,8 @@
 
 namespace game::water
 {
+    // per-chunk water render surface built from the terrain generator's water contour output
+    // TerrainChunk owns this beside the solid terrain mesh so water can rebuild and draw independently
     class WaterChunkSurface final
     {
     public:

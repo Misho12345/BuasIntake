@@ -21,6 +21,8 @@ namespace game::player
         float jump_cooldown{ 0.14f };
     };
 
+    // box2d-backed character controller for walking around the curved planet surface
+    // it owns the body sensors and movement rules while Game decides when to refresh contacts and step physics
     class Player final
     {
     public:
