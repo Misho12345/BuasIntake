@@ -145,7 +145,7 @@ namespace game::tools
         };
     }
 
-    // the preview cache is revision driven because rebuilding a whole water plan every frame while the mouse is not meaningfully changing is just waste
+    // the preview cache is revision driven so unchanged mouse input does not rebuild the same water plan every frame
     void WaterTool::refresh_preview_cache(const TerrainToolContext& context, const TerrainTargetResolver& resolver) const
     {
         if (!placement_mode_ || context.terrain == nullptr || context.water == nullptr || desired_place_amount_ == 0u)

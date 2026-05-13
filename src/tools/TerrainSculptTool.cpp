@@ -106,8 +106,8 @@ namespace game::tools
             return feet_position - frame->up * brush_radius;
         }
 
-        // this is the boring safety net that keeps the player from getting sealed into fresh terrain
-        // we only lift a little we cap it we raycast for ceilings and we add a cooldown because otherwise this turns into a pogo stick
+        // small safety lift that keeps fresh terrain from sealing around the player
+        // it is capped, checks for ceilings, and uses a cooldown to avoid repeated bumps
         void lift_player_for_ground_placement(
             const TerrainToolContext& context,
             const vec2                placement_position,

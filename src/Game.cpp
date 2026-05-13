@@ -135,7 +135,7 @@ namespace game
     }
 
     // this is the top level frame loop and the order here is not accidental
-    // input first then simulation then gl then sfml because sfml happily stomps shared gl state on the way out
+    // input first, then simulation, then gl, then sfml because the sfml pass resets shared gl state
     void Game::run_impl()
     {
         if (!initialized_) return;
@@ -178,7 +178,7 @@ namespace game
     }
 
 
-    // physics gets the real dt but the variable side gets clamped so one nasty frame hitch does not blow up camera and tool feel
+    // physics gets the real dt, while variable update is clamped so one frame hitch does not throw off camera and tool feel
     void Game::update(const float dt)
     {
         fixed_update(dt);
@@ -319,8 +319,8 @@ namespace game
         return {};
     }
 
-    // this is the input traffic cop for the frame
-    // modal stuff gets first dibs because once a menu is open the world should stop pretending it still owns the mouse
+    // handle frame input in priority order
+    // modal UI gets input before gameplay while a menu is open
     void Game::handle_frame_input()
     {
         if (restoration_goal_.completed()) return;
@@ -429,14 +429,14 @@ namespace game
     }
 
 
-    // this runs the deterministic side of the game
-    // Burn down the accumulator with fixed steps and keep refreshing contact state around each step.
-    // Doing the refresh that often is the boring but stable answer when the terrain itself can change under the player.
+    // runs the deterministic side of the game
+    // Step through the accumulator at a fixed rate and refresh contact state around each step.
+    // refreshing each step keeps contact state stable when terrain changes under the player
     void Game::fixed_update(const float dt)
     {
         if (!b2World_IsValid(world_) || !world_state_.ready()) return;
         if (restoration_goal_.completed()) return;
-        physics_accumulator_ = std::min(physics_accumulator_ + dt, 0.25f);
+        physics_accumulator_ = std::min(physics_accumulator_ + dt, 0.025f);
 
         static constexpr float fixed_step    = 1.0f / 60.0f;
         static constexpr int   sub_steps     = 4;
@@ -446,7 +446,7 @@ namespace game
 
         auto refresh_player_state = [&player, &terrain, planet_center]
         {
-            // sample contacts around each physics step so jump and swim state stays in sync with terrain edits.
+            // sample contacts around each physics step so jump and swim state stays in sync with terrain edits
             player.refresh_contact_state(planet_center, terrain.contains_water_volume(player.world_position()));
         };
 
@@ -465,8 +465,8 @@ namespace game
         player.refresh_contact_state(planet_center, terrain.contains_water_volume(player.world_position()));
     }
 
-    // this is the frame rate side of the update and the order matters
-    // tool edits can change terrain then world systems react then the win check runs then the camera follows the final result
+    // frame-rate-dependent updates run in this order on purpose
+    // tool edits can change terrain, then world systems react, then the win check runs, then the camera follows the final result
     void Game::variable_update(const float dt)
     {
         if (!restoration_goal_.completed()) update_terrain_editing(dt);
@@ -517,7 +517,7 @@ namespace game
         glViewport(0, 0, static_cast<std::int32_t>(size.x), static_cast<std::int32_t>(size.y));
     }
 
-    // tool code needs a lot of scattered state and this keeps that mess in one place instead of making every tool reach through game
+    // keep tool-facing state in one context instead of having every tool reach through Game
     std::optional<tools::TerrainToolContext> Game::terrain_tool_context()
     {
         if (!b2World_IsValid(world_) || !world_state_.ready()) return std::nullopt;

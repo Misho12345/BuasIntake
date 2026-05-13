@@ -48,7 +48,7 @@ namespace game::terrain
             static constexpr float ground_iron_min_depth{ 0.32f };
             static constexpr int   ground_resource_spacing_radius{ 4 };
 
-            // depth gates keep cheap ores near the surface and reserve rare ore rolls for deeper stone and caves
+            // depth gates keep common ores near the surface and reserve rare ore rolls for deeper stone and caves
 
             auto is_exposed_to_air = [](const TerrainFieldSample& sample, const int solid_neighbors)
             {

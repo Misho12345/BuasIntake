@@ -69,8 +69,8 @@ namespace game::terrain
             };
         }
 
-        // first find connected water blobs near the changed area then give each blob an influence radius based on how big it is
-        // later the recompute pass can walk outward from those blobs instead of pretending all water is one giant source
+        // find connected water components near the changed area, then give each component an influence radius based on size
+        // the recompute pass can then walk outward from those components instead of treating all water as one source
         template <typename CollectWaterComponent>
         std::vector<TerrainWetnessComponent> collect_wetness_components(
             const std::span<const TerrainFieldSample> global_field,
@@ -146,9 +146,9 @@ namespace game::terrain
             return components;
         }
 
-        // this is the local wetness rebuild after terrain or water edits
-        // we clamp the work to a region around the changed samples then run outward from nearby water blobs with a priority queue
-        // doing it this way is a lot cheaper than rebuilding the whole planet every time someone digs one hole
+        // local wetness rebuild after terrain or water edits
+        // clamp the work to a region around the changed samples, then run outward from nearby water components with a priority queue
+        // this is much cheaper than rebuilding the whole planet for a small edit
         template <typename MarkDirty, typename CollectWaterComponent>
         void recompute_around(
             std::span<TerrainFieldSample> global_field,

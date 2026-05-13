@@ -79,7 +79,7 @@ namespace game::terrain
             return value;
         }
 
-        // this one sharpens things up because just layering smooth noise everywhere made the shell feel mushy
+        // ridged noise adds sharper detail so the shell does not look too smooth
         float terrain_ridged_fbm(vec2 point, const std::uint32_t seed)
         {
             float value     = 0.0f;
@@ -297,8 +297,8 @@ namespace game::terrain
         return {};
     }
 
-    // sculpting marks revisions immediately so the rest of the game can react but the costly rebuild gets delayed a frame or two
-    // that tradeoff keeps the tool feeling responsive without pretending the rebuild work is free
+    // sculpting marks revisions immediately so the rest of the game can react, while the costly rebuild is delayed a frame or two
+    // this keeps the tool responsive without rebuilding synchronously on every edit
     std::uint32_t PlanetTerrain::apply_ground_brush(
         const TerrainEdit&                       edit,
         const std::uint32_t                      unit_budget,
