@@ -83,7 +83,7 @@ public:
     /// \see `findIntersection`
     ///
     ////////////////////////////////////////////////////////////
-    constexpr bool contains(Vector2<T> point) const;
+    [[nodiscard]] constexpr bool contains(Vector2<T> point) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Check the intersection between two rectangles
@@ -95,7 +95,7 @@ public:
     /// \see `contains`
     ///
     ////////////////////////////////////////////////////////////
-    constexpr std::optional<Rect> findIntersection(const Rect& rectangle) const;
+    [[nodiscard]] constexpr std::optional<Rect<T>> findIntersection(const Rect<T>& rectangle) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the position of the center of the rectangle
@@ -103,7 +103,7 @@ public:
     /// \return Center of rectangle
     ///
     ////////////////////////////////////////////////////////////
-    constexpr Vector2<T> getCenter() const;
+    [[nodiscard]] constexpr Vector2<T> getCenter() const;
 
     ////////////////////////////////////////////////////////////
     // Member data
@@ -125,7 +125,7 @@ public:
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr bool operator==(const Rect<T>& lhs, const Rect<T>& rhs);
+[[nodiscard]] constexpr bool operator==(const Rect<T>& lhs, const Rect<T>& rhs);
 
 ////////////////////////////////////////////////////////////
 /// \relates Rect
@@ -140,7 +140,7 @@ constexpr bool operator==(const Rect<T>& lhs, const Rect<T>& rhs);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr bool operator!=(const Rect<T>& lhs, const Rect<T>& rhs);
+[[nodiscard]] constexpr bool operator!=(const Rect<T>& lhs, const Rect<T>& rhs);
 
 // Create type aliases for the most common types
 using IntRect   = Rect<int>;

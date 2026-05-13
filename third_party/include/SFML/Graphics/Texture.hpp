@@ -276,7 +276,7 @@ public:
     /// \return `true` if resizing was successful, `false` if it failed
     ///
     ////////////////////////////////////////////////////////////
-    bool resize(Vector2u size, bool sRgb = false);
+    [[nodiscard]] bool resize(Vector2u size, bool sRgb = false);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the texture from a file on disk
@@ -301,7 +301,7 @@ public:
     /// \see `loadFromMemory`, `loadFromStream`, `loadFromImage`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromFile(const std::filesystem::path& filename, bool sRgb = false, const IntRect& area = {});
+    [[nodiscard]] bool loadFromFile(const std::filesystem::path& filename, bool sRgb = false, const IntRect& area = {});
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the texture from a file in memory
@@ -327,7 +327,7 @@ public:
     /// \see `loadFromFile`, `loadFromStream`, `loadFromImage`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromMemory(const void* data, std::size_t size, bool sRgb = false, const IntRect& area = {});
+    [[nodiscard]] bool loadFromMemory(const void* data, std::size_t size, bool sRgb = false, const IntRect& area = {});
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the texture from a custom stream
@@ -352,7 +352,7 @@ public:
     /// \see `loadFromFile`, `loadFromMemory`, `loadFromImage`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromStream(InputStream& stream, bool sRgb = false, const IntRect& area = {});
+    [[nodiscard]] bool loadFromStream(InputStream& stream, bool sRgb = false, const IntRect& area = {});
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the texture from an image
@@ -377,7 +377,7 @@ public:
     /// \see `loadFromFile`, `loadFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromImage(const Image& image, bool sRgb = false, const IntRect& area = {});
+    [[nodiscard]] bool loadFromImage(const Image& image, bool sRgb = false, const IntRect& area = {});
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the size of the texture
@@ -385,7 +385,7 @@ public:
     /// \return Size in pixels
     ///
     ////////////////////////////////////////////////////////////
-    Vector2u getSize() const;
+    [[nodiscard]] Vector2u getSize() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Copy the texture pixels to an image
@@ -400,7 +400,7 @@ public:
     /// \see `loadFromImage`
     ///
     ////////////////////////////////////////////////////////////
-    Image copyToImage() const;
+    [[nodiscard]] Image copyToImage() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Update the whole texture from an array of pixels
@@ -575,7 +575,7 @@ public:
     /// \see `setSmooth`
     ///
     ////////////////////////////////////////////////////////////
-    bool isSmooth() const;
+    [[nodiscard]] bool isSmooth() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Tell whether the texture source is converted from sRGB or not
@@ -585,7 +585,7 @@ public:
     /// \see `setSrgb`
     ///
     ////////////////////////////////////////////////////////////
-    bool isSrgb() const;
+    [[nodiscard]] bool isSrgb() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Enable or disable repeating
@@ -619,7 +619,7 @@ public:
     /// \see `setRepeated`
     ///
     ////////////////////////////////////////////////////////////
-    bool isRepeated() const;
+    [[nodiscard]] bool isRepeated() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Generate a mipmap using the current texture data
@@ -644,7 +644,7 @@ public:
     /// \return `true` if mipmap generation was successful, `false` if unsuccessful
     ///
     ////////////////////////////////////////////////////////////
-    bool generateMipmap();
+    [[nodiscard]] bool generateMipmap();
 
     ////////////////////////////////////////////////////////////
     /// \brief Swap the contents of this texture with those of another
@@ -652,7 +652,7 @@ public:
     /// \param right Instance to swap with
     ///
     ////////////////////////////////////////////////////////////
-    void swap(Texture& right);
+    void swap(Texture& right) noexcept;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the underlying OpenGL handle of the texture.
@@ -664,7 +664,7 @@ public:
     /// \return OpenGL handle of the texture or 0 if not yet created
     ///
     ////////////////////////////////////////////////////////////
-    unsigned int getNativeHandle() const;
+    [[nodiscard]] unsigned int getNativeHandle() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Bind a texture for rendering
@@ -709,7 +709,7 @@ public:
     /// \return Maximum size allowed for textures, in pixels
     ///
     ////////////////////////////////////////////////////////////
-    static unsigned int getMaximumSize();
+    [[nodiscard]] static unsigned int getMaximumSize();
 
 private:
     friend class Text;
@@ -729,7 +729,7 @@ private:
     /// \return Valid nearest size (greater than or equal to specified size)
     ///
     ////////////////////////////////////////////////////////////
-    static unsigned int getValidSize(unsigned int size);
+    [[nodiscard]] static unsigned int getValidSize(unsigned int size);
 
     ////////////////////////////////////////////////////////////
     /// \brief Invalidate the mipmap if one exists
@@ -762,7 +762,7 @@ private:
 /// \param right Second instance to swap
 ///
 ////////////////////////////////////////////////////////////
-SFML_GRAPHICS_API void swap(Texture& left, Texture& right);
+SFML_GRAPHICS_API void swap(Texture& left, Texture& right) noexcept;
 
 } // namespace sf
 

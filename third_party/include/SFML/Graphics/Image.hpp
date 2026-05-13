@@ -172,7 +172,7 @@ public:
     /// \see `loadFromMemory`, `loadFromStream`, `saveToFile`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromFile(const std::filesystem::path& filename);
+    [[nodiscard]] bool loadFromFile(const std::filesystem::path& filename);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the image from a file in memory
@@ -190,7 +190,7 @@ public:
     /// \see `loadFromFile`, `loadFromStream`, `saveToMemory`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromMemory(const void* data, std::size_t size);
+    [[nodiscard]] bool loadFromMemory(const void* data, std::size_t size);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the image from a custom stream
@@ -207,7 +207,7 @@ public:
     /// \see `loadFromFile`, `loadFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromStream(InputStream& stream);
+    [[nodiscard]] bool loadFromStream(InputStream& stream);
 
     ////////////////////////////////////////////////////////////
     /// \brief Save the image to a file on disk
@@ -224,7 +224,7 @@ public:
     /// \see `saveToMemory`, `loadFromFile`
     ///
     ////////////////////////////////////////////////////////////
-    bool saveToFile(const std::filesystem::path& filename) const;
+    [[nodiscard]] bool saveToFile(const std::filesystem::path& filename) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Save the image to a buffer in memory
@@ -242,7 +242,7 @@ public:
     /// \see `saveToFile`, `loadFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    std::optional<std::vector<std::uint8_t>> saveToMemory(std::string_view format) const;
+    [[nodiscard]] std::optional<std::vector<std::uint8_t>> saveToMemory(std::string_view format) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the size (width and height) of the image
@@ -250,7 +250,7 @@ public:
     /// \return Size of the image, in pixels
     ///
     ////////////////////////////////////////////////////////////
-    Vector2u getSize() const;
+    [[nodiscard]] Vector2u getSize() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Create a transparency mask from a specified color-key
@@ -297,7 +297,7 @@ public:
     /// \return `true` if the operation was successful, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    bool copy(const Image& source, Vector2u dest, const IntRect& sourceRect = {}, bool applyAlpha = false);
+    [[nodiscard]] bool copy(const Image& source, Vector2u dest, const IntRect& sourceRect = {}, bool applyAlpha = false);
 
     ////////////////////////////////////////////////////////////
     /// \brief Change the color of a pixel
@@ -328,7 +328,7 @@ public:
     /// \see `setPixel`
     ///
     ////////////////////////////////////////////////////////////
-    Color getPixel(Vector2u coords) const;
+    [[nodiscard]] Color getPixel(Vector2u coords) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get a read-only pointer to the array of pixels
@@ -343,7 +343,7 @@ public:
     /// \return Read-only pointer to the array of pixels
     ///
     ////////////////////////////////////////////////////////////
-    const std::uint8_t* getPixelsPtr() const;
+    [[nodiscard]] const std::uint8_t* getPixelsPtr() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Flip the image horizontally (left <-> right)

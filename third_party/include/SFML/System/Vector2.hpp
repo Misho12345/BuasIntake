@@ -86,7 +86,7 @@ public:
     /// If you are not interested in the actual length, but only in comparisons, consider using `lengthSquared()`.
     ///
     ////////////////////////////////////////////////////////////
-    SFML_SYSTEM_API T length() const;
+    [[nodiscard]] SFML_SYSTEM_API T length() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Square of vector's length.
@@ -94,7 +94,7 @@ public:
     /// Suitable for comparisons, more efficient than `length()`.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr T lengthSquared() const;
+    [[nodiscard]] constexpr T lengthSquared() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Vector with same direction but length 1 <i><b>(floating-point)</b></i>.
@@ -102,7 +102,7 @@ public:
     /// \pre `*this` is no zero vector.
     ///
     ////////////////////////////////////////////////////////////
-    SFML_SYSTEM_API Vector2 normalized() const;
+    [[nodiscard]] SFML_SYSTEM_API Vector2 normalized() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Signed angle from `*this` to `rhs` <i><b>(floating-point)</b></i>.
@@ -113,7 +113,7 @@ public:
     /// \pre Neither `*this` nor `rhs` is a zero vector.
     ///
     ////////////////////////////////////////////////////////////
-    SFML_SYSTEM_API Angle angleTo(Vector2 rhs) const;
+    [[nodiscard]] SFML_SYSTEM_API Angle angleTo(Vector2 rhs) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Signed angle from +X or (1,0) vector <i><b>(floating-point)</b></i>.
@@ -124,7 +124,7 @@ public:
     /// \pre This vector is no zero vector.
     ///
     ////////////////////////////////////////////////////////////
-    SFML_SYSTEM_API Angle angle() const;
+    [[nodiscard]] SFML_SYSTEM_API Angle angle() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Rotate by angle \c phi <i><b>(floating-point)</b></i>.
@@ -135,7 +135,7 @@ public:
     /// this amounts to a clockwise rotation by `phi`.
     ///
     ////////////////////////////////////////////////////////////
-    SFML_SYSTEM_API Vector2 rotatedBy(Angle phi) const;
+    [[nodiscard]] SFML_SYSTEM_API Vector2 rotatedBy(Angle phi) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Projection of this vector onto `axis` <i><b>(floating-point)</b></i>.
@@ -144,7 +144,7 @@ public:
     /// \pre `axis` must not have length zero.
     ///
     ////////////////////////////////////////////////////////////
-    SFML_SYSTEM_API Vector2 projectedOnto(Vector2 axis) const;
+    [[nodiscard]] SFML_SYSTEM_API Vector2 projectedOnto(Vector2 axis) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Returns a perpendicular vector.
@@ -156,13 +156,13 @@ public:
     /// this amounts to a clockwise rotation.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr Vector2 perpendicular() const;
+    [[nodiscard]] constexpr Vector2 perpendicular() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Dot product of two 2D vectors.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr T dot(Vector2 rhs) const;
+    [[nodiscard]] constexpr T dot(Vector2 rhs) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Z component of the cross product of two 2D vectors.
@@ -171,7 +171,7 @@ public:
     /// and returns the result's Z component (X and Y components are always zero).
     ///
     ////////////////////////////////////////////////////////////
-    constexpr T cross(Vector2 rhs) const;
+    [[nodiscard]] constexpr T cross(Vector2 rhs) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Component-wise multiplication of `*this` and `rhs`.
@@ -182,7 +182,7 @@ public:
     /// This operation is also known as the Hadamard or Schur product.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr Vector2 componentWiseMul(Vector2 rhs) const;
+    [[nodiscard]] constexpr Vector2 componentWiseMul(Vector2 rhs) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Component-wise division of `*this` and `rhs`.
@@ -194,7 +194,7 @@ public:
     /// \pre Neither component of `rhs` is zero.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr Vector2 componentWiseDiv(Vector2 rhs) const;
+    [[nodiscard]] constexpr Vector2 componentWiseDiv(Vector2 rhs) const;
 
 
     ////////////////////////////////////////////////////////////
@@ -219,7 +219,7 @@ using Vector2f = Vector2<float>;
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector2<T> operator-(Vector2<T> right);
+[[nodiscard]] constexpr Vector2<T> operator-(Vector2<T> right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector2
@@ -264,7 +264,7 @@ constexpr Vector2<T>& operator-=(Vector2<T>& left, Vector2<T> right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector2<T> operator+(Vector2<T> left, Vector2<T> right);
+[[nodiscard]] constexpr Vector2<T> operator+(Vector2<T> left, Vector2<T> right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector2
@@ -277,7 +277,7 @@ constexpr Vector2<T> operator+(Vector2<T> left, Vector2<T> right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector2<T> operator-(Vector2<T> left, Vector2<T> right);
+[[nodiscard]] constexpr Vector2<T> operator-(Vector2<T> left, Vector2<T> right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector2
@@ -290,7 +290,7 @@ constexpr Vector2<T> operator-(Vector2<T> left, Vector2<T> right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector2<T> operator*(Vector2<T> left, T right);
+[[nodiscard]] constexpr Vector2<T> operator*(Vector2<T> left, T right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector2
@@ -303,7 +303,7 @@ constexpr Vector2<T> operator*(Vector2<T> left, T right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector2<T> operator*(T left, Vector2<T> right);
+[[nodiscard]] constexpr Vector2<T> operator*(T left, Vector2<T> right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector2
@@ -332,7 +332,7 @@ constexpr Vector2<T>& operator*=(Vector2<T>& left, T right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector2<T> operator/(Vector2<T> left, T right);
+[[nodiscard]] constexpr Vector2<T> operator/(Vector2<T> left, T right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector2
@@ -363,7 +363,7 @@ constexpr Vector2<T>& operator/=(Vector2<T>& left, T right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr bool operator==(Vector2<T> left, Vector2<T> right);
+[[nodiscard]] constexpr bool operator==(Vector2<T> left, Vector2<T> right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector2
@@ -378,7 +378,7 @@ constexpr bool operator==(Vector2<T> left, Vector2<T> right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr bool operator!=(Vector2<T> left, Vector2<T> right);
+[[nodiscard]] constexpr bool operator!=(Vector2<T> left, Vector2<T> right);
 
 } // namespace sf
 

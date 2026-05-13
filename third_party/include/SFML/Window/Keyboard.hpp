@@ -346,7 +346,7 @@ static constexpr unsigned int ScancodeCount{static_cast<unsigned int>(Scan::Laun
 /// \return `true` if the key is pressed, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-SFML_WINDOW_API bool isKeyPressed(Key key);
+[[nodiscard]] SFML_WINDOW_API bool isKeyPressed(Key key);
 
 ////////////////////////////////////////////////////////////
 /// \brief Check if a key is pressed
@@ -359,7 +359,7 @@ SFML_WINDOW_API bool isKeyPressed(Key key);
 /// \return `true` if the physical key is pressed, `false` otherwise
 ///
 ////////////////////////////////////////////////////////////
-SFML_WINDOW_API bool isKeyPressed(Scancode code);
+[[nodiscard]] SFML_WINDOW_API bool isKeyPressed(Scancode code);
 
 ////////////////////////////////////////////////////////////
 /// \brief Localize a physical key to a logical one
@@ -374,7 +374,7 @@ SFML_WINDOW_API bool isKeyPressed(Scancode code);
 /// \see `delocalize`
 ///
 ////////////////////////////////////////////////////////////
-SFML_WINDOW_API Key localize(Scancode code);
+[[nodiscard]] SFML_WINDOW_API Key localize(Scancode code);
 
 ////////////////////////////////////////////////////////////
 /// \brief Identify the physical key corresponding to a logical one
@@ -389,7 +389,7 @@ SFML_WINDOW_API Key localize(Scancode code);
 /// \see `localize`
 ///
 ////////////////////////////////////////////////////////////
-SFML_WINDOW_API Scancode delocalize(Key key);
+[[nodiscard]] SFML_WINDOW_API Scancode delocalize(Key key);
 
 ////////////////////////////////////////////////////////////
 /// \brief Provide a string representation for a given scancode
@@ -412,7 +412,7 @@ SFML_WINDOW_API Scancode delocalize(Key key);
 /// \return The localized description of the code
 ///
 ////////////////////////////////////////////////////////////
-SFML_WINDOW_API String getDescription(Scancode code);
+[[nodiscard]] SFML_WINDOW_API String getDescription(Scancode code);
 
 ////////////////////////////////////////////////////////////
 /// \brief Show or hide the virtual keyboard

@@ -73,7 +73,7 @@ public:
     /// \return Color represented as a 32-bit unsigned integer
     ///
     ////////////////////////////////////////////////////////////
-    constexpr std::uint32_t toInteger() const;
+    [[nodiscard]] constexpr std::uint32_t toInteger() const;
 
     ////////////////////////////////////////////////////////////
     // Static member data
@@ -111,7 +111,7 @@ public:
 /// \return `true` if colors are equal, `false` if they are different
 ///
 ////////////////////////////////////////////////////////////
-constexpr bool operator==(Color left, Color right);
+[[nodiscard]] constexpr bool operator==(Color left, Color right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Color
@@ -125,7 +125,7 @@ constexpr bool operator==(Color left, Color right);
 /// \return `true` if colors are different, `false` if they are equal
 ///
 ////////////////////////////////////////////////////////////
-constexpr bool operator!=(Color left, Color right);
+[[nodiscard]] constexpr bool operator!=(Color left, Color right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Color
@@ -140,7 +140,7 @@ constexpr bool operator!=(Color left, Color right);
 /// \return Result of \a left + \a right
 ///
 ////////////////////////////////////////////////////////////
-constexpr Color operator+(Color left, Color right);
+[[nodiscard]] constexpr Color operator+(Color left, Color right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Color
@@ -155,7 +155,7 @@ constexpr Color operator+(Color left, Color right);
 /// \return Result of \a left - \a right
 ///
 ////////////////////////////////////////////////////////////
-constexpr Color operator-(Color left, Color right);
+[[nodiscard]] constexpr Color operator-(Color left, Color right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Color
@@ -172,7 +172,7 @@ constexpr Color operator-(Color left, Color right);
 /// \return Result of \a left * \a right
 ///
 ////////////////////////////////////////////////////////////
-constexpr Color operator*(Color left, Color right);
+[[nodiscard]] constexpr Color operator*(Color left, Color right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Color

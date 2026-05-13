@@ -137,7 +137,7 @@ public:
     /// \return `true` if creation was successful
     ///
     ////////////////////////////////////////////////////////////
-    bool create(std::size_t vertexCount);
+    [[nodiscard]] bool create(std::size_t vertexCount);
 
     ////////////////////////////////////////////////////////////
     /// \brief Return the vertex count
@@ -145,7 +145,7 @@ public:
     /// \return Number of vertices in the vertex buffer
     ///
     ////////////////////////////////////////////////////////////
-    std::size_t getVertexCount() const;
+    [[nodiscard]] std::size_t getVertexCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Update the whole buffer from an array of vertices
@@ -165,7 +165,7 @@ public:
     /// \return `true` if the update was successful
     ///
     ////////////////////////////////////////////////////////////
-    bool update(const Vertex* vertices);
+    [[nodiscard]] bool update(const Vertex* vertices);
 
     ////////////////////////////////////////////////////////////
     /// \brief Update a part of the buffer from an array of vertices
@@ -198,7 +198,7 @@ public:
     /// \return `true` if the update was successful
     ///
     ////////////////////////////////////////////////////////////
-    bool update(const Vertex* vertices, std::size_t vertexCount, unsigned int offset);
+    [[nodiscard]] bool update(const Vertex* vertices, std::size_t vertexCount, unsigned int offset);
 
     ////////////////////////////////////////////////////////////
     /// \brief Copy the contents of another buffer into this buffer
@@ -208,7 +208,7 @@ public:
     /// \return `true` if the copy was successful
     ///
     ////////////////////////////////////////////////////////////
-    bool update(const VertexBuffer& vertexBuffer);
+    [[nodiscard]] bool update(const VertexBuffer& vertexBuffer);
 
     ////////////////////////////////////////////////////////////
     /// \brief Overload of assignment operator
@@ -226,7 +226,7 @@ public:
     /// \param right Instance to swap with
     ///
     ////////////////////////////////////////////////////////////
-    void swap(VertexBuffer& right);
+    void swap(VertexBuffer& right) noexcept;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the underlying OpenGL handle of the vertex buffer.
@@ -238,7 +238,7 @@ public:
     /// \return OpenGL handle of the vertex buffer or 0 if not yet created
     ///
     ////////////////////////////////////////////////////////////
-    unsigned int getNativeHandle() const;
+    [[nodiscard]] unsigned int getNativeHandle() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the type of primitives to draw
@@ -259,7 +259,7 @@ public:
     /// \return Primitive type
     ///
     ////////////////////////////////////////////////////////////
-    PrimitiveType getPrimitiveType() const;
+    [[nodiscard]] PrimitiveType getPrimitiveType() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Set the usage specifier of this vertex buffer
@@ -284,7 +284,7 @@ public:
     /// \return Usage specifier
     ///
     ////////////////////////////////////////////////////////////
-    Usage getUsage() const;
+    [[nodiscard]] Usage getUsage() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Bind a vertex buffer for rendering
@@ -319,7 +319,7 @@ public:
     /// \return `true` if vertex buffers are supported, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    static bool isAvailable();
+    [[nodiscard]] static bool isAvailable();
 
 private:
     ////////////////////////////////////////////////////////////
@@ -347,7 +347,7 @@ private:
 /// \param right Second instance to swap
 ///
 ////////////////////////////////////////////////////////////
-SFML_GRAPHICS_API void swap(VertexBuffer& left, VertexBuffer& right);
+SFML_GRAPHICS_API void swap(VertexBuffer& left, VertexBuffer& right) noexcept;
 
 } // namespace sf
 
