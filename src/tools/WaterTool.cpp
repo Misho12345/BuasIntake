@@ -12,9 +12,9 @@ namespace game::tools
     namespace
     {
         constexpr std::array<std::uint32_t, 9> bucket_capacities{{
-            24u, 32u, 40u,
-            52u, 64u, 76u,
-            92u, 112u, 132u
+            32u, 44u, 56u,
+            72u, 88u, 104u,
+            124u, 148u, 172u
         }};
 
         static_assert(bucket_capacities.size() == (max_tool_material_index + 1u) * tool_levels_per_material);

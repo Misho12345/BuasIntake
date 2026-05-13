@@ -303,9 +303,9 @@ namespace game::tools
                 make_tier(2.24f, 1.47f, 54.0f, 0.46f, 1.62f, 13000u),
                 make_tier(2.38f, 1.60f, 62.0f, 0.42f, 1.58f, 16000u),
                 make_tier(2.52f, 1.74f, 70.0f, 0.38f, 1.54f, 19000u),
-                make_tier(2.70f, 1.92f, 80.0f, 0.34f, 1.50f, 23000u),
-                make_tier(2.88f, 2.10f, 92.0f, 0.32f, 1.46f, 27000u),
-                make_tier(3.05f, 2.30f, 104.0f, 0.30f, 1.42f, 32000u)
+                make_tier(2.66f, 1.86f, 76.0f, 0.35f, 1.51f, 22000u),
+                make_tier(2.78f, 1.98f, 84.0f, 0.34f, 1.49f, 25000u),
+                make_tier(2.90f, 2.10f, 92.0f, 0.33f, 1.47f, 29000u)
             }
         };
 
