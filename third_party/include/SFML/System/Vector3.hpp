@@ -69,7 +69,7 @@ public:
     /// If you are not interested in the actual length, but only in comparisons, consider using `lengthSquared()`.
     ///
     ////////////////////////////////////////////////////////////
-    SFML_SYSTEM_API T length() const;
+    [[nodiscard]] SFML_SYSTEM_API T length() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Square of vector's length.
@@ -77,7 +77,7 @@ public:
     /// Suitable for comparisons, more efficient than `length()`.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr T lengthSquared() const;
+    [[nodiscard]] constexpr T lengthSquared() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Vector with same direction but length 1 <i><b>(floating-point)</b></i>.
@@ -85,19 +85,19 @@ public:
     /// \pre `*this` is no zero vector.
     ///
     ////////////////////////////////////////////////////////////
-    SFML_SYSTEM_API Vector3 normalized() const;
+    [[nodiscard]] SFML_SYSTEM_API Vector3 normalized() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Dot product of two 3D vectors.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr T dot(const Vector3& rhs) const;
+    [[nodiscard]] constexpr T dot(const Vector3& rhs) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Cross product of two 3D vectors.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr Vector3 cross(const Vector3& rhs) const;
+    [[nodiscard]] constexpr Vector3 cross(const Vector3& rhs) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Component-wise multiplication of `*this` and `rhs`.
@@ -108,7 +108,7 @@ public:
     /// This operation is also known as the Hadamard or Schur product.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr Vector3 componentWiseMul(const Vector3& rhs) const;
+    [[nodiscard]] constexpr Vector3 componentWiseMul(const Vector3& rhs) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Component-wise division of `*this` and `rhs`.
@@ -120,7 +120,7 @@ public:
     /// \pre Neither component of `rhs` is zero.
     ///
     ////////////////////////////////////////////////////////////
-    constexpr Vector3 componentWiseDiv(const Vector3& rhs) const;
+    [[nodiscard]] constexpr Vector3 componentWiseDiv(const Vector3& rhs) const;
 
     ////////////////////////////////////////////////////////////
     // Member data
@@ -140,7 +140,7 @@ public:
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector3<T> operator-(const Vector3<T>& left);
+[[nodiscard]] constexpr Vector3<T> operator-(const Vector3<T>& left);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector3
@@ -185,7 +185,7 @@ constexpr Vector3<T>& operator-=(Vector3<T>& left, const Vector3<T>& right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector3<T> operator+(const Vector3<T>& left, const Vector3<T>& right);
+[[nodiscard]] constexpr Vector3<T> operator+(const Vector3<T>& left, const Vector3<T>& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector3
@@ -198,7 +198,7 @@ constexpr Vector3<T> operator+(const Vector3<T>& left, const Vector3<T>& right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector3<T> operator-(const Vector3<T>& left, const Vector3<T>& right);
+[[nodiscard]] constexpr Vector3<T> operator-(const Vector3<T>& left, const Vector3<T>& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector3
@@ -211,7 +211,7 @@ constexpr Vector3<T> operator-(const Vector3<T>& left, const Vector3<T>& right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector3<T> operator*(const Vector3<T>& left, T right);
+[[nodiscard]] constexpr Vector3<T> operator*(const Vector3<T>& left, T right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector3
@@ -224,7 +224,7 @@ constexpr Vector3<T> operator*(const Vector3<T>& left, T right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector3<T> operator*(T left, const Vector3<T>& right);
+[[nodiscard]] constexpr Vector3<T> operator*(T left, const Vector3<T>& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector3
@@ -253,7 +253,7 @@ constexpr Vector3<T>& operator*=(Vector3<T>& left, T right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr Vector3<T> operator/(const Vector3<T>& left, T right);
+[[nodiscard]] constexpr Vector3<T> operator/(const Vector3<T>& left, T right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector3
@@ -284,7 +284,7 @@ constexpr Vector3<T>& operator/=(Vector3<T>& left, T right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr bool operator==(const Vector3<T>& left, const Vector3<T>& right);
+[[nodiscard]] constexpr bool operator==(const Vector3<T>& left, const Vector3<T>& right);
 
 ////////////////////////////////////////////////////////////
 /// \relates Vector3
@@ -299,7 +299,7 @@ constexpr bool operator==(const Vector3<T>& left, const Vector3<T>& right);
 ///
 ////////////////////////////////////////////////////////////
 template <typename T>
-constexpr bool operator!=(const Vector3<T>& left, const Vector3<T>& right);
+[[nodiscard]] constexpr bool operator!=(const Vector3<T>& left, const Vector3<T>& right);
 
 // Aliases for the most common types
 using Vector3i = Vector3<int>;

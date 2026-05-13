@@ -315,7 +315,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <typename TEventSubtype>
-    bool is() const;
+    [[nodiscard]] bool is() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Attempt to get specified event subtype
@@ -326,7 +326,7 @@ public:
     ///
     ////////////////////////////////////////////////////////////
     template <typename TEventSubtype>
-    const TEventSubtype* getIf() const;
+    [[nodiscard]] const TEventSubtype* getIf() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Apply a visitor to the event
@@ -372,7 +372,7 @@ private:
     // Helper functions
     ////////////////////////////////////////////////////////////
     template <typename T, typename... Ts>
-    static constexpr bool isInParameterPack(const std::variant<Ts...>*)
+    [[nodiscard]] static constexpr bool isInParameterPack(const std::variant<Ts...>*)
     {
         return std::disjunction_v<std::is_same<T, Ts>...>;
     }
@@ -383,7 +383,7 @@ private:
     friend class WindowBase;
 
     template <typename Handler, typename... Ts>
-    static constexpr bool isInvocableWithEventSubtype(const std::variant<Ts...>*)
+    [[nodiscard]] static constexpr bool isInvocableWithEventSubtype(const std::variant<Ts...>*)
     {
         return std::disjunction_v<std::is_invocable<Handler&, Ts&>...>;
     }

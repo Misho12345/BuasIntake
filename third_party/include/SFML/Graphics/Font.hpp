@@ -159,7 +159,7 @@ public:
     /// \see `openFromMemory`, `openFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    bool openFromFile(const std::filesystem::path& filename);
+    [[nodiscard]] bool openFromFile(const std::filesystem::path& filename);
 
     ////////////////////////////////////////////////////////////
     /// \brief Open the font from a file in memory
@@ -180,7 +180,7 @@ public:
     /// \see `openFromFile`, `openFromStream`
     ///
     ////////////////////////////////////////////////////////////
-    bool openFromMemory(const void* data, std::size_t sizeInBytes);
+    [[nodiscard]] bool openFromMemory(const void* data, std::size_t sizeInBytes);
 
     ////////////////////////////////////////////////////////////
     /// \brief Open the font from a custom stream
@@ -199,7 +199,7 @@ public:
     /// \see `openFromFile`, `openFromMemory`
     ///
     ////////////////////////////////////////////////////////////
-    bool openFromStream(InputStream& stream);
+    [[nodiscard]] bool openFromStream(InputStream& stream);
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the font information
@@ -207,7 +207,7 @@ public:
     /// \return A structure that holds the font information
     ///
     ////////////////////////////////////////////////////////////
-    const Info& getInfo() const;
+    [[nodiscard]] const Info& getInfo() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Retrieve a glyph of the font
@@ -231,7 +231,7 @@ public:
     /// \return The glyph corresponding to `codePoint` and `characterSize`
     ///
     ////////////////////////////////////////////////////////////
-    const Glyph& getGlyph(char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness = 0) const;
+    [[nodiscard]] const Glyph& getGlyph(char32_t codePoint, unsigned int characterSize, bool bold, float outlineThickness = 0) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Determine if this font has a glyph representing the requested code point
@@ -249,7 +249,7 @@ public:
     /// \return `true` if the codepoint has a glyph representation, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    bool hasGlyph(char32_t codePoint) const;
+    [[nodiscard]] bool hasGlyph(char32_t codePoint) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the kerning offset of two glyphs
@@ -268,7 +268,7 @@ public:
     /// \return Kerning value for `first` and `second`, in pixels
     ///
     ////////////////////////////////////////////////////////////
-    float getKerning(std::uint32_t first, std::uint32_t second, unsigned int characterSize, bool bold = false) const;
+    [[nodiscard]] float getKerning(std::uint32_t first, std::uint32_t second, unsigned int characterSize, bool bold = false) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the line spacing
@@ -281,7 +281,7 @@ public:
     /// \return Line spacing, in pixels
     ///
     ////////////////////////////////////////////////////////////
-    float getLineSpacing(unsigned int characterSize) const;
+    [[nodiscard]] float getLineSpacing(unsigned int characterSize) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the position of the underline
@@ -296,7 +296,7 @@ public:
     /// \see `getUnderlineThickness`
     ///
     ////////////////////////////////////////////////////////////
-    float getUnderlinePosition(unsigned int characterSize) const;
+    [[nodiscard]] float getUnderlinePosition(unsigned int characterSize) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the thickness of the underline
@@ -310,7 +310,7 @@ public:
     /// \see `getUnderlinePosition`
     ///
     ////////////////////////////////////////////////////////////
-    float getUnderlineThickness(unsigned int characterSize) const;
+    [[nodiscard]] float getUnderlineThickness(unsigned int characterSize) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Retrieve the texture containing the loaded glyphs of a certain size
@@ -324,7 +324,7 @@ public:
     /// \return Texture containing the glyphs of the requested size
     ///
     ////////////////////////////////////////////////////////////
-    const Texture& getTexture(unsigned int characterSize) const;
+    [[nodiscard]] const Texture& getTexture(unsigned int characterSize) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Enable or disable the smooth filter
@@ -350,7 +350,7 @@ public:
     /// \see `setSmooth`
     ///
     ////////////////////////////////////////////////////////////
-    bool isSmooth() const;
+    [[nodiscard]] bool isSmooth() const;
 
 private:
     ////////////////////////////////////////////////////////////
@@ -397,7 +397,7 @@ private:
     /// \brief Open from stream and print errors with custom message
     ///
     ////////////////////////////////////////////////////////////
-    bool openFromStreamImpl(InputStream& stream, std::string_view type);
+    [[nodiscard]] bool openFromStreamImpl(InputStream& stream, std::string_view type);
 
     ////////////////////////////////////////////////////////////
     /// \brief Find or create the glyphs page corresponding to the given character size
@@ -441,7 +441,7 @@ private:
     /// \return `true` on success, `false` if any error happened
     ///
     ////////////////////////////////////////////////////////////
-    bool setCurrentSize(unsigned int characterSize) const;
+    [[nodiscard]] bool setCurrentSize(unsigned int characterSize) const;
 
     ////////////////////////////////////////////////////////////
     // Types

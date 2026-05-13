@@ -276,7 +276,7 @@ public:
     /// \return Structure containing the OpenGL context settings
     ///
     ////////////////////////////////////////////////////////////
-    const ContextSettings& getSettings() const;
+    [[nodiscard]] const ContextSettings& getSettings() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Enable or disable vertical synchronization
@@ -326,7 +326,7 @@ public:
     /// \return `true` if operation was successful, `false` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    bool setActive(bool active = true) const;
+    [[nodiscard]] bool setActive(bool active = true) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Display on screen what has been rendered to the window so far

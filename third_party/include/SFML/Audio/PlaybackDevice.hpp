@@ -65,7 +65,7 @@ namespace sf::PlaybackDevice
 /// \return A vector of strings containing the device names or an empty vector if no devices are available
 ///
 ////////////////////////////////////////////////////////////
-SFML_AUDIO_API std::vector<std::string> getAvailableDevices();
+[[nodiscard]] SFML_AUDIO_API std::vector<std::string> getAvailableDevices();
 
 ////////////////////////////////////////////////////////////
 /// \brief Get the name of the default audio playback device
@@ -77,7 +77,7 @@ SFML_AUDIO_API std::vector<std::string> getAvailableDevices();
 /// \return The name of the default audio playback device
 ///
 ////////////////////////////////////////////////////////////
-SFML_AUDIO_API std::optional<std::string> getDefaultDevice();
+[[nodiscard]] SFML_AUDIO_API std::optional<std::string> getDefaultDevice();
 
 ////////////////////////////////////////////////////////////
 /// \brief Set the audio playback device
@@ -97,7 +97,7 @@ SFML_AUDIO_API std::optional<std::string> getDefaultDevice();
 /// \see `getAvailableDevices`, `getDefaultDevice`
 ///
 ////////////////////////////////////////////////////////////
-SFML_AUDIO_API bool setDevice(const std::string& name);
+[[nodiscard]] SFML_AUDIO_API bool setDevice(const std::string& name);
 
 ////////////////////////////////////////////////////////////
 /// \brief Get the name of the current audio playback device
@@ -105,6 +105,6 @@ SFML_AUDIO_API bool setDevice(const std::string& name);
 /// \return The name of the current audio playback device or `std::nullopt` if there is none
 ///
 ////////////////////////////////////////////////////////////
-SFML_AUDIO_API std::optional<std::string> getDevice();
+[[nodiscard]] SFML_AUDIO_API std::optional<std::string> getDevice();
 
 } // namespace sf::PlaybackDevice

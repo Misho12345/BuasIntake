@@ -223,7 +223,7 @@ public:
     ///         `std::nullopt` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    static std::optional<Cursor> createFromPixels(const std::uint8_t* pixels, Vector2u size, Vector2u hotspot);
+    [[nodiscard]] static std::optional<Cursor> createFromPixels(const std::uint8_t* pixels, Vector2u size, Vector2u hotspot);
 
     ////////////////////////////////////////////////////////////
     /// \brief Create a native system cursor
@@ -239,7 +239,7 @@ public:
     ///         `std::nullopt` otherwise
     ///
     ////////////////////////////////////////////////////////////
-    static std::optional<Cursor> createFromSystem(Type type);
+    [[nodiscard]] static std::optional<Cursor> createFromSystem(Type type);
 
 private:
     friend class WindowBase;
@@ -259,7 +259,7 @@ private:
     /// \return a reference to the OS-specific implementation
     ///
     ////////////////////////////////////////////////////////////
-    const priv::CursorImpl& getImpl() const;
+    [[nodiscard]] const priv::CursorImpl& getImpl() const;
 
     ////////////////////////////////////////////////////////////
     // Member data

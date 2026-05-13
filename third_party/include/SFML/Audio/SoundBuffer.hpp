@@ -158,7 +158,7 @@ public:
     /// \see `loadFromMemory`, `loadFromStream`, `loadFromSamples`, `saveToFile`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromFile(const std::filesystem::path& filename);
+    [[nodiscard]] bool loadFromFile(const std::filesystem::path& filename);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the sound buffer from a file in memory
@@ -174,7 +174,7 @@ public:
     /// \see `loadFromFile`, `loadFromStream`, `loadFromSamples`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromMemory(const void* data, std::size_t sizeInBytes);
+    [[nodiscard]] bool loadFromMemory(const void* data, std::size_t sizeInBytes);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the sound buffer from a custom stream
@@ -189,7 +189,7 @@ public:
     /// \see `loadFromFile`, `loadFromMemory`, `loadFromSamples`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromStream(InputStream& stream);
+    [[nodiscard]] bool loadFromStream(InputStream& stream);
 
     ////////////////////////////////////////////////////////////
     /// \brief Load the sound buffer from an array of audio samples
@@ -207,7 +207,7 @@ public:
     /// \see `loadFromFile`, `loadFromMemory`, `saveToFile`
     ///
     ////////////////////////////////////////////////////////////
-    bool loadFromSamples(const std::int16_t*              samples,
+    [[nodiscard]] bool loadFromSamples(const std::int16_t*              samples,
                                        std::uint64_t                    sampleCount,
                                        unsigned int                     channelCount,
                                        unsigned int                     sampleRate,
@@ -224,7 +224,7 @@ public:
     /// \return `true` if saving succeeded, `false` if it failed
     ///
     ////////////////////////////////////////////////////////////
-    bool saveToFile(const std::filesystem::path& filename) const;
+    [[nodiscard]] bool saveToFile(const std::filesystem::path& filename) const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the array of audio samples stored in the buffer
@@ -238,7 +238,7 @@ public:
     /// \see `getSampleCount`
     ///
     ////////////////////////////////////////////////////////////
-    const std::int16_t* getSamples() const;
+    [[nodiscard]] const std::int16_t* getSamples() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the number of samples stored in the buffer
@@ -251,7 +251,7 @@ public:
     /// \see `getSamples`
     ///
     ////////////////////////////////////////////////////////////
-    std::uint64_t getSampleCount() const;
+    [[nodiscard]] std::uint64_t getSampleCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the sample rate of the sound
@@ -265,7 +265,7 @@ public:
     /// \see `getChannelCount`, `getChannelMap`, `getDuration`
     ///
     ////////////////////////////////////////////////////////////
-    unsigned int getSampleRate() const;
+    [[nodiscard]] unsigned int getSampleRate() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the number of channels used by the sound
@@ -278,7 +278,7 @@ public:
     /// \see `getSampleRate`, `getChannelMap`, `getDuration`
     ///
     ////////////////////////////////////////////////////////////
-    unsigned int getChannelCount() const;
+    [[nodiscard]] unsigned int getChannelCount() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the map of position in sample frame to sound channel
@@ -291,7 +291,7 @@ public:
     /// \see `getSampleRate`, `getChannelCount`, `getDuration`
     ///
     ////////////////////////////////////////////////////////////
-    std::vector<SoundChannel> getChannelMap() const;
+    [[nodiscard]] std::vector<SoundChannel> getChannelMap() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Get the total duration of the sound
@@ -301,7 +301,7 @@ public:
     /// \see `getSampleRate`, `getChannelCount`, `getChannelMap`
     ///
     ////////////////////////////////////////////////////////////
-    Time getDuration() const;
+    [[nodiscard]] Time getDuration() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Overload of assignment operator
@@ -324,7 +324,7 @@ private:
     /// \return `true` on successful initialization, `false` on failure
     ///
     ////////////////////////////////////////////////////////////
-    bool initialize(InputSoundFile& file);
+    [[nodiscard]] bool initialize(InputSoundFile& file);
 
     ////////////////////////////////////////////////////////////
     /// \brief Update the internal buffer with the cached audio samples
@@ -336,7 +336,7 @@ private:
     /// \return `true` on success, `false` if any error happened
     ///
     ////////////////////////////////////////////////////////////
-    bool update(unsigned int channelCount, unsigned int sampleRate, const std::vector<SoundChannel>& channelMap);
+    [[nodiscard]] bool update(unsigned int channelCount, unsigned int sampleRate, const std::vector<SoundChannel>& channelMap);
 
     ////////////////////////////////////////////////////////////
     /// \brief Add a sound to the list of sounds that use this buffer

@@ -63,7 +63,7 @@ public:
     /// \return `true` if the file was successfully opened
     ///
     ////////////////////////////////////////////////////////////
-    virtual bool open(const std::filesystem::path&     filename,
+    [[nodiscard]] virtual bool open(const std::filesystem::path&     filename,
                                     unsigned int                     sampleRate,
                                     unsigned int                     channelCount,
                                     const std::vector<SoundChannel>& channelMap) = 0;
@@ -102,13 +102,13 @@ public:
 /// {
 /// public:
 ///
-///     static bool check(const std::filesystem::path& filename)
+///     [[nodiscard]] static bool check(const std::filesystem::path& filename)
 ///     {
 ///         // typically, check the extension
 ///         // return true if the writer can handle the format
 ///     }
 ///
-///     bool open(const std::filesystem::path& filename, unsigned int sampleRate, unsigned int channelCount, const std::vector<SoundChannel>& channelMap) override
+///     [[nodiscard]] bool open(const std::filesystem::path& filename, unsigned int sampleRate, unsigned int channelCount, const std::vector<SoundChannel>& channelMap) override
 ///     {
 ///         // open the file 'filename' for writing,
 ///         // write the given sample rate and channel count to the file header
