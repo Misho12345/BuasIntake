@@ -148,7 +148,8 @@ namespace game::gfx
             unmap_if_needed();
             size_bytes_        = byte_count;
             immutable_storage_ = true;
-            
+
+            // immutable storage is required for persistent mapping, so resize(...) is intentionally disabled afterwards
             glNamedBufferStorage(id_, static_cast<GLsizeiptr>(byte_count), nullptr, storage_flags);
 
             // immediately map the entire buffer so callers can read without another map call later

@@ -47,6 +47,8 @@ void main()
     vec3 rock = mix(rock_a, rock_b, 0.45);
     vec3 hard_rock = mix(hard_rock_a, hard_rock_b, 0.5);
 
+    // grassiness comes from generated vertex color alpha,
+    // while depth/wetness come from texcoords packed by the mesh builder
     float surface_grass = grassiness * (1.0 - smoothstep(0.14, 0.416, depth));
     float grass_blend = surface_grass * surface_grass * (3.0 - 2.0 * surface_grass);
     float grass_mix = grass_blend * 0.60 * (1.0 - rock_mix) * (1.0 - hard_rock_mix);
@@ -66,6 +68,8 @@ void main()
     wet_tint = mix(wet_tint, vec3(0.48, 0.52, 0.58), hard_rock_mix);
     vec3 wet_albedo = albedo * wet_tint;
 
+    // this is fake material lighting, not scene lighting;
+    // it keeps flat generated triangles from looking too plain
     float base_lighting = mix(0.82, 1.08, base_grain);
     base_lighting *= mix(1.0, 0.84, wetness);
     float warm_boost = mix(0.94 + 0.06 * smoothstep(-0.25, 0.85, vTexCoords.y), 0.99, rock_mix);

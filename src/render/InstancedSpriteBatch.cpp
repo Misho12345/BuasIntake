@@ -21,6 +21,7 @@ namespace game::render
             QuadVertex{ .position = { -0.5f, -1.0f }, .uv = { 0.0f, 0.0f } },
             QuadVertex{ .position = { 0.5f, -1.0f }, .uv = { 1.0f, 0.0f } }
         };
+        // the quad is anchored at the bottom center, so trees and rocks grow outward from the terrain surface instead of rotating around their middle
     }
 
     Result<void> InstancedSpriteBatch::initialize(
@@ -48,6 +49,7 @@ namespace game::render
         const auto image_size = images.front().getSize();
         for (const auto& image : images)
         {
+            // texture arrays require every layer to match, which is why 32px and 64px vegetation are separate batches
             if (image.getSize() != image_size)
             {
                 return fail("Instanced sprite texture sheets must share the same size");
@@ -95,6 +97,7 @@ namespace game::render
         glVertexArrayAttribBinding(vao_.id(), 3, 1);
 
         // layout(location = 4) in vec4 aInstanceParams0;
+        // this packs world_height, radial_offset, texture_layer, and tile_column into one attribute to keep the instance layout compact
         static constexpr GLint sprite_params0_size =
             (offsetof(SpriteInstance, tile_row) - offsetof(SpriteInstance, world_height)) / sizeof(float);
         glEnableVertexArrayAttrib(vao_.id(), 4);
@@ -115,6 +118,7 @@ namespace game::render
 
         glVertexArrayBindingDivisor(vao_.id(), 1, 1);
 
+        // one array layer per sprite sheet, then the shader picks tile column/row inside that layer per instance
         glTextureStorage3D(
             texture_array_.id(),
             1,
@@ -171,6 +175,7 @@ namespace game::render
 
         if (instances.size() > instance_capacity_)
         {
+            // grow the buffer only when needed, otherwise reuse it to avoid reallocating during camera movement
             glNamedBufferData(
                 instance_vbo_.id(),
                 static_cast<GLsizeiptr>(instances.size() * sizeof(SpriteInstance)),

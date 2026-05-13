@@ -6,6 +6,8 @@ namespace game::gfx
 {
     Mesh::Mesh()
     {
+        // the vao remembers how sf::Vertex is laid out, while the vbo/ebo only hold the latest uploaded mesh data
+        // this is set up once because all generated meshes in this project use the same position/color/texcoord format
         vao_.create();
         vbo_.create();
         ebo_.create();
@@ -54,6 +56,7 @@ namespace game::gfx
     {
         index_count_ = static_cast<GLsizei>(indices.size());
 
+        // generated terrain and water rebuild whole chunks, so replacing the buffer contents is simpler than partial updates
         glNamedBufferData(
             vbo_.id(),
             static_cast<GLsizeiptr>(vertices.size_bytes()),
@@ -71,6 +74,7 @@ namespace game::gfx
     {
         if (empty()) return;
 
+        // Mesh only knows how to draw indexed triangles, the active shader and textures are owned by the caller
         glBindVertexArray(vao_.id());
         glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, nullptr);
         glBindVertexArray(0);

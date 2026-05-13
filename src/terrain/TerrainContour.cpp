@@ -56,6 +56,7 @@ namespace game::terrain
             const ChunkSettings&        settings,
             const float                 epsilon)
         {
+            // short open paths inside a chunk are usually tiny contour noise, but open paths touching a chunk edge may continue in a neighbor
             const auto terrain_cell_size = cell_size(settings);
 
             const auto min = chunk_min(settings);
@@ -120,6 +121,7 @@ namespace game::terrain
             std::vector<vec2> contour;
             contour.reserve(16);
 
+            // walk directed edges until the path closes, dead-ends, or reaches an already consumed branch
             auto       current_edge_index = start_edge_index;
             const auto start_vertex       = edges[start_edge_index].a;
             contour.push_back(boundary_vertices[start_vertex]);
@@ -168,6 +170,7 @@ namespace game::terrain
                 edges[i].b >= boundary_vertices.size())
                 continue;
 
+            // non 1-in/1-out vertices are junctions or ends, so starting there produces cleaner open paths
             if (const auto start_vertex = edges[i].a;
                 incoming_count[start_vertex] != 1u ||
                 outgoing_count[start_vertex] != 1u)
@@ -178,6 +181,7 @@ namespace game::terrain
         {
             if (visited[i]) continue;
 
+            // remaining edges are usually closed loops where every vertex has exactly one incoming and outgoing edge
             if (edges[i].a >= boundary_vertices.size() ||
                 edges[i].b >= boundary_vertices.size())
                 continue;
@@ -204,6 +208,7 @@ namespace game::terrain
         static constexpr float combine_dot_threshold       = 0.9985f;
         static constexpr float sharp_feature_dot_threshold = 0.92f;
 
+        // simplify conservatively: collider jitter matters, but deleting tight cave corners would change gameplay space
         while (changed && simplified.size() >= min_points)
         {
             changed = false;
@@ -303,6 +308,7 @@ namespace game::terrain
         const float min_loop_area      = terrain_cell_size.x * terrain_cell_size.y * 0.12f;
         const float min_path_length    = std::min(terrain_cell_size.x, terrain_cell_size.y) * 1.5f;
         const float boundary_epsilon   = std::max(terrain_cell_size.x, terrain_cell_size.y) * 0.1f;
+        // these thresholds remove small gpu contour fragments before they become expensive or noisy physics shapes
         for (const auto& loop : loops)
         {
             auto simplified = simplify_contour(loop, true, min_segment_length, collinear_epsilon);

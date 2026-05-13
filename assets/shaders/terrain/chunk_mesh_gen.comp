@@ -47,6 +47,7 @@ void emit_polygon(vec2 poly[8], int count)
 {
     if (count < 3) return;
 
+    // each cell emits a tiny convex polygon, then triangulates it as a fan because the contour cases never produce complex shapes here
     uint base_vertex = atomicAdd(uCounters.vertexCount, uint(count));
     if (base_vertex + uint(count) > uMaxMeshVertices)
     {
@@ -75,6 +76,7 @@ void emit_polygon(vec2 poly[8], int count)
 
 void push_edge(uint a, uint b)
 {
+    // these edges are for gameplay collision, so they use the same boundary vertex ids as the render mesh
     uint i = atomicAdd(uCounters.edgeCount, 1);
     if (i >= uMaxBoundaryEdges)
     {
@@ -126,6 +128,7 @@ void main()
     float center = 0.25 * (v0 + v1 + v2 + v3);
     bool inside_center = center >= uIso;
 
+    // this switch emits collider segments for the same contour that the polygon code below turns into triangles
     switch (mask)
     {
         case 1: push_edge(e0i, e3i); break;

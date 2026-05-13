@@ -3,11 +3,7 @@ float sample_field(ivec2 p)
     vec4 field = imageLoad(uField, p);
 
     // channel 1 is water, clipped by the terrain cavity
-    if (uChannelIndex == 0)
-    {
-        return field.r;
-    }
-
+    if (uChannelIndex == 0) return field.r;
     return min(-field.r, field.g);
 }
 

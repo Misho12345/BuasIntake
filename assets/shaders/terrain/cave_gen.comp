@@ -49,6 +49,8 @@ void main()
         vec2 previous_lobe = vec2(0.0);
         bool have_previous = false;
 
+        // each cave is a chain of soft ellipses, then the gaps between ellipses are filled with a round corridor
+        // this gives a cave-like silhouette without needing pathfinding or storing per-cave control points on the cpu
         for (int lobe = 0; lobe < 5; ++lobe)
         {
             if (lobe >= lobe_count) break;
@@ -88,6 +90,7 @@ void main()
 
         if (side_pocket)
         {
+            // a single extra side pocket breaks the straight chain shape so caves do not all read as tubes
             vec2 side_center;
             vec2 side_delta;
             float side_sign = hash(vec2(slot_id + 91.0, 3.3)) > 0.5 ? 1.0 : -1.0;
@@ -121,12 +124,14 @@ void main()
         float cave_profile = smooth_profile(clamp((0.18 - local_field) / 0.32, 0.0, 1.0));
         if (cave_profile <= 1e-4) continue;
 
+        // lower terrain density only where the profile says the cave should exist, leaving other slots to overlap naturally
         float cave_target = mix(4.0, -1.75, cave_profile);
         density = min(density, cave_target);
     }
 
     if (water <= 0.0)
     {
+        // keep water negative outside ponds so the water mesh pass has a clean outside value to contour against
         water = -abs(density);
         if (water > -0.02) water = -0.02;
     }

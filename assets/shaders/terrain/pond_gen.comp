@@ -55,6 +55,7 @@ void main()
         {
             if (pond >= pond_count) break;
 
+            // ponds are laid along the cave tangent so they sit on the cave floor rather than floating in the radial field
             float pond_t = pond_count == 1 ? 0.5 : float(pond + 1) / float(pond_count + 1);
             float pond_along = mix(-lobe_span * 0.52, lobe_span * 0.52, pond_t);
             pond_along += (hash(vec2(slot_id * 17.0 + float(pond), 101.0)) - 0.5) * base_radius_tangent * 0.28;
@@ -82,6 +83,7 @@ void main()
             float basin_profile = smooth_profile(clamp(basin_signed / max(local_pond_depth * 0.32, 0.28), 0.0, 1.0));
             if (basin_profile > 1e-4)
             {
+                // first make empty room for the pond; the water field is written separately below
                 float basin_cavity_target = deep_pond ? -6.6 : -4.8;
                 density = min(density, mix(density, basin_cavity_target, basin_profile));
             }
@@ -111,6 +113,7 @@ void main()
 
             if (water_profile <= 1e-4) continue;
 
+            // water is its own signed field clipped by terrain in field_sampling.glsl, not just a color on the ground mesh
             float water_cavity_target = deep_pond ? -8.0 : -5.8;
             density = min(density, mix(density, water_cavity_target, water_profile));
 
@@ -121,6 +124,7 @@ void main()
 
     if (water <= 0.0)
     {
+        // same convention as cave_gen: negative water outside ponds, positive water inside the pond volume
         water = -abs(density);
         if (water > -0.02) water = -0.02;
     }

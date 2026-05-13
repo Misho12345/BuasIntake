@@ -5,6 +5,8 @@
 
 namespace game::gfx
 {
+    // temporary render-state guard for passes that draw transparent sprites or water
+    // it exists because most of the renderer assumes normal opaque state, so alpha passes should clean up after themselves
     class ScopedAlphaBlendPass final
     {
     public:

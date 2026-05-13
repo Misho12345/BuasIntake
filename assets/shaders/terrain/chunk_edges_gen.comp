@@ -46,6 +46,8 @@ void main()
 
         if (ia != ib)
         {
+            // interpolate along the edge instead of snapping to the middle,
+            // otherwise moving the iso value would visibly stair-step the surface
             float t = 0.5;
             float d = b - a;
             if (abs(d) > 1e-6) t = clamp((uIso - a) / d, 0.0, 1.0);
@@ -54,6 +56,8 @@ void main()
             uint v = atomicAdd(uVertexCounter.count, 1u);
             if (v >= uMaxBoundaryVertices)
             {
+                // keep running safely after overflow so the cpu can detect the flag
+                // and grow buffers or skip the bad result
                 atomicExchange(uVertexCounter.overflowed, 1u);
                 uHorizontalEdgeIds.data[index] = -1;
                 return;
@@ -77,6 +81,8 @@ void main()
 
         if (ia != ib)
         {
+            // same interpolation as horizontal edges,
+            // but stored in a separate id table because grid dimensions differ
             float t = 0.5;
             float d = b - a;
             if (abs(d) > 1e-6) t = clamp((uIso - a) / d, 0.0, 1.0);

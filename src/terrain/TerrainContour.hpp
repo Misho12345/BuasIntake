@@ -9,6 +9,8 @@
 namespace game::terrain
 {
     // turns gpu contour edges into collider-friendly loops and paths
+    // the compute shader emits raw directed edges, this class stitches and simplifies them for box2d without changing the render mesh
+    // I've used help of AI for properly defining and refining the algorithm, and also for some bugfixing and feedback
     class TerrainContour final
     {
     public:

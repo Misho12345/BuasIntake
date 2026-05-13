@@ -6,7 +6,7 @@ namespace game::gfx
 {
     Result<void> Texture2D::create_rgba32f(const uvec2 size)
     {
-        if (size.x == 0 || size.y == 0) { return fail("Texture size must be non-zero"); }
+        if (size.x == 0 || size.y == 0) return fail("Texture size must be non-zero");
 
         // destroy previous handle if recreating
         if (handle_ != 0)

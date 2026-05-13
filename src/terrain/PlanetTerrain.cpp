@@ -37,6 +37,7 @@ namespace game::terrain
 
         float terrain_hash(vec2 point, const std::uint32_t seed)
         {
+            // cpu copy of the shader hash, used when edits need to clamp against the same generated surface profile
             const float seed_offset = static_cast<float>(seed) * 0.0009765625f;
             point = { fract01(point.x * 0.1031f + seed_offset), fract01(point.y * 0.11369f + seed_offset) };
             const vec2  hash_vector{ point.y + 19.19f + seed_offset * 7.0f, point.x + 19.19f + seed_offset * 7.0f };
@@ -101,10 +102,8 @@ namespace game::terrain
         {
             const vec2  seed_offset = vec2{ 0.0137f, 0.0211f } * static_cast<float>(settings.seed);
             const float macro       = terrain_fbm(dir * 1.85f + (seed_offset + vec2{ 3.1f, -7.4f }), settings.seed);
-            const float medium      = terrain_fbm(dir * 6.20f + vec2{ -seed_offset.y - 11.2f, -seed_offset.x + 4.6f },
-                                                  settings.seed);
-            const float ridges = terrain_ridged_fbm(dir * 11.50f + (seed_offset * 1.3f + vec2{ 8.4f, -5.6f }),
-                                                    settings.seed);
+            const float medium      = terrain_fbm(dir * 6.20f + vec2{ -seed_offset.y - 11.2f, -seed_offset.x + 4.6f }, settings.seed);
+            const float ridges = terrain_ridged_fbm(dir * 11.50f + (seed_offset * 1.3f + vec2{ 8.4f, -5.6f }), settings.seed);
             const float micro = terrain_fbm(dir * 23.0f + (seed_offset * -0.75f + vec2{ -4.2f, 12.8f }), settings.seed);
 
             return settings.planet_radius + (macro - 0.5f) * settings.planet_radius * 0.19f +
@@ -115,6 +114,7 @@ namespace game::terrain
 
         float clamp_terrain_density(const float density, const vec2 world_position, const ChunkSettings& settings)
         {
+            // edited terrain still respects the original planet shell bounds, so digging cannot leave huge noisy spikes behind
             const vec2  offset           = world_position - settings.world_center;
             const float dist_from_center = std::sqrt(offset.x * offset.x + offset.y * offset.y);
             const vec2  dir              = dist_from_center > 1e-5f ? offset / dist_from_center : vec2{ 0.0f, 1.0f };
@@ -158,6 +158,7 @@ namespace game::terrain
 
     void PlanetTerrain::flush_pending_edits()
     {
+        // the brush controller owns batching, while PlanetTerrain supplies the callbacks that know how to update dependent systems
         brush_controller_.flush_pending_edits({
             .rebuild_pending = [this](const std::vector<bool>& dirty_chunks, const bool changed_water)
             {
@@ -386,6 +387,7 @@ namespace game::terrain
 
     void PlanetTerrain::refresh_surface_attachments_around(const std::vector<ivec2>& changed_coords)
     {
+        // resources and plants store anchors so they can render on surfaces, but terrain edits can move or delete those surfaces
         surface_attachments_.refresh_around(
             field_,
             base_chunk_settings_.world_center,

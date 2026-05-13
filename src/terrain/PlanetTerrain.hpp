@@ -155,10 +155,14 @@ namespace game::terrain
         TerrainChunkGrid chunk_grid_{};
 
         ChunkSettings base_chunk_settings_{};
+
+        // field_ is the authoritative gameplay copy; chunks own meshes/colliders, but queries and edits read this global field
         TerrainField                  field_{};
         vegetation::VegetationSystem* vegetation_{ nullptr };
         resources::ResourceSystem*    resources_{ nullptr };
         water::TerrainWaterSystem     water_system_{};
+
+        // these helper systems are kept separate so PlanetTerrain can own ordering without owning every algorithm directly
         TerrainBrushController        brush_controller_{};
         TerrainSurfaceAttachmentSystem surface_attachments_{};
         TerrainGenerationCoordinator  generation_coordinator_{};

@@ -54,6 +54,7 @@ void main()
     float density = base_density;
 
     // keep noise near the surface shell so the interior stays stable
+    // without this mask, deep terrain would get noisy too and cave carving would fight random high-density pockets
     float shell_mask = smoothstep(shell_mask_width, 0.0, abs(density));
     float ridge_detail = ridged_fbm(world * ridge_noise_scale + ridge_seed_offset * uSeed);
     float medium_detail = fbm(world * medium_noise_scale - medium_seed_offset * uSeed);
@@ -64,5 +65,7 @@ void main()
     density += (micro_detail - 0.5) * micro_strength * shell_mask;
     density = clamp(density, -1.0, max(1.0, base_density));
 
+    // r is solid terrain density,
+    // g starts as negative water density and later passes can raise it where ponds exist
     imageStore(outImage, pixel, vec4(density, -abs(density), 0.0, 0.0));
 }

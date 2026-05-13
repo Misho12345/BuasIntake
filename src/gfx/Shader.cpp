@@ -11,6 +11,7 @@ namespace game::gfx
 {
     namespace
     {
+        // cache keys use forward slashes and normalized paths so the same shader file does not compile twice under slightly different paths
         std::string normalized_key(const fs::path& path) { return path.lexically_normal().generic_string(); }
     }
 
@@ -19,6 +20,7 @@ namespace game::gfx
     Result<Shader> Shader::from_compute_file(const fs::path& path)
     {
         // get existing cached shader program or create new and save
+        // compute shaders are single-stage programs, mainly used by terrain generation and mesh extraction passes
         const auto program = ShaderProgramCache::instance().get_or_create(
             std::format("compute:{}", normalized_key(path)),
             [&]() -> Result<GLuint>
@@ -44,6 +46,7 @@ namespace game::gfx
     Result<Shader> Shader::from_graphics_files(const fs::path& vertex_path, const fs::path& fragment_path)
     {
         // same as from_compute_file but 2 compiled individual shaders (vert & frag) are linked into the final shader program
+        // the pair of paths is the identity because a vertex shader may be reused with multiple fragment shaders
 
         const auto program = ShaderProgramCache::instance().get_or_create(
             std::format("graphics:{}|{}", normalized_key(vertex_path), normalized_key(fragment_path)),
@@ -96,6 +99,7 @@ namespace game::gfx
         if (!program_ || program_->id == 0) return -1;
 
         // uses ShaderProgram::uniform_locations to save the already accessed uniforms so as to not have to get them every time
+        // missing uniforms are cached too as -1, which is fine because some shader variants optimize unused uniforms away
 
         const std::string key{ name };
         if (const auto it = program_->uniform_locations.find(key);

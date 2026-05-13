@@ -22,6 +22,7 @@ namespace game::render
     class InstancedSpriteBatch final
     {
     public:
+        // owns one texture array, one shared quad, and a stream of per-instance sprite data
         Result<void> initialize(std::span<const char* const> texture_paths, std::uint32_t tile_size_pixels);
         void destroy_graphics_resources();
         void upload_instances(std::span<const SpriteInstance> instances);

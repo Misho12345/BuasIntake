@@ -2,7 +2,7 @@
 
 // simple water material for the generated pond mesh
 // it uses world-space waves instead of textures so small ponds still animate without needing uv unwraps
-// I used chatgpt 5.4 to make the effects of this shader because the shader is just playing with math
+// i used chatgpt 5.4 to make the effects of this shader because the shader is just playing with math
 
 in vec4 vColor;
 in vec2 vWorldPosition;

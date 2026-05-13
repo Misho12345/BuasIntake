@@ -15,7 +15,9 @@ namespace game::terrain
     {
     public:
         // turns the generated field into collectable rocks ores and cave decoration
+        // it is callback based so it can run over PlanetTerrain's global field without owning the terrain object or resource system
         // chatgpt was used in parts of the tuning and review because this is mostly rule balancing and bug checking
+
         template <typename FieldIndex,
                   typename SolidNeighborCount,
                   typename SampleWorldPosition,
@@ -45,6 +47,8 @@ namespace game::terrain
             static constexpr float ground_copper_min_depth{ 0.24f };
             static constexpr float ground_iron_min_depth{ 0.32f };
             static constexpr int   ground_resource_spacing_radius{ 4 };
+
+            // depth gates keep cheap ores near the surface and reserve rare ore rolls for deeper stone and caves
 
             auto is_exposed_to_air = [](const TerrainFieldSample& sample, const int solid_neighbors)
             {
@@ -89,6 +93,7 @@ namespace game::terrain
                                                 ? 0.070f
                                                 : (alignment > 0.95f ? 0.012f : alignment > 0.86f ? 0.032f : 0.075f);
 
+                    // cave floors should stay mostly walkable, so flatter alignment gets a lower resource density than walls and rough surfaces
                     if (roll > density) continue;
 
                     using resources::ResourceNodeKind;
@@ -144,6 +149,8 @@ namespace game::terrain
                     const float seam_noise =
                             std::abs(TerrainResourceNoise::perlin_noise(world * 0.182f + vec2{ -7.0f, 19.0f }, seed + 4513u));
 
+                    // cluster_noise makes broad ore pockets, seam_noise cuts holes through them so deposits do not become solid carpets
+
                     const float depth_factor =
                             std::clamp((depth - cave_generation_min_depth) /
                                        std::max(
@@ -177,6 +184,7 @@ namespace game::terrain
 
             static constexpr std::uint8_t dead_bush_family{ 5u };
             static constexpr std::uint8_t dead_tree_family{ 6u };
+            // these indexes line up with the dead plant texture layers in VegetationRenderer, split by how damp or flat the cave floor is
             static constexpr std::array<std::size_t, 5> dry_floor_dead_families{ 0u, 2u, 3u, dead_bush_family, dead_tree_family };
             static constexpr std::array<std::size_t, 5> damp_floor_dead_families{ 1u, 2u, 4u, dead_bush_family, dead_tree_family };
             static constexpr std::array<std::size_t, 5> shelf_dead_families{ 0u, 2u, 3u, dead_bush_family, dead_tree_family };
@@ -229,6 +237,7 @@ namespace game::terrain
                                 ? (damp_family ? damp_floor_dead_families : dry_floor_dead_families)
                                 : shelf_dead_families;
 
+                    // choose a family first, then the low 4 bits pick a sprite row variant inside that family
                     const auto family_slot = std::min(
                         static_cast<std::size_t>(family_roll * static_cast<float>(family_pool.size())),
                         family_pool.size() - 1u);

@@ -13,7 +13,6 @@ namespace game::gfx
 
     private:
         // helpers for getting the logs on compilation & link fail
-
         static std::string shader_log(GLuint shader);
         static std::string program_log(GLuint program);
         static std::string trim_log(std::string log);

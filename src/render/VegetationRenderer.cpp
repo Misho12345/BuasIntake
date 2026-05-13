@@ -29,6 +29,7 @@ namespace game::render
             3.76f,
             7.90f
         };
+        // these heights line up with the dead plant texture family indexes encoded by TerrainResourceSpawner variants
 
         struct PlantVisualSpec final
         {
@@ -42,6 +43,7 @@ namespace game::render
 
         // this is the plant visual lookup table in code form
         // growth stage and family decide which atlas layer column and world height to use so the sim state can stay small
+        // the pixel art sheets were generated separately, so this table is the translation from gameplay plant state to sprite sheet position
         PlantVisualSpec plant_visual_spec(const vegetation::Plant& plant)
         {
             PlantVisualSpec spec{};
@@ -53,6 +55,7 @@ namespace game::render
 
             if (plant.stage == vegetation::PlantStage::Sprout)
             {
+                // columns 2-5 are the growing transition frames, leaving earlier/later columns for seeded and mature art
                 spec.column = static_cast<std::uint8_t>(
                     2u + std::min(3, static_cast<int>(std::floor(sprout_fraction * 4.0f))));
 
@@ -138,6 +141,8 @@ namespace game::render
         };
 
         static constexpr std::array<const char*, 1> dead_64_paths{ "assets/images/vegetation/trees_dead.png" };
+
+        // 32px and 64px sheets are separate batches because texture arrays need every layer in a batch to have the same size
 
         TRY(batch_resources_[static_cast<std::size_t>(VegetationBatchId::Live32)].initialize(live_32_paths, 32u));
         TRY(batch_resources_[static_cast<std::size_t>(VegetationBatchId::Live64)].initialize(live_64_paths, 64u));
@@ -234,6 +239,7 @@ namespace game::render
                 resource.variant / 16u,
                 dead_plant_world_heights.size() - 1u);
 
+            // high bits choose the dead plant family, low bits choose the row variant inside that family
             const auto batch_id =
                     family_index == dead_plant_world_heights.size() - 1u
                         ? VegetationBatchId::Dead64
@@ -315,6 +321,7 @@ namespace game::render
             const auto batch_index = static_cast<std::size_t>(batch_id);
             filter_visible_instances(source_instances, visible_instances);
             if (visible_instances.empty()) return;
+            // upload only visible instances each frame; rebuilding the full cached list is reserved for revision changes
             batch_resources_[batch_index].upload_instances(visible_instances);
             batch_resources_[batch_index].draw(view);
         };

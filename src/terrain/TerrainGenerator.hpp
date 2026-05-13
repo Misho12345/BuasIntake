@@ -13,6 +13,7 @@ namespace game::terrain
 {
     struct GroundBrushBlocker final
     {
+        // a temporary no-dig area, used so terrain edits do not carve through things that must keep support this frame
         vec2  center{ 0.0f, 0.0f };
         vec2  right{ 1.0f, 0.0f };
         vec2  up{ 0.0f, 1.0f };
@@ -30,6 +31,7 @@ namespace game::terrain
 
         struct TerrainEdit final
         {
+            // packed this way because the brush shader-style math and cpu edit code both want position radius and strength together
             vec4 position_radius_strength{};
             float falloff_exponent{ 1.8f };
 
@@ -54,6 +56,7 @@ namespace game::terrain
 
         struct RawPipelineResult final
         {
+            // raw gpu output before TerrainContour simplifies it for physics and chunk storage
             std::vector<vec2>          boundary_vertices{};
             std::vector<BoundaryEdge>  boundary_edges{};
             std::vector<vec2>          mesh_vertices{};
@@ -76,6 +79,7 @@ namespace game::terrain
 
         Result<void> dispatch_surface_rebuild(std::uint32_t channel_index, float iso);
 
+        // upload/read_field are used after cpu-side edits so the gpu contour pass can rebuild from the current global field
         Result<void> upload_field(std::span<const FieldSample> field_samples);
 
         Result<std::vector<FieldSample>> read_field() const;
@@ -85,6 +89,7 @@ namespace game::terrain
     private:
         struct FieldLayout final
         {
+            // padded fields give neighbor samples around chunk edges so contours do not crack between chunks
             uvec2 padded_size{ 0u, 0u };
             vec2  cell_size{ 0.0f, 0.0f };
             vec2  field_origin{ 0.0f, 0.0f };
@@ -119,13 +124,17 @@ namespace game::terrain
 
         ChunkSettings settings_{};
 
-        gfx::Shader    terrain_shader_{};
-        gfx::Shader    cave_shader_{};
-        gfx::Shader    pond_shader_{};
-        gfx::Shader    edge_shader_{};
-        gfx::Shader    mesh_shader_{};
+        // compute shaders used for the generation of the terrain
+        gfx::Shader terrain_shader_{};
+        gfx::Shader cave_shader_{};
+        gfx::Shader pond_shader_{};
+        gfx::Shader edge_shader_{};
+        gfx::Shader mesh_shader_{};
+
+        // rgba32f stores terrain, water, wetness, and greenness in one gpu image so all generation passes share the same field
         gfx::Texture2D field_texture_{};
 
+        // storage buffers used by the compute shaders
         gfx::SSBO boundary_vertices_buffer_{};
         gfx::SSBO horizontal_edge_ids_buffer_{};
         gfx::SSBO vertical_edge_ids_buffer_{};

@@ -7,6 +7,8 @@ namespace game::gfx
     struct ShaderProgram;
 
     // lightweight handle to a cached compute or graphics shader program
+    // render and terrain systems keep Shader values, while ShaderProgramCache owns the actual opengl programs behind them
+    // that split means a system can ask for the same shader more than once without recompiling it or duplicating ownership
     class Shader final
     {
     public:

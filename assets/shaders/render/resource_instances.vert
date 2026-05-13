@@ -27,6 +27,7 @@ void main()
     vec2 up = normalize(aInstanceUp);
 
     // rebuild the flat quad in tangent/up space so sprites sit on the curved terrain
+    // the cpu gives one anchor and up vector per instance; the shader expands the shared quad into world space
     vec2 tangent = vec2(up.y, -up.x);
     vec2 anchor = aInstanceCenter + up * radial_offset;
     float angle = aInstanceAngleOffset;
@@ -42,6 +43,7 @@ void main()
         + up * (rotated_position.y * world_height);
 
     vLocalUv = aLocalUv;
+    // x is texture array layer, y is tile column, z is tile row
     vTileData = vec3(aInstanceParams0.z, aInstanceParams0.w, aInstanceTileRow);
     gl_Position = uProjection * vec4(world_position, 0.0, 1.0);
 }

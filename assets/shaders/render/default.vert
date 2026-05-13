@@ -15,6 +15,7 @@ void main()
     vColor = aColor;
     vTexCoords = aTexCoords;
 
+    // fragment shaders use world position for texture sampling, so that's why I keep the unprojected value too
     vWorldPosition = aPosition;
     gl_Position = uProjection * vec4(aPosition, 0.0, 1.0);
 }

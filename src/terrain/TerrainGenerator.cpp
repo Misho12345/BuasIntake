@@ -30,6 +30,7 @@ namespace game::terrain
         };
 
         constexpr GLuint image_binding                   = 0;
+        // these numbers mirror layout(binding = n) in the terrain compute shaders, so keep them in sync with assets/shaders/terrain
         constexpr GLuint boundary_vertices_binding       = 1;
         constexpr GLuint horizontal_edge_ids_binding     = 2;
         constexpr GLuint vertical_edge_ids_binding       = 3;
@@ -50,11 +51,13 @@ namespace game::terrain
             const auto padded_size = padded_field_size(settings);
             const auto width       = padded_size.x;
             const auto height      = padded_size.y;
+            // one possible crossing per horizontal grid edge plus one per vertical grid edge is the marching-squares worst case
             return height * (width - 1u) + width * (height - 1u);
         }
 
         std::uint32_t max_mesh_vertex_count(const ChunkSettings& settings)
         {
+            // ambiguous cells can emit two triangles plus extra contour vertices, so this overallocates to keep the gpu path simple
             return generated_cell_count(settings) * 12u;
         }
 
@@ -65,6 +68,7 @@ namespace game::terrain
 
         std::uint32_t max_boundary_edge_count(const ChunkSettings& settings)
         {
+            // cases 5 and 10 can produce two collider segments from one cell, the other non-empty cases produce at most one
             return generated_cell_count(settings) * 2u;
         }
 
@@ -96,6 +100,7 @@ namespace game::terrain
 
         const auto padded_size = padded_field_size(settings_);
         // worst-case marching-squares output sizes so the rebuild can stay on the gpu
+        // the counters are persistently mapped because the cpu reads them after each rebuild to know how much output is valid
         boundary_vertices_buffer_.allocate_persistent_read<vec2>(max_boundary_vertex_count(settings_));
         horizontal_edge_ids_buffer_.resize<std::int32_t>(padded_size.y * (padded_size.x - 1u));
         vertical_edge_ids_buffer_.resize<std::int32_t>(padded_size.y * padded_size.x);
@@ -196,6 +201,7 @@ namespace game::terrain
         const auto groups = gfx::ComputeDispatcher::groups_for(layout.padded_size, 16, 16);
 
         // first find contour crossings, then build triangles and edge links from them
+        // splitting it into two passes gives neighboring cells stable shared vertex ids for both drawing and collision
         const std::array rebuild_passes{
             gfx::ComputeDispatcher::Pass{
                 .shader    = &edge_shader_,
@@ -259,6 +265,7 @@ namespace game::terrain
 
         glMemoryBarrier(GL_TEXTURE_UPDATE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
+        // this is slow compared to the normal mesh readback path, so it is only used when cpu systems need the whole field
         glGetTextureImage(
             field_texture_.native_handle(),
             0,
@@ -386,6 +393,7 @@ namespace game::terrain
     Result<void> TerrainGenerator::replace_completion_fence()
     {
         clear_completion_fence();
+        // the fence marks all queued generation and extraction work before readback touches persistently mapped buffers
         completion_fence_ = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         if (completion_fence_ == nullptr) { return fail("Failed to create terrain generator GPU completion fence"); }
 
@@ -409,6 +417,7 @@ namespace game::terrain
 
         for (;;)
         {
+            // wait in bounded chunks so a driver failure can be reported instead of blocking forever without context
             const auto wait_result = glClientWaitSync(
                 completion_fence_,
                 GL_SYNC_FLUSH_COMMANDS_BIT,
@@ -479,6 +488,7 @@ namespace game::terrain
 
         if (boundary_vertex_count > 0)
         {
+            // only the prefix reported by the gpu counters is valid, the rest is just preallocated capacity
             result.boundary_vertices = boundary_vertices_buffer_.read<vec2>(boundary_vertex_count);
         }
 

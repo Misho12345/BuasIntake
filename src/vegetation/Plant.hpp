@@ -27,6 +27,7 @@ namespace game::vegetation
 
     struct Plant final
     {
+        // stored per terrain sample; empty entries mean no plant, active entries keep just enough data for growth and rendering
         PlantStage   stage{ PlantStage::Empty };
         PlantFamily  family{ PlantFamily::Grass };
         float        age{ 0.0f };

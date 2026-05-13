@@ -8,6 +8,7 @@
 namespace game::gfx
 {
     // helper for running a sequence of compute shader passes with per-pass barriers
+    // terrain generation uses this to express gpu work as ordered passes instead of scattering glDispatchCompute calls everywhere
     class ComputeDispatcher final
     {
     public:
@@ -22,6 +23,7 @@ namespace game::gfx
         {
             const Shader* shader{ nullptr };
             DispatchSize groups{};
+            // lets each caller bind buffers, images, and uniforms right before the matching shader runs
             std::function<void(const Shader&)> configure{};
             GLbitfield barrier_after{ 0 };
         };
