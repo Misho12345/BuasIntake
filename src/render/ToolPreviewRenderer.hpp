@@ -20,7 +20,7 @@ namespace game::render
         ToolPreviewRenderer& operator=(ToolPreviewRenderer&&) noexcept = default;
 
         void destroy_graphics_resources();
-        void         draw_water_preview(
+        void draw_water_preview(
             const std::optional<tools::WaterTool::PreviewState>& preview_state,
             const sf::View&                                      view);
 

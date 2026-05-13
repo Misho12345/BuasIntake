@@ -57,12 +57,11 @@ namespace game::terrain
                 const resources::ResourceNodeKind kind,
                 const ivec2                       coord,
                 const std::uint8_t                variant,
-                const bool                        cave_variant,
                 const bool                        surface_attached = false,
                 const vec2                        anchor_world     = { 0.0f, 0.0f },
                 const vec2                        surface_up       = { 0.0f, 0.0f })
             {
-                add_resource_node(kind, coord, variant, cave_variant, surface_attached, anchor_world, surface_up);
+                add_resource_node(kind, coord, variant, surface_attached, anchor_world, surface_up);
                 placement.occupy(coord);
             };
 
@@ -94,8 +93,13 @@ namespace game::terrain
 
                     using resources::ResourceNodeKind;
 
-                    auto kind     = ResourceNodeKind::Rock;
-                    const float      ore_roll = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 2309u);
+                    auto kind = ResourceNodeKind::Rock;
+
+                    const float ore_roll = TerrainResourceNoise::hash01(
+                        static_cast<float>(x),
+                        static_cast<float>(y),
+                        seed + 2309u);
+
                     if (cave && alignment > 0.90f) kind = ResourceNodeKind::Rock;
                     else if (cave && depth > 0.44f && ore_roll > 0.84f) kind = ResourceNodeKind::DiamondOre;
                     else if (cave && depth > 0.34f && ore_roll > 0.62f) kind = ResourceNodeKind::GoldOre;
@@ -107,7 +111,6 @@ namespace game::terrain
                     emit_node(
                         kind, coord,
                         TerrainResourceNoise::choose_variant_row(coord, seed, 19u),
-                        cave,
                         true,
                         attachment->anchor_world,
                         attachment->surface_up);
@@ -172,9 +175,11 @@ namespace game::terrain
                 }
             }
 
-            static constexpr std::array<std::size_t, 5> dry_floor_dead_families{ 0u, 2u, 3u, 5u, 8u };
-            static constexpr std::array<std::size_t, 5> damp_floor_dead_families{ 1u, 2u, 4u, 5u, 8u };
-            static constexpr std::array<std::size_t, 5> shelf_dead_families{ 0u, 2u, 3u, 5u, 8u };
+            static constexpr std::uint8_t dead_bush_family{ 5u };
+            static constexpr std::uint8_t dead_tree_family{ 6u };
+            static constexpr std::array<std::size_t, 5> dry_floor_dead_families{ 0u, 2u, 3u, dead_bush_family, dead_tree_family };
+            static constexpr std::array<std::size_t, 5> damp_floor_dead_families{ 1u, 2u, 4u, dead_bush_family, dead_tree_family };
+            static constexpr std::array<std::size_t, 5> shelf_dead_families{ 0u, 2u, 3u, dead_bush_family, dead_tree_family };
 
             // cave plants after resource placement has claimed important cells
             for (int y = 1; y < static_cast<int>(global_field_size.y) - 1; ++y)
@@ -199,7 +204,10 @@ namespace game::terrain
 
                     if (alignment < 0.72f) continue;
 
-                    const float roll    = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 4073u);
+                    const float roll = TerrainResourceNoise::hash01(
+                        static_cast<float>(x),
+                        static_cast<float>(y),
+                        seed + 4073u);
 
                     const float density = alignment > 0.96f
                                               ? (sample.wetness > 0.18f ? 0.36f : 0.30f)
@@ -211,7 +219,10 @@ namespace game::terrain
                     if (placement.is_occupied(coord)) continue;
 
                     const bool  damp_family = sample.wetness > 0.18f;
-                    const float family_roll = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 4483u);
+                    const float family_roll = TerrainResourceNoise::hash01(
+                        static_cast<float>(x),
+                        static_cast<float>(y),
+                        seed + 4483u);
 
                     const auto& family_pool =
                             alignment > 0.93f
@@ -226,8 +237,8 @@ namespace game::terrain
 
                     const float large_prop_roll = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 4937u);
 
-                    if (alignment > 0.988f && large_prop_roll > (damp_family ? 0.96f : 0.92f)) family_index = 9u;
-                    else if (alignment > 0.94f && large_prop_roll > 0.74f) family_index = 8u;
+                    if (alignment > 0.988f && large_prop_roll > (damp_family ? 0.96f : 0.92f)) family_index = dead_tree_family;
+                    else if (alignment > 0.94f && large_prop_roll > 0.74f) family_index = dead_tree_family;
 
                     const std::uint8_t variant = static_cast<std::uint8_t>(
                         family_index * 16u + TerrainResourceNoise::choose_variant_row(coord, seed, 4673u));
@@ -235,7 +246,6 @@ namespace game::terrain
                     emit_node(resources::ResourceNodeKind::DeadPlant,
                               coord,
                               variant,
-                              true,
                               true,
                               attachment->anchor_world,
                               attachment->surface_up);

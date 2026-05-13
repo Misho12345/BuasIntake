@@ -26,12 +26,12 @@ namespace game::terrain
 
         bool is_occupied(const ivec2 coord) const
         {
-            return occupied_samples_.contains(game::sample_key(coord));
+            return occupied_samples_.contains(sample_key(coord));
         }
 
         void occupy(const ivec2 coord)
         {
-            occupied_samples_.insert(game::sample_key(coord));
+            occupied_samples_.insert(sample_key(coord));
         }
 
     private:

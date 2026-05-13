@@ -57,7 +57,7 @@ struct ContextSettings
     unsigned int  antiAliasingLevel{};                //!< Level of anti-aliasing
     unsigned int  majorVersion{1};                    //!< Major number of the context version to create
     unsigned int  minorVersion{1};                    //!< Minor number of the context version to create
-    std::uint32_t attributeFlags{Attribute::Default}; //!< The attribute flags to create the context with
+    std::uint32_t attributeFlags{Default}; //!< The attribute flags to create the context with
     bool          sRgbCapable{};                      //!< Whether the context framebuffer is sRGB capable
 };
 

@@ -318,7 +318,7 @@ public:
     /// \see `toUtf16`, `toUtf32`
     ///
     ////////////////////////////////////////////////////////////
-    sf::U8String toUtf8() const;
+    U8String toUtf8() const;
 
     ////////////////////////////////////////////////////////////
     /// \brief Convert the Unicode string to a UTF-16 string

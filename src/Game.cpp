@@ -114,65 +114,22 @@ namespace game
         settings_    = std::move(settings);
         initialized_ = true;
 
-        if (const auto result = initialize_window(); !result)
+        auto result_err_check = [](const Result<void>& result) -> bool
         {
-            Log::error(result.error());
-            failed_ = true;
-            return;
-        }
+            if (!result) Log::error(result.error());
+            return !result;
+        };
 
-        if (const auto result = initialize_graphics(); !result)
+        if (result_err_check(initialize_window()) ||
+            result_err_check(initialize_graphics()) ||
+            result_err_check(ui::initialize_ui_font()) ||
+            result_err_check(terrain_tools_.initialize_ui_assets()) ||
+            result_err_check(inventory_hud_.initialize_assets()) ||
+            result_err_check(world_renderer_.initialize_assets()) ||
+            result_err_check(goal_hud_.initialize_assets()) ||
+            result_err_check(tutorial_.initialize_assets()) ||
+            result_err_check(initialize_world_state()))
         {
-            Log::error(result.error());
-            failed_ = true;
-            return;
-        }
-
-        if (const auto result = ui::initialize_ui_font(); !result)
-        {
-            Log::error(result.error());
-            failed_ = true;
-            return;
-        }
-
-        if (const auto result = terrain_tools_.initialize_ui_assets(); !result)
-        {
-            Log::error(result.error());
-            failed_ = true;
-            return;
-        }
-
-        if (const auto result = inventory_hud_.initialize_assets(); !result)
-        {
-            Log::error(result.error());
-            failed_ = true;
-            return;
-        }
-
-        if (const auto result = world_renderer_.initialize_assets(); !result)
-        {
-            Log::error(result.error());
-            failed_ = true;
-            return;
-        }
-
-        if (const auto result = goal_hud_.initialize_assets(); !result)
-        {
-            Log::error(result.error());
-            failed_ = true;
-            return;
-        }
-
-        if (const auto result = tutorial_.initialize_assets(); !result)
-        {
-            Log::error(result.error());
-            failed_ = true;
-            return;
-        }
-
-        if (const auto result = initialize_world_state(); !result)
-        {
-            Log::error(result.error());
             failed_ = true;
         }
     }
@@ -285,8 +242,10 @@ namespace game
         TRY(world_state_.initialize(world_, player_config_));
 
         camera_.set_world_span({
-            world_state_.terrain().chunk_size().x * 1.75f, world_state_.terrain().chunk_size().y * 1.75f
+            world_state_.terrain().chunk_size().x * 1.75f,
+            world_state_.terrain().chunk_size().y * 1.75f
         });
+
         camera_.update_view_size(settings_.win_size);
         camera_.sync_to_player(world_state_, 0.0f, is_player_move_input_active());
 
@@ -440,13 +399,15 @@ namespace game
             return;
         }
 
-        if (InputSystem::just_pressed(Key::Left) || InputSystem::just_pressed(Key::Backspace))
+        if (InputSystem::just_pressed(Key::Left) ||
+            InputSystem::just_pressed(Key::Backspace))
         {
             tutorial_.previous_slide();
             return;
         }
 
-        if (InputSystem::just_pressed(Key::Right) || InputSystem::just_pressed(Key::Space) ||
+        if (InputSystem::just_pressed(Key::Right) ||
+            InputSystem::just_pressed(Key::Space) ||
             InputSystem::just_pressed(Key::Enter))
         {
             tutorial_.next_slide();

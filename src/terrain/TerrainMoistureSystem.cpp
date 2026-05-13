@@ -14,7 +14,8 @@ namespace game::terrain
         const CollectWaterComponent&        collect_water_component,
         const MarkDirty&                    mark_dirty,
         const vegetation::VegetationSystem* vegetation,
-        const bool                          recompute_greenness) const
+        const bool                          recompute_greenness,
+        const bool                          mark_affected_visuals_dirty) const
     {
         terrain_wetness::recompute_around(
             field.sample_span(),
@@ -22,7 +23,8 @@ namespace game::terrain
             field.cell_size(),
             changed_coords,
             mark_dirty,
-            collect_water_component);
+            collect_water_component,
+            mark_affected_visuals_dirty);
 
         if (recompute_greenness) recompute_ground_greenness(field, vegetation, mark_dirty);
     }

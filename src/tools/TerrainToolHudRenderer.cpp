@@ -122,6 +122,7 @@ namespace game::tools
                 hotbar_position.x + panel_padding_x + static_cast<float>(i) * (slot_size + slot_gap),
                 hotbar_position.y + panel_padding_y
             };
+
             const sf::Color frame = slot.selected ? 0xF8DD89FF_rgba : 0x495C6BDC_rgba;
             const sf::Color fill  = slot.selected ? 0x2A3743F4_rgba : 0x111922E4_rgba;
 

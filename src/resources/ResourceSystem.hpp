@@ -60,7 +60,7 @@ namespace game::resources
                 [this, &predicate](ResourceNode& node)
                 {
                     if (!predicate(node)) return false;
-                    occupied_node_keys_.erase(game::sample_key(node.coord));
+                    occupied_node_keys_.erase(sample_key(node.coord));
                     return true;
                 });
 

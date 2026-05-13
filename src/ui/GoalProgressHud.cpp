@@ -72,7 +72,13 @@ namespace game::ui
         const auto target_size = window.getSize();
         const vec2 center{ static_cast<float>(target_size.x) * 0.5f, static_cast<float>(target_size.y) * 0.5f };
 
-        sf::RectangleShape dim{ { static_cast<float>(target_size.x), static_cast<float>(target_size.y) } };
+        sf::RectangleShape dim{
+            {
+                static_cast<float>(target_size.x),
+                static_cast<float>(target_size.y)
+            }
+        };
+
         dim.setFillColor(0x07120CBC_rgba);
         window.draw(dim);
 
@@ -83,7 +89,8 @@ namespace game::ui
 
         const auto title_bounds = title.getLocalBounds();
         title.setOrigin({
-            title_bounds.position.x + title_bounds.size.x * 0.5f, title_bounds.position.y + title_bounds.size.y * 0.5f
+            title_bounds.position.x + title_bounds.size.x * 0.5f,
+            title_bounds.position.y + title_bounds.size.y * 0.5f
         });
 
         title.setPosition({ center.x, center.y - 24.0f });

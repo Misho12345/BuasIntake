@@ -21,7 +21,7 @@ namespace game::vegetation
     // tree and bush pixel art was adapted from:
     // https://github.com/archaicvirus/TreeGenerator
     // https://tic80.com/play?cart=3424
-    // chatgpt 5.4 helped with the growth transition sprites, bugfixing and quality checks
+    // chatgpt 5.4 helped with the script responsible for generation of transition sprites
 	class VegetationSystem final
 	{
 	public:
@@ -48,7 +48,9 @@ namespace game::vegetation
 
 	private:
 		// this is the local planting search around the click and it folds in wetness spacing cover and resource checks
-		std::optional<ivec2>find_plantable_seed_coord(const terrain::PlanetTerrain& terrain, vec2 world_position) const;
+		std::optional<ivec2> find_plantable_seed_coord(
+			const terrain::PlanetTerrain& terrain,
+			vec2                          world_position) const;
 
 		std::uint32_t nearby_cover_count(
 			const terrain::PlanetTerrain& terrain,

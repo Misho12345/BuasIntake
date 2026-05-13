@@ -19,8 +19,8 @@ namespace game::terrain
 
     namespace
     {
-        constexpr float rock_blend_start_depth = 0.12f;
-        constexpr float rock_blend_end_depth   = 0.52f;
+        constexpr float rock_blend_start_depth      = 0.24f;
+        constexpr float rock_blend_end_depth        = 0.88f;
 
         std::weak_ptr<TerrainRenderable::SharedAssets> shared_assets_cache;
 

@@ -82,7 +82,7 @@ namespace game::render
             float radial_offset = 0.01f;
             if (resource.surface_attached)
             {
-                world_height  = resource.cave_variant ? 2.24f : 2.16f;
+                world_height  = 2.24f;
                 radial_offset = world_height * (exposed ? 0.46f : 0.38f);
             }
 
@@ -92,10 +92,8 @@ namespace game::render
                 .world_height  = world_height,
                 .radial_offset = radial_offset,
                 .texture_layer = texture_layer_for(resource.kind),
-                .tile_column   = resource.cave_variant ? static_cast<float>((resource.variant * 5u + 3u) % 8u) : 0.0f,
-                .tile_row      = resource.cave_variant
-                                ? static_cast<float>(16u + resource.variant % 16u)
-                                : static_cast<float>(resource.variant % 16u),
+                .tile_column   = static_cast<float>((resource.variant * 5u + 3u) % 8u),
+                .tile_row      = static_cast<float>(resource.variant % 16u),
                 .angle_offset = 0.0f
             });
         }

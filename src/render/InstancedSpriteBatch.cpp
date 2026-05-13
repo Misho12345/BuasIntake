@@ -70,32 +70,47 @@ namespace game::render
         glVertexArrayVertexBuffer(vao_.id(), 0, quad_vbo_.id(), 0, sizeof(QuadVertex));
         glVertexArrayVertexBuffer(vao_.id(), 1, instance_vbo_.id(), 0, sizeof(SpriteInstance));
 
+        // layout(location = 0) in vec2 aLocalPosition;
+        static constexpr GLint quad_pos_size = sizeof(QuadVertex::position) / sizeof(float);
         glEnableVertexArrayAttrib(vao_.id(), 0);
-        glVertexArrayAttribFormat(vao_.id(), 0, 2, GL_FLOAT, GL_FALSE, offsetof(QuadVertex, position));
+        glVertexArrayAttribFormat(vao_.id(), 0, quad_pos_size, GL_FLOAT, GL_FALSE, offsetof(QuadVertex, position));
         glVertexArrayAttribBinding(vao_.id(), 0, 0);
 
+        // layout(location = 1) in vec2 aLocalUv;
+        static constexpr GLint quad_uv_size = sizeof(QuadVertex::uv) / sizeof(float);
         glEnableVertexArrayAttrib(vao_.id(), 1);
-        glVertexArrayAttribFormat(vao_.id(), 1, 2, GL_FLOAT, GL_FALSE, offsetof(QuadVertex, uv));
+        glVertexArrayAttribFormat(vao_.id(), 1, quad_uv_size, GL_FLOAT, GL_FALSE, offsetof(QuadVertex, uv));
         glVertexArrayAttribBinding(vao_.id(), 1, 0);
 
+        // layout(location = 2) in vec2 aInstanceCenter;
+        static constexpr GLint sprite_center_size = sizeof(SpriteInstance::center_world) / sizeof(float);
         glEnableVertexArrayAttrib(vao_.id(), 2);
-        glVertexArrayAttribFormat(vao_.id(), 2, 2, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, center_world));
+        glVertexArrayAttribFormat(vao_.id(), 2, sprite_center_size, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, center_world));
         glVertexArrayAttribBinding(vao_.id(), 2, 1);
 
+        // layout(location = 3) in vec2 aInstanceUp;
+        static constexpr GLint sprite_up_size = sizeof(SpriteInstance::up) / sizeof(float);
         glEnableVertexArrayAttrib(vao_.id(), 3);
-        glVertexArrayAttribFormat(vao_.id(), 3, 2, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, up));
+        glVertexArrayAttribFormat(vao_.id(), 3, sprite_up_size, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, up));
         glVertexArrayAttribBinding(vao_.id(), 3, 1);
 
+        // layout(location = 4) in vec4 aInstanceParams0;
+        static constexpr GLint sprite_params0_size =
+            (offsetof(SpriteInstance, tile_row) - offsetof(SpriteInstance, world_height)) / sizeof(float);
         glEnableVertexArrayAttrib(vao_.id(), 4);
-        glVertexArrayAttribFormat(vao_.id(), 4, 4, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, world_height));
+        glVertexArrayAttribFormat(vao_.id(), 4, sprite_params0_size, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, world_height));
         glVertexArrayAttribBinding(vao_.id(), 4, 1);
 
+        // layout(location = 5) in float aInstanceTileRow;
+        static constexpr GLint sprite_tile_row_size = sizeof(SpriteInstance::tile_row) / sizeof(float);
         glEnableVertexArrayAttrib(vao_.id(), 5);
-        glVertexArrayAttribFormat(vao_.id(), 5, 1, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, tile_row));
+        glVertexArrayAttribFormat(vao_.id(), 5, sprite_tile_row_size, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, tile_row));
         glVertexArrayAttribBinding(vao_.id(), 5, 1);
 
+        // layout(location = 6) in float aInstanceAngleOffset;
+        static constexpr GLint sprite_angle_offset_size = sizeof(SpriteInstance::angle_offset) / sizeof(float);
         glEnableVertexArrayAttrib(vao_.id(), 6);
-        glVertexArrayAttribFormat(vao_.id(), 6, 1, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, angle_offset));
+        glVertexArrayAttribFormat(vao_.id(), 6, sprite_angle_offset_size, GL_FLOAT, GL_FALSE, offsetof(SpriteInstance, angle_offset));
         glVertexArrayAttribBinding(vao_.id(), 6, 1);
 
         glVertexArrayBindingDivisor(vao_.id(), 1, 1);

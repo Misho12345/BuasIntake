@@ -39,7 +39,7 @@ namespace game::terrain
                 {
                     const ivec2 neighbor{ coord.x + ox, coord.y + oy };
                     if (!field.is_valid_sample(neighbor)) continue;
-                    affected_keys.insert(game::sample_key(neighbor));
+                    affected_keys.insert(sample_key(neighbor));
                 }
             }
         }
@@ -52,7 +52,7 @@ namespace game::terrain
             [this, &field, world_center, &affected_keys](resources::ResourceNode& node)
             {
                 if (!node.surface_attached) return false;
-                if (!affected_keys.contains(game::sample_key(node.coord))) return false;
+                if (!affected_keys.contains(sample_key(node.coord))) return false;
 
                 const auto attachment = exposed_surface_attachment(field, world_center, node.coord);
                 if (!attachment.has_value()) return true;

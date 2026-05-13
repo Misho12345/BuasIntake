@@ -139,7 +139,6 @@ namespace game::terrain
             [&callbacks](const resources::ResourceNodeKind kind,
                          const ivec2                       coord,
                          const std::uint8_t                variant,
-                         const bool                        cave_variant,
                          const bool                        surface_attached,
                          const vec2                        anchor_world,
                          const vec2                        surface_up)
@@ -148,7 +147,6 @@ namespace game::terrain
                     .kind             = kind,
                     .coord            = coord,
                     .variant          = variant,
-                    .cave_variant     = cave_variant,
                     .surface_attached = surface_attached,
                     .anchor_world     = anchor_world,
                     .surface_up       = surface_up

@@ -29,7 +29,9 @@ namespace game::tools
         };
 
         // preview_state is what render code uses to draw the ghost water mesh while placement mode is armed
-        std::optional<PreviewState> preview_state(const TerrainToolContext& context, const TerrainTargetResolver& resolver) const;
+        std::optional<PreviewState> preview_state(
+            const TerrainToolContext& context,
+            const TerrainTargetResolver& resolver) const;
 
         struct BucketStats final
         {
@@ -67,6 +69,7 @@ namespace game::tools
         void cancel_placement();
         void confirm_placement(const TerrainToolContext& context, const TerrainTargetResolver& resolver);
         void collect_water(const TerrainToolContext& context, const TerrainTargetResolver& resolver);
+
         // the preview is cached because rebuilding the water plan every frame for no reason got old fast
         void refresh_preview_cache(const TerrainToolContext& context, const TerrainTargetResolver& resolver) const;
         void invalidate_preview_cache() const;

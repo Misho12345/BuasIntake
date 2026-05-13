@@ -161,7 +161,7 @@ namespace game::terrain
         brush_controller_.flush_pending_edits({
             .rebuild_pending = [this](const std::vector<bool>& dirty_chunks, const bool changed_water)
             {
-                return rebuild_dirty_chunks(dirty_chunks, false, changed_water);
+                return rebuild_dirty_chunks(dirty_chunks, changed_water);
             },
             .make_dirty_chunks = [this]
             {
@@ -173,7 +173,7 @@ namespace game::terrain
             },
             .rebuild_deferred_wetness = [this](const std::vector<bool>& dirty_chunks)
             {
-                return rebuild_dirty_chunks(dirty_chunks, false, false, false, true);
+                return rebuild_dirty_chunks(dirty_chunks, false, false, true);
             }
         });
     }
@@ -181,10 +181,12 @@ namespace game::terrain
     // greenness is terrain side data derived from plants so when plants change we can refresh just that and skip a full geometry rebuild
     void PlanetTerrain::rebuild_after_vegetation_change()
     {
-        auto dirty_chunks = chunk_grid_.make_dirty_chunk_flags(false);
+        // Plant growth changes the terrain's visual channels without changing geometry. Refresh every chunk so cached
+        // boundary vertices do not keep stale wetness or greenness until the player edits that chunk again.
+        auto dirty_chunks = chunk_grid_.make_dirty_chunk_flags(true);
         recompute_ground_greenness(dirty_chunks);
         ++field_revision_;
-        if (const auto rebuild_result = rebuild_dirty_chunks(dirty_chunks, false, false, false);
+        if (const auto rebuild_result = rebuild_dirty_chunks(dirty_chunks, false, false);
             !rebuild_result) { Log::error(rebuild_result.error()); }
     }
 
@@ -287,7 +289,7 @@ namespace game::terrain
         auto dirty_chunks = chunk_grid_.make_dirty_chunk_flags(false);
         recompute_ground_greenness(dirty_chunks);
         ++field_revision_;
-        if (auto res = rebuild_dirty_chunks(dirty_chunks, false, false, false);
+        if (auto res = rebuild_dirty_chunks(dirty_chunks, false, false);
             !res)
             return fail(res.error());
 
@@ -424,13 +426,12 @@ namespace game::terrain
 
     Result<void> PlanetTerrain::rebuild_dirty_chunks(
         const std::vector<bool>& dirty_chunks,
-        const bool               smooth_water,
         const bool               rebuild_water,
         const bool               rebuild_terrain_geometry,
         const bool               refresh_terrain_visuals)
     {
         return chunk_grid_.rebuild_dirty_chunks(
-            field_, dirty_chunks, smooth_water, rebuild_water, rebuild_terrain_geometry, refresh_terrain_visuals);
+            field_, dirty_chunks, rebuild_water, rebuild_terrain_geometry, refresh_terrain_visuals);
     }
 
     void PlanetTerrain::mark_chunks_covering_global_sample(const ivec2 coord, std::vector<bool>& dirty_chunks) const
@@ -470,8 +471,9 @@ namespace game::terrain
     {
         if (!is_valid_global_sample(coord)) return false;
         const auto& sample = field_.sample(coord);
+        const float protected_radius = base_chunk_settings_.planet_radius * constants::undiggable_core_radius_fraction;
         return has_water_sample(sample) || has_protective_water_neighbor(coord) ||
-                normalized_depth(global_sample_world_position(coord)) >= constants::hard_rock_depth_threshold;
+                distance_between(global_sample_world_position(coord), base_chunk_settings_.world_center) <= protected_radius;
     }
 
     TerrainGenerationFieldView PlanetTerrain::make_generation_field_view()
@@ -508,8 +510,8 @@ namespace game::terrain
         // Water edits still go through the same rebuild path so mesh and wetness stay together.
         ++field_revision_;
         ++water_revision_;
-        recompute_wetness_around(changed_coords, dirty_chunks, false);
-        TRY(rebuild_dirty_chunks(dirty_chunks, false, true, false, true));
+        recompute_wetness_around(changed_coords, dirty_chunks, false, true);
+        TRY(rebuild_dirty_chunks(dirty_chunks, true, false, true));
         return true;
     }
 
@@ -555,7 +557,7 @@ namespace game::terrain
             [this, &cleared_keys](const ivec2 coord, const std::size_t sample_index)
             {
                 if (vegetation_ != nullptr) vegetation_->clear_plant_at(sample_index);
-                cleared_keys.insert(game::sample_key(coord));
+                cleared_keys.insert(sample_key(coord));
             });
 
         if (resources_ != nullptr && !cleared_keys.empty()) static_cast<void>(resources_->remove_nodes(cleared_keys));
@@ -578,7 +580,8 @@ namespace game::terrain
     void PlanetTerrain::recompute_wetness_around(
         const std::vector<ivec2>& changed_coords,
         std::vector<bool>&        dirty_chunks,
-        const bool                recompute_greenness)
+        const bool                recompute_greenness,
+        const bool                mark_affected_visuals_dirty)
     {
         moisture_system_.recompute_wetness_around(
             field_,
@@ -589,7 +592,8 @@ namespace game::terrain
             },
             [this, &dirty_chunks](const ivec2 coord) { mark_chunks_covering_global_sample(coord, dirty_chunks); },
             vegetation_,
-            recompute_greenness);
+            recompute_greenness,
+            mark_affected_visuals_dirty);
         ++field_revision_;
     }
 

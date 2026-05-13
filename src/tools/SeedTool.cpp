@@ -36,8 +36,7 @@ namespace game::tools
         const auto world_position = resolver.terrain_tool_hit_world_position(context);
         if (!world_position.has_value()) return;
 
-        if (const auto result = context.terrain->plant_seed(*world_position);
-            !result)
+        if (const auto result = context.terrain->plant_seed(*world_position); !result)
             log_throttled_seed_warning(result.error().message);
     }
 }

@@ -165,8 +165,7 @@ namespace game::terrain
     void TerrainChunkGrid::sync_chunk_field_to_global(
         TerrainField&                   field,
         const ivec2                     chunk_coord,
-        const std::span<const FieldSample> field_samples,
-        const SolidClearedCallback&     on_solid_cleared) const
+        const std::span<const FieldSample> field_samples) const
     {
         if (field_samples.empty()) return;
 
@@ -186,13 +185,7 @@ namespace game::terrain
                 if (!field.is_valid_sample(global_coord)) continue;
 
                 const auto  global_index    = field.sample_index(global_coord);
-                const auto& previous_sample = field.samples()[global_index];
                 const auto& next_sample     = field_samples[static_cast<std::size_t>(y) * padded_size.x + static_cast<std::size_t>(x)];
-
-                if (on_solid_cleared && is_solid_sample(previous_sample) && !is_solid_sample(next_sample))
-                {
-                    on_solid_cleared(global_coord, global_index);
-                }
 
                 field.samples()[global_index] = next_sample;
             }
@@ -202,11 +195,9 @@ namespace game::terrain
     Result<void> TerrainChunkGrid::rebuild_dirty_chunks(
         TerrainField&                  field,
         const std::vector<bool>&        dirty_chunks,
-        const bool                      smooth_water,
         const bool                      rebuild_water,
         const bool                      rebuild_terrain_geometry,
-        const bool                      refresh_terrain_visuals,
-        const SolidClearedCallback&     on_solid_cleared)
+        const bool                      refresh_terrain_visuals)
     {
         const bool any_dirty = std::ranges::any_of(dirty_chunks, [](const bool dirty) { return dirty; });
         if (!any_dirty) return {};
@@ -227,35 +218,6 @@ namespace game::terrain
                 .chunk_index   = i,
                 .field_samples = extract_chunk_field(field, chunks_[i].chunk_coord())
             });
-        }
-
-        if (smooth_water)
-        {
-            for (auto& pending : pending_chunks)
-            {
-                auto rebuild_result = chunks_[pending.chunk_index].rebuild_from_field(
-                    pending.field_samples, true, rebuild_water, rebuild_terrain_geometry);
-                if (!rebuild_result)
-                {
-                    return fail("Failed to rebuild chunk ({}, {}): {}",
-                                chunks_[pending.chunk_index].chunk_coord().x,
-                                chunks_[pending.chunk_index].chunk_coord().y,
-                                rebuild_result.error().message);
-                }
-
-                auto synced_field = chunks_[pending.chunk_index].readback_field();
-                if (!synced_field)
-                {
-                    return fail("Failed to read back smoothed water field for chunk ({}, {}): {}",
-                                chunks_[pending.chunk_index].chunk_coord().x,
-                                chunks_[pending.chunk_index].chunk_coord().y,
-                                synced_field.error().message);
-                }
-
-                sync_chunk_field_to_global(field, chunks_[pending.chunk_index].chunk_coord(), *synced_field, on_solid_cleared);
-            }
-
-            return {};
         }
 
         for (auto& pending : pending_chunks)

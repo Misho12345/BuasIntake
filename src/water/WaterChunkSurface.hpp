@@ -15,11 +15,14 @@ namespace game::water
     {
     public:
         Result<void> initialize();
+
         void         draw_gl(const sf::View& view) const;
         Result<void> dispatch_rebuild(terrain::TerrainGenerator& generator) const;
+
         Result<void> finalize_rebuild(
-            terrain::TerrainGenerator&         generator,
-            const terrain::ChunkSettings&      settings);
+            terrain::TerrainGenerator&    generator,
+            const terrain::ChunkSettings& settings);
+
         void         rebuild_mesh(const std::vector<vec2>& vertices, const std::vector<std::uint32_t>& indices);
 
     private:

@@ -132,8 +132,9 @@ namespace game::tools
         ++preview_revision_;
     }
 
-    std::optional<WaterTool::PreviewState> WaterTool::preview_state(const TerrainToolContext& context,
-                                                                    const TerrainTargetResolver& resolver) const
+    std::optional<WaterTool::PreviewState> WaterTool::preview_state(
+        const TerrainToolContext&    context,
+        const TerrainTargetResolver& resolver) const
     {
         refresh_preview_cache(context, resolver);
         if (!preview_cache_.has_preview) return std::nullopt;
@@ -161,11 +162,11 @@ namespace game::tools
         }
 
         const float cell_extent = std::min(context.terrain->terrain_cell_size().x, context.terrain->terrain_cell_size().y);
-        const bool same_target = preview_cache_.valid
-            && (preview_cache_.target_world - *target_position).lengthSquared() <= (cell_extent * 0.35f) * (cell_extent * 0.35f);
+        const bool same_target = preview_cache_.valid && (preview_cache_.target_world - *target_position).lengthSquared() <= (cell_extent * 0.35f) * (cell_extent * 0.35f);
         const bool same_amount = preview_cache_.valid && preview_cache_.amount == desired_place_amount_;
         const bool same_terrain = preview_cache_.valid && preview_cache_.terrain_revision == context.terrain->field_revision();
         const bool same_water = preview_cache_.valid && preview_cache_.water_revision == context.terrain->water_revision();
+
         if (!same_target || !same_amount || !same_terrain || !same_water)
         {
             const auto preview = context.water->build_preview(*context.terrain, *target_position, desired_place_amount_);
@@ -190,25 +191,11 @@ namespace game::tools
         }
     }
 
-    bool WaterTool::is_placement_mode() const
-    {
-        return placement_mode_;
-    }
+    bool WaterTool::is_placement_mode() const { return placement_mode_; }
+    std::size_t WaterTool::material_index() const { return material_index_; }
+    std::size_t WaterTool::level_index() const { return level_index_; }
 
-    std::size_t WaterTool::material_index() const
-    {
-        return material_index_;
-    }
-
-    std::size_t WaterTool::level_index() const
-    {
-        return level_index_;
-    }
-
-    bool WaterTool::at_max_upgrade() const
-    {
-        return at_max_tool_upgrade(material_index_, level_index_);
-    }
+    bool WaterTool::at_max_upgrade() const { return at_max_tool_upgrade(material_index_, level_index_); }
 
     WaterTool::BucketStats WaterTool::current_stats() const
     {
@@ -222,20 +209,9 @@ namespace game::tools
         return BucketStats{ .capacity = tier->capacity };
     }
 
-    std::uint32_t WaterTool::current_amount() const
-    {
-        return current_amount_;
-    }
-
-    std::uint32_t WaterTool::current_capacity() const
-    {
-        return current_tier().capacity;
-    }
-
-    std::uint32_t WaterTool::desired_place_amount() const
-    {
-        return desired_place_amount_;
-    }
+    std::uint32_t WaterTool::current_amount() const { return current_amount_; }
+    std::uint32_t WaterTool::current_capacity() const { return current_tier().capacity; }
+    std::uint32_t WaterTool::desired_place_amount() const { return desired_place_amount_; }
 
     void WaterTool::invalidate_preview_cache() const
     {
@@ -261,8 +237,5 @@ namespace game::tools
         };
     }
 
-    std::size_t WaterTool::flat_tier_index() const
-    {
-        return flat_tool_tier_index(material_index_, level_index_);
-    }
+    std::size_t WaterTool::flat_tier_index() const { return flat_tool_tier_index(material_index_, level_index_); }
 }

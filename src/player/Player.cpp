@@ -278,7 +278,7 @@ namespace game::player
         const int overlap_count = b2Shape_GetSensorOverlaps(
             sensor_shape,
             overlaps.data(),
-            static_cast<int>(overlaps.size()));
+            std::min(static_cast<int>(overlaps.size()), sensor_overlap_capacity));
 
         for (int i = 0; i < overlap_count; ++i)
         {
@@ -319,9 +319,9 @@ namespace game::player
     }
 
     void Player::prepare_for_physics_step(
-        const float                  fixed_step,
-        const vec2                   planet_center,
-        const bool                   in_water)
+        const float fixed_step,
+        const vec2  planet_center,
+        const bool  in_water)
     {
         if (!valid()) return;
 
@@ -439,9 +439,9 @@ namespace game::player
     }
 
     void Player::apply_input(
-        const float                  fixed_step,
-        const vec2                   planet_center,
-        const bool                   in_water)
+        const float fixed_step,
+        const vec2  planet_center,
+        const bool  in_water)
     {
         if (!valid()) return;
         jump_cooldown_timer_ = std::max(jump_cooldown_timer_ - fixed_step, 0.0f);

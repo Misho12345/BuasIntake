@@ -10,7 +10,7 @@ namespace game::water
     class TerrainWaterSystem final
     {
     public:
-        using WaterPlan = water::WaterPlan;
+        using WaterPlan = WaterPlan;
 
         std::vector<ivec2> collect_water_component(
             const terrain::TerrainField& field,

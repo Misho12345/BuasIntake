@@ -159,31 +159,6 @@ namespace game::terrain
         return {};
     }
 
-    Result<void> TerrainChunk::rebuild_from_field(
-        const std::span<const FieldSample> field_samples,
-        const bool                         smooth_water,
-        const bool                         rebuild_water,
-        const bool                         rebuild_terrain_geometry)
-    {
-        TRY(generator_.upload_field(field_samples));
-
-        if (smooth_water)
-        {
-            // Water gets blurred on the GPU first, so rebuild from that version instead of the raw edit.
-            TRY(generator_.smooth_water_field());
-
-            auto effective_field_samples = generator_.read_field();
-            if (!effective_field_samples) return fail(effective_field_samples.error());
-
-            TRY(rebuild_chunk_meshes(*effective_field_samples, rebuild_water, rebuild_terrain_geometry));
-            return {};
-        }
-
-        TRY(rebuild_chunk_meshes(field_samples, rebuild_water, rebuild_terrain_geometry));
-
-        return {};
-    }
-
     Result<void> TerrainChunk::upload_rebuild_field(const std::span<const FieldSample> field_samples)
     {
         return generator_.upload_field(field_samples);

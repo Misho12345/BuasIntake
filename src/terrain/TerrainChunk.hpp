@@ -37,12 +37,6 @@ namespace game::terrain
         Result<void> dispatch_generation();
         Result<void> finalize_generation();
 
-        Result<void> rebuild_from_field(
-            std::span<const FieldSample> field_samples,
-            bool                         smooth_water             = false,
-            bool                         rebuild_water            = true,
-            bool                         rebuild_terrain_geometry = true);
-
         Result<void> upload_rebuild_field(std::span<const FieldSample> field_samples);
 
         void refresh_cached_terrain_mesh(std::span<const FieldSample> field_samples);

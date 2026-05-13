@@ -93,13 +93,13 @@ namespace game::water
 
         std::unordered_set<std::uint64_t> future_keys;
         future_keys.reserve(plan->affected_samples.size());
-        for (const auto& entry : plan->affected_samples) { future_keys.insert(game::sample_key(entry.coord)); }
+        for (const auto& entry : plan->affected_samples) { future_keys.insert(sample_key(entry.coord)); }
 
         // Keep both meshes so the preview can show what water is already there and what the placement would change.
         for (const auto coord : plan->dried_component)
         {
             if (!terrain.is_valid_global_sample(coord)) continue;
-            if (future_keys.contains(game::sample_key(coord))) continue;
+            if (future_keys.contains(sample_key(coord))) continue;
 
             const auto& current_sample = terrain.global_sample(coord);
             if (has_water(current_sample)) append_sample_quad(preview.current_vertices, preview.current_indices, coord);

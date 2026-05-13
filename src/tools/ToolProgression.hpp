@@ -10,7 +10,8 @@ namespace game::tools
 
     constexpr bool at_max_tool_upgrade(const std::size_t material, const std::size_t level)
     {
-        return material >= max_tool_material_index && level >= max_tool_level_index;
+        return material >= max_tool_material_index &&
+                level >= max_tool_level_index;
     }
 
     constexpr std::pair<std::size_t, std::size_t> next_tool_material_level(

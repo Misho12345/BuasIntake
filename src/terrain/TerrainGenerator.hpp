@@ -8,7 +8,6 @@
 #include "gfx/SSBO.hpp"
 #include "gfx/Shader.hpp"
 #include "gfx/Texture2D.hpp"
-#include "water/WaterFieldSmoother.hpp"
 
 namespace game::terrain
 {
@@ -72,9 +71,8 @@ namespace game::terrain
         // initialize builds the gpu side buffers and shaders once for a chunk generator instance
         Result<void> initialize(const ChunkSettings& settings);
 
-        // dispatch runs the full generation pipeline: base terrain, caves, ponds, water smoothing, then terrain contour extraction
+        // dispatch runs the full generation pipeline: base terrain, caves, ponds, then terrain contour extraction
         Result<void> dispatch();
-        Result<void> smooth_water_field(std::uint32_t iterations = 2u);
 
         Result<void> dispatch_surface_rebuild(std::uint32_t channel_index, float iso);
 
@@ -127,7 +125,6 @@ namespace game::terrain
         gfx::Shader    edge_shader_{};
         gfx::Shader    mesh_shader_{};
         gfx::Texture2D field_texture_{};
-        water::WaterFieldSmoother water_smoother_{};
 
         gfx::SSBO boundary_vertices_buffer_{};
         gfx::SSBO horizontal_edge_ids_buffer_{};

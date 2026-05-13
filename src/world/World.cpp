@@ -12,8 +12,7 @@ namespace game::world
         if (!b2World_IsValid(physics_world)) return fail("World requires a valid Box2D world");
 
         terrain_.emplace(physics_world, resources_, vegetation_);
-        if (const auto result = terrain_->initialize();
-            !result)
+        if (const auto result = terrain_->initialize(); !result)
         {
             terrain_.reset();
             return fail("Failed to initialize planet terrain: {}", result.error().message);

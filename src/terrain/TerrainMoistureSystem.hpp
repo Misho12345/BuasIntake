@@ -23,7 +23,8 @@ namespace game::terrain
             const CollectWaterComponent&        collect_water_component,
             const MarkDirty&                    mark_dirty,
             const vegetation::VegetationSystem* vegetation,
-            bool                                recompute_greenness = true) const;
+            bool                                recompute_greenness = true,
+            bool                                mark_affected_visuals_dirty = false) const;
 
         void recompute_ground_greenness(
             TerrainField&                       field,

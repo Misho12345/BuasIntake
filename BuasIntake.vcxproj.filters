@@ -153,9 +153,6 @@
     <ClCompile Include="src\water\WaterChunkSurface.cpp">
       <Filter>Source Files\water</Filter>
     </ClCompile>
-    <ClCompile Include="src\water\WaterFieldSmoother.cpp">
-      <Filter>Source Files\water</Filter>
-    </ClCompile>
     <ClCompile Include="src\water\WaterRenderable.cpp">
       <Filter>Source Files\water</Filter>
     </ClCompile>
@@ -359,9 +356,6 @@
     <ClInclude Include="src\water\WaterChunkSurface.hpp">
       <Filter>Header Files\water</Filter>
     </ClInclude>
-    <ClInclude Include="src\water\WaterFieldSmoother.hpp">
-      <Filter>Header Files\water</Filter>
-    </ClInclude>
     <ClInclude Include="src\water\WaterRenderable.hpp">
       <Filter>Header Files\water</Filter>
     </ClInclude>
@@ -484,7 +478,6 @@
     <None Include="assets\shaders\terrain\terrain_gen.comp" />
     <None Include="assets\shaders\terrain\terrain_mesh.frag" />
     <None Include="assets\shaders\water\water_mesh.frag" />
-    <None Include="assets\shaders\water\water_smooth.comp" />
     <None Include="assets\images\tutorial.png">
       <Filter>Resource Files</Filter>
     </None>

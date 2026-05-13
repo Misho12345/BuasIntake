@@ -30,7 +30,7 @@ namespace game::render
     // this is trying to do two jobs without feeling terrible
     // keep the player near center when idle but give a little dead zone while moving so the camera is not constantly twitching
     // rotation follows the local planet up only when the camera is actually repositioning so it does not spin for no good reason
-    // idea taken from a game I made a while ago https://github.com/Misho12345/Astroland/
+    // idea taken from a little game I was a part of years ago https://github.com/Misho12345/Astroland/
     void CameraController::sync_to_player(const world::World& world, const float dt, const bool move_input_active)
     {
         if (!world.ready()) return;

@@ -318,13 +318,14 @@ namespace game::tools
         return flat_tool_tier_index(material_index_, level_index_);
     }
 
-    void TerrainSculptTool::emit_brush_stamps(const TerrainToolContext&    context,
-                                              const TerrainTargetResolver& resolver,
-                                              const MouseButton            button,
-                                              const bool                   digging,
-                                              const BrushConfig&           config,
-                                              BrushStroke&                 state,
-                                              const float                  dt)
+    void TerrainSculptTool::emit_brush_stamps(
+        const TerrainToolContext&    context,
+        const TerrainTargetResolver& resolver,
+        const MouseButton            button,
+        const bool                   digging,
+        const BrushConfig&           config,
+        BrushStroke&                 state,
+        const float                  dt)
     {
         if (context.terrain == nullptr) return;
 

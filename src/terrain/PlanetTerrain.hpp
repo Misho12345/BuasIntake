@@ -116,7 +116,6 @@ namespace game::terrain
         // this is the big rebuild funnel used after generation sculpting water and plant changes
         Result<void> rebuild_dirty_chunks(
             const std::vector<bool>& dirty_chunks,
-            bool                     smooth_water             = false,
             bool                     rebuild_water            = true,
             bool                     rebuild_terrain_geometry = true,
             bool                     refresh_terrain_visuals  = true);
@@ -147,7 +146,8 @@ namespace game::terrain
         void recompute_wetness_around(
             const std::vector<ivec2>& changed_coords,
             std::vector<bool>&        dirty_chunks,
-            bool                      recompute_greenness = true);
+            bool                      recompute_greenness = true,
+            bool                      mark_affected_visuals_dirty = false);
 
         static constexpr ivec2 chunk_count() { return { 10, 10 }; }
 

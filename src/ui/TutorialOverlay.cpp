@@ -41,6 +41,10 @@ namespace game::ui
             {
                 "Upgrade your tools",
                 "Mine ores underground. Press E to upgrade digging speed, storage, and bucket capacity."
+            },
+            {
+                "Restore the planet",
+                "Make the whole planet green. Track your restoration progress with the bar at the top of the screen."
             }
         }};
 

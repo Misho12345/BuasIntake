@@ -93,7 +93,6 @@ namespace game::terrain
         TRY(load_compute_shader("assets/shaders/terrain/chunk_mesh_gen.comp", mesh_shader_));
 
         TRY(field_texture_.create_rgba32f(padded_field_size(settings_)));
-        TRY(water_smoother_.initialize(padded_field_size(settings_)));
 
         const auto padded_size = padded_field_size(settings_);
         // worst-case marching-squares output sizes so the rebuild can stay on the gpu
@@ -118,7 +117,6 @@ namespace game::terrain
           edge_shader_{ std::move(other.edge_shader_) },
           mesh_shader_{ std::move(other.mesh_shader_) },
           field_texture_{ std::move(other.field_texture_) },
-          water_smoother_{ std::move(other.water_smoother_) },
           boundary_vertices_buffer_{ std::move(other.boundary_vertices_buffer_) },
           horizontal_edge_ids_buffer_{ std::move(other.horizontal_edge_ids_buffer_) },
           vertical_edge_ids_buffer_{ std::move(other.vertical_edge_ids_buffer_) },
@@ -143,7 +141,6 @@ namespace game::terrain
         edge_shader_                    = std::move(other.edge_shader_);
         mesh_shader_                    = std::move(other.mesh_shader_);
         field_texture_                  = std::move(other.field_texture_);
-        water_smoother_                 = std::move(other.water_smoother_);
         boundary_vertices_buffer_       = std::move(other.boundary_vertices_buffer_);
         horizontal_edge_ids_buffer_     = std::move(other.horizontal_edge_ids_buffer_);
         vertical_edge_ids_buffer_       = std::move(other.vertical_edge_ids_buffer_);
@@ -157,7 +154,7 @@ namespace game::terrain
         return *this;
     }
 
-    // generation is staged: base shell, caves, ponds, water smoothing, then surface extraction
+    // generation is staged: base shell, caves, ponds, then surface extraction
     Result<void> TerrainGenerator::dispatch()
     {
         if (pending_readback_) { return fail("TerrainGenerator dispatch called before previous readback completed"); }
@@ -187,15 +184,8 @@ namespace game::terrain
         };
 
         TRY(gfx::ComputeDispatcher::run(generation_passes));
-        TRY(smooth_water_field());
 
         return dispatch_surface_rebuild(terrain_channel_index, terrain_iso);
-    }
-
-    // the smoothing pass ping pongs between textures because each iteration needs a stable previous state to read from
-    Result<void> TerrainGenerator::smooth_water_field(const std::uint32_t iterations)
-    {
-        return water_smoother_.smooth(field_texture_, iterations);
     }
 
     Result<void> TerrainGenerator::dispatch_surface_rebuild(const std::uint32_t channel_index, const float iso)

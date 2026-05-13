@@ -38,7 +38,10 @@ namespace game::water
     std::size_t global_field_index(const GridView& grid, ivec2 coord);
     vec2 global_sample_world_position(const GridView& grid, ivec2 coord);
 
-    std::vector<ivec2> collect_water_component(const GridView& grid, ivec2 start_coord, bool include_diagonals = false);
+    std::vector<ivec2> collect_water_component(
+        const GridView& grid,
+        ivec2           start_coord,
+        bool            include_diagonals = false);
 
     std::optional<WaterPlan> build_targeted_water_plan(
         const GridView& grid,

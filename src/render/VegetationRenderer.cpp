@@ -26,7 +26,6 @@ namespace game::render
             3.16f,
             3.50f,
             3.24f,
-            3.90f,
             3.76f,
             7.90f
         };
@@ -135,7 +134,6 @@ namespace game::render
             "assets/images/vegetation/broadleaf_plants_dead.png",
             "assets/images/vegetation/reeds_dead.png",
             "assets/images/vegetation/creepers_dead.png",
-            "assets/images/vegetation/jungle_roots_dead.png",
             "assets/images/vegetation/bushes_dead.png"
         };
 
@@ -321,18 +319,10 @@ namespace game::render
             batch_resources_[batch_index].draw(view);
         };
 
-        draw_batch(VegetationBatchId::Live64,
-                   cached_live64_instances_,
-                   visible_live64_instances_);
-
+        draw_batch(VegetationBatchId::Live64, cached_live64_instances_, visible_live64_instances_);
         draw_batch(VegetationBatchId::Live32, cached_woody_live32_instances_, visible_woody_live32_instances_);
         draw_batch(VegetationBatchId::Live32, cached_low_cover_live32_instances_, visible_low_cover_live32_instances_);
-        draw_batch(VegetationBatchId::Dead32,
-                   cached_dead32_instances_,
-                   visible_dead32_instances_);
-
-        draw_batch(VegetationBatchId::Dead64,
-                   cached_dead64_instances_,
-                   visible_dead64_instances_);
+        draw_batch(VegetationBatchId::Dead32, cached_dead32_instances_, visible_dead32_instances_);
+        draw_batch(VegetationBatchId::Dead64, cached_dead64_instances_, visible_dead64_instances_);
     }
 }

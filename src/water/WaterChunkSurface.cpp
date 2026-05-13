@@ -6,15 +6,9 @@
 
 namespace game::water
 {
-    Result<void> WaterChunkSurface::initialize()
-    {
-        return renderable_.initialize();
-    }
+    Result<void> WaterChunkSurface::initialize() { return renderable_.initialize(); }
 
-    void WaterChunkSurface::draw_gl(const sf::View& view) const
-    {
-        renderable_.draw(mesh_, view);
-    }
+    void WaterChunkSurface::draw_gl(const sf::View& view) const { renderable_.draw(mesh_, view); }
 
     Result<void> WaterChunkSurface::dispatch_rebuild(terrain::TerrainGenerator& generator) const
     {

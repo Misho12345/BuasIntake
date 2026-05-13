@@ -42,7 +42,7 @@ namespace game::resources
         return state;
     }
 
-    bool ResourceSystem::has_at(const ivec2 coord) const { return occupied_node_keys_.contains(game::sample_key(coord)); }
+    bool ResourceSystem::has_at(const ivec2 coord) const { return occupied_node_keys_.contains(sample_key(coord)); }
 
     Result<void> ResourceSystem::harvest_at(const vec2 world_position)
     {
@@ -71,7 +71,7 @@ namespace game::resources
         }
 
         collect_kind(nodes_[*best_index].kind);
-        occupied_node_keys_.erase(game::sample_key(nodes_[*best_index].coord));
+        occupied_node_keys_.erase(sample_key(nodes_[*best_index].coord));
         nodes_.erase(nodes_.begin() + static_cast<std::ptrdiff_t>(*best_index));
         ++nodes_revision_;
         return {};
@@ -135,7 +135,7 @@ namespace game::resources
 
     void ResourceSystem::add_node(const ResourceNode& node)
     {
-        if (!occupied_node_keys_.insert(game::sample_key(node.coord)).second) return;
+        if (!occupied_node_keys_.insert(sample_key(node.coord)).second) return;
 
         nodes_.push_back(node);
         ++nodes_revision_;
@@ -151,8 +151,8 @@ namespace game::resources
             nodes_,
             [this, &cleared_keys, collect_removed](const ResourceNode& node)
             {
-                if (!cleared_keys.contains(game::sample_key(node.coord))) return false;
-                occupied_node_keys_.erase(game::sample_key(node.coord));
+                if (!cleared_keys.contains(sample_key(node.coord))) return false;
+                occupied_node_keys_.erase(sample_key(node.coord));
                 if (collect_removed) collect_kind(node.kind);
                 return true;
             });
