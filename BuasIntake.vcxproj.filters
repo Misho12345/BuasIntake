@@ -234,6 +234,12 @@
     <ClCompile Include="src\world\PlanetRestorationGoal.cpp">
       <Filter>Source Files\world</Filter>
     </ClCompile>
+    <ClCompile Include="src\terrain\TerrainGenerationFinalizer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\terrain\TerrainSurfaceSampler.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\pch.hpp">
@@ -459,6 +465,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="src\core\Utils.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainGenerationFinalizer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="src\terrain\TerrainSurfaceSampler.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
