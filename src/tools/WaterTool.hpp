@@ -53,11 +53,6 @@ namespace game::tools
         std::uint32_t desired_place_amount() const;
 
     private:
-        struct BucketTier final
-        {
-            std::uint32_t capacity{ 0u };
-        };
-
         struct PreviewCache final
         {
             bool valid{ false };
@@ -77,9 +72,6 @@ namespace game::tools
         // the preview is cached because rebuilding the water plan every frame for no reason got old fast
         void refresh_preview_cache(const TerrainToolContext& context, const TerrainTargetResolver& resolver) const;
         void invalidate_preview_cache() const;
-        BucketTier current_tier() const;
-        std::optional<BucketTier> next_tier() const;
-        std::size_t flat_tier_index() const;
 
         std::size_t material_index_{ 0u };
         std::size_t level_index_{ 0u };

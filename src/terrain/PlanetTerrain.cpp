@@ -338,27 +338,26 @@ namespace game::terrain
     // caves resources plants wetness and greenness all want the same final field so doing them from one source keeps them from drifting apart
     void PlanetTerrain::generate_caves_resources_and_plants()
     {
-        const auto callbacks = TerrainGenerationCallbacks{
-            .global_field_index = [this](const ivec2 coord) { return global_field_index(coord); },
-            .solid_neighbor_count = [this](const ivec2 coord) { return solid_neighbor_count(coord); },
-            .global_sample_world_position = [this](const ivec2 coord) { return global_sample_world_position(coord); },
-            .normalized_depth = [this](const vec2 world_position) { return normalized_depth(world_position); },
-            .exposed_surface_attachment = [this](const ivec2 coord) { return exposed_surface_attachment(coord); },
-            .has_water_neighbor = [this](const ivec2 coord) { return has_water_neighbor(coord); },
-            .is_valid_global_sample = [this](const ivec2 coord) { return is_valid_global_sample(coord); },
-            .dry_water_density = [](const FieldSample& sample) { return dry_water_density(sample); },
-            .add_resource_node =
-            [this](const resources::ResourceNode& node)
-            {
-                if (resources_ == nullptr) return;
-                auto stored_node = node;
-                if (!stored_node.surface_attached)
-                {
-                    stored_node.anchor_world = global_sample_world_position(stored_node.coord);
-                }
-                resources_->add_node(stored_node);
-            }
-        };
+	    const auto callbacks = TerrainGenerationCallbacks{
+		    .global_field_index = [this](const ivec2 coord) { return global_field_index(coord); },
+		    .solid_neighbor_count = [this](const ivec2 coord) { return solid_neighbor_count(coord); },
+		    .global_sample_world_position = [this](const ivec2 coord) { return global_sample_world_position(coord); },
+		    .normalized_depth = [this](const vec2 world_position) { return normalized_depth(world_position); },
+		    .exposed_surface_attachment = [this](const ivec2 coord) { return exposed_surface_attachment(coord); },
+		    .has_water_neighbor = [this](const ivec2 coord) { return has_water_neighbor(coord); },
+		    .is_valid_global_sample = [this](const ivec2 coord) { return is_valid_global_sample(coord); },
+		    .dry_water_density = [](const FieldSample& sample) { return dry_water_density(sample); },
+		    .add_resource_node = [this](const resources::ResourceNode& node)
+		    {
+			    if (resources_ == nullptr) return;
+			    auto stored_node = node;
+			    if (!stored_node.surface_attached)
+			    {
+				    stored_node.anchor_world = global_sample_world_position(stored_node.coord);
+			    }
+			    resources_->add_node(stored_node);
+		    }
+	    };
 
         generation_coordinator_.finalize_generated_field(
             field_,

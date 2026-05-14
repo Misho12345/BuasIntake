@@ -65,6 +65,9 @@ namespace game::terrain
             const TerrainContour::ScoredResult& terrain_result,
             const TerrainContour::ScoredResult& water_result,
             std::span<const FieldSample>        field_samples);
+        void cache_terrain_surface(
+            const TerrainContour::ScoredResult& terrain_result,
+            std::span<const FieldSample>        field_samples);
         void build_terrain_mesh(
             const std::vector<vec2>&          vertices,
             const std::vector<std::uint32_t>& indices,

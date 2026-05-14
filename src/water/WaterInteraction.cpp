@@ -341,18 +341,22 @@ namespace game::water
 
         while (!frontier.empty())
         {
-            const auto node = frontier.top();
+            const auto& node = frontier.top();
+            const ivec2 node_coord = node.coord;
+            const float node_radial = node.radial;
+            const float node_spill_level = node.spill_level;
+            const float node_start_dist_sq = node.start_dist_sq;
             frontier.pop();
 
-            const auto key     = sample_key(node.coord);
+            const auto key     = sample_key(node_coord);
             const auto best_it = best_spill_levels.find(key);
-            if (best_it == best_spill_levels.end() || node.spill_level > best_it->second + 1e-5f) continue;
+            if (best_it == best_spill_levels.end() || node_spill_level > best_it->second + 1e-5f) continue;
 
             const FillCandidate candidate{
-                .coord         = node.coord,
-                .radial        = node.radial,
-                .spill_level   = node.spill_level,
-                .start_dist_sq = node.start_dist_sq
+                .coord         = node_coord,
+                .radial        = node_radial,
+                .spill_level   = node_spill_level,
+                .start_dist_sq = node_start_dist_sq
             };
 
             if (selected.size() < desired_wet_sample_count) selected.push_back(candidate);
@@ -364,7 +368,7 @@ namespace game::water
 
             for (const auto& offset : neighbors)
             {
-                push_neighbor(node.coord + offset, node.spill_level);
+                push_neighbor(node_coord + offset, node_spill_level);
             }
         }
 

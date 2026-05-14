@@ -248,7 +248,6 @@ xcopy /y /i /d /e "$(SolutionDir)assets" "$(OutDir)assets\"</Command>
     <ClInclude Include="src\core\Result.hpp" />
     <ClInclude Include="src\core\Utils.hpp" />
     <ClInclude Include="src\Game.hpp" />
-    <ClInclude Include="src\GameObject.hpp" />
     <ClInclude Include="src\platform\InputSystem.hpp" />
     <ClInclude Include="src\player\Player.hpp" />
     <ClInclude Include="src\tools\SeedTool.hpp" />

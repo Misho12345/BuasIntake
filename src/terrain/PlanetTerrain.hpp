@@ -5,14 +5,12 @@
 
 #include "TerrainChunkGrid.hpp"
 #include "TerrainField.hpp"
-#include "resources/ResourceSystem.hpp"
 #include "terrain/TerrainBrushController.hpp"
 #include "terrain/TerrainGenerationCoordinator.hpp"
 #include "terrain/TerrainGenerationFinalizer.hpp"
 #include "terrain/TerrainMoistureSystem.hpp"
 #include "terrain/TerrainSurfaceAttachmentSystem.hpp"
 #include "terrain/TerrainSurfaceSampler.hpp"
-#include "vegetation/Plant.hpp"
 #include "water/TerrainWaterSystem.hpp"
 
 namespace game::resources { class ResourceSystem; }
@@ -28,13 +26,6 @@ namespace game::terrain
         using TerrainEdit       = TerrainGenerator::TerrainEdit;
         using FieldSample       = TerrainFieldSample;
         using WaterPlan         = water::WaterPlan;
-        using ResourceInventory = resources::ResourceInventory;
-        using ResourceNode      = resources::ResourceNode;
-        using Plant             = vegetation::Plant;
-        using PlantStage        = vegetation::PlantStage;
-        using PlantFamily       = vegetation::PlantFamily;
-
-        static constexpr std::size_t hud_counter_count = resources::hud_counter_count;
 
         PlanetTerrain(
             b2WorldId                     world_id,

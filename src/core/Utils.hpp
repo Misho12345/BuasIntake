@@ -268,12 +268,12 @@ namespace game
     template <typename T> T max(const vec4_t<T>& vec) { return std::max({ vec.x, vec.y, vec.z, vec.w }); }
 
 
-    template <typename T, typename Func, typename... Args> requires std::invocable<Func, T, Args...>
-	vec2_t<T> vec2_each(const vec2_t<T>& vec, Func&& func, Args&&... args)
+    template <typename T, typename Func, typename... Args> requires std::invocable<Func, T, const Args&...>
+	vec2_t<T> vec2_each(const vec2_t<T>& vec, Func&& func, const Args&... args)
     {
         return vec2_t<T>{
-	        static_cast<T>(std::invoke(func, vec.x, std::forward<Args>(args)...)),
-	        static_cast<T>(std::invoke(func, vec.y, std::forward<Args>(args)...))
+	        static_cast<T>(std::invoke(func, vec.x, args...)),
+	        static_cast<T>(std::invoke(func, vec.y, args...))
         };
     }
 

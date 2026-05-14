@@ -176,9 +176,7 @@ namespace game::terrain
         auto terrain_result = read_scored_surface();
         if (!terrain_result) return fail(terrain_result.error());
 
-        cached_terrain_vertices_ = terrain_result->mesh_vertices;
-        cached_terrain_indices_  = terrain_result->mesh_indices;
-        build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
+        cache_terrain_surface(*terrain_result, field_samples);
         collider_.build(terrain_result->collider_loops, terrain_result->collider_paths);
         return {};
     }
@@ -226,9 +224,7 @@ namespace game::terrain
             auto terrain_result = rebuild_scored_surface(TerrainGenerator::terrain_channel_index, 0.0f);
             if (!terrain_result) return fail(terrain_result.error());
 
-            cached_terrain_vertices_ = terrain_result->mesh_vertices;
-            cached_terrain_indices_  = terrain_result->mesh_indices;
-            build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
+            cache_terrain_surface(*terrain_result, field_samples);
             collider_.build(terrain_result->collider_loops, terrain_result->collider_paths);
         }
         else if (!cached_terrain_vertices_.empty() && !cached_terrain_indices_.empty())
@@ -247,11 +243,18 @@ namespace game::terrain
         const TerrainContour::ScoredResult& water_result,
         const std::span<const FieldSample>  field_samples)
     {
+        cache_terrain_surface(terrain_result, field_samples);
+        water_surface_.rebuild_mesh(water_result.mesh_vertices, water_result.mesh_indices);
+        collider_.build(terrain_result.collider_loops, terrain_result.collider_paths);
+    }
+
+    void TerrainChunk::cache_terrain_surface(
+        const TerrainContour::ScoredResult& terrain_result,
+        const std::span<const FieldSample>  field_samples)
+    {
         cached_terrain_vertices_ = terrain_result.mesh_vertices;
         cached_terrain_indices_  = terrain_result.mesh_indices;
         build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
-        water_surface_.rebuild_mesh(water_result.mesh_vertices, water_result.mesh_indices);
-        collider_.build(terrain_result.collider_loops, terrain_result.collider_paths);
     }
 
     void TerrainChunk::build_terrain_mesh(

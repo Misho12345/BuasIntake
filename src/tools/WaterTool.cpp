@@ -11,13 +11,16 @@ namespace game::tools
 {
     namespace
     {
-        constexpr std::array<std::uint32_t, 9> bucket_capacities{{
+        constexpr std::array<std::uint32_t, tool_tier_count> bucket_capacities{{
             32u, 44u, 56u,
             72u, 88u, 104u,
             124u, 148u, 172u
         }};
 
-        static_assert(bucket_capacities.size() == (max_tool_material_index + 1u) * tool_levels_per_material);
+        std::uint32_t bucket_capacity_at(const std::size_t tier_index)
+        {
+            return bucket_capacities[std::min(tier_index, bucket_capacities.size() - 1u)];
+        }
     }
 
     void WaterTool::deactivate()
@@ -178,7 +181,7 @@ namespace game::tools
 
         if (!same_target || !same_amount || !same_terrain || !same_water)
         {
-            const auto preview = context.water->build_preview(*context.terrain, *target_position, desired_place_amount_);
+            auto preview = context.water->build_preview(*context.terrain, *target_position, desired_place_amount_);
             ++preview_revision_;
             preview_cache_.valid = true;
             preview_cache_.target_world = *target_position;
@@ -213,13 +216,17 @@ namespace game::tools
 
     std::optional<WaterTool::BucketStats> WaterTool::next_stats() const
     {
-        const auto tier = next_tier();
-        if (!tier.has_value()) return std::nullopt;
-        return BucketStats{ .capacity = tier->capacity };
+        if (at_max_upgrade()) return std::nullopt;
+
+        auto [next_material, next_level] = next_tool_material_level(material_index_, level_index_);
+        return BucketStats{ .capacity = bucket_capacity_at(flat_tool_tier_index(next_material, next_level)) };
     }
 
     std::uint32_t WaterTool::current_amount() const { return current_amount_; }
-    std::uint32_t WaterTool::current_capacity() const { return current_tier().capacity; }
+    std::uint32_t WaterTool::current_capacity() const
+    {
+        return bucket_capacity_at(flat_tool_tier_index(material_index_, level_index_));
+    }
     std::uint32_t WaterTool::desired_place_amount() const { return desired_place_amount_; }
 
     void WaterTool::invalidate_preview_cache() const
@@ -228,23 +235,4 @@ namespace game::tools
         ++preview_revision_;
     }
 
-    WaterTool::BucketTier WaterTool::current_tier() const
-    {
-        return BucketTier{
-            .capacity = bucket_capacities[std::min(flat_tier_index(), bucket_capacities.size() - 1u)]
-        };
-    }
-
-    std::optional<WaterTool::BucketTier> WaterTool::next_tier() const
-    {
-        if (at_max_upgrade()) return std::nullopt;
-
-        auto [next_material, next_level] = next_tool_material_level(material_index_, level_index_);
-
-        return BucketTier{
-            .capacity = bucket_capacities[std::min(flat_tool_tier_index(next_material, next_level), bucket_capacities.size() - 1u)]
-        };
-    }
-
-    std::size_t WaterTool::flat_tier_index() const { return flat_tool_tier_index(material_index_, level_index_); }
 }

@@ -153,7 +153,7 @@ namespace game::tools
         const auto clamped_position = tool_reach_world_position(context);
         if (context.terrain != nullptr &&
             clamped_position.has_value() &&
-            context.terrain-> contains_water_volume(*clamped_position))
+            context.terrain->contains_water_volume(*clamped_position))
             return clamped_position;
 
         const auto hit = terrain_tool_hit_world_position(context);

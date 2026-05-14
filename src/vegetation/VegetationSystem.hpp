@@ -22,7 +22,7 @@ namespace game::vegetation
     // https://github.com/archaicvirus/TreeGenerator
     // https://tic80.com/play?cart=3424
     // chatgpt 5.4 helped with the script responsible for generation of transition sprites
-	class VegetationSystem final
+    class VegetationSystem final
 	{
 	public:
 		// initialize sizes the plant grid to the terrain field so every sample can own one plant slot if needed

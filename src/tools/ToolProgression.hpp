@@ -7,6 +7,7 @@ namespace game::tools
     inline constexpr std::size_t max_tool_material_index = 2u;
     inline constexpr std::size_t max_tool_level_index    = 2u;
     inline constexpr std::size_t tool_levels_per_material = 3u;
+    inline constexpr std::size_t tool_tier_count = (max_tool_material_index + 1u) * tool_levels_per_material;
 
     constexpr bool at_max_tool_upgrade(const std::size_t material, const std::size_t level)
     {

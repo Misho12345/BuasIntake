@@ -44,24 +44,6 @@ namespace game::terrain
                 field_size);
         }
 
-        inline bool sample_bounds_intersect(const TerrainSampleBounds& lhs, const TerrainSampleBounds& rhs)
-        {
-            return lhs.min.x <= rhs.max.x &&
-                    lhs.max.x >= rhs.min.x &&
-                    lhs.min.y <= rhs.max.y &&
-                    lhs.max.y >= rhs.min.y;
-        }
-
-        inline TerrainSampleBounds intersect_sample_bounds(
-            const TerrainSampleBounds& lhs,
-            const TerrainSampleBounds& rhs)
-        {
-            return {
-                .min = { std::max(lhs.min.x, rhs.min.x), std::max(lhs.min.y, rhs.min.y) },
-                .max = { std::min(lhs.max.x, rhs.max.x), std::min(lhs.max.y, rhs.max.y) }
-            };
-        }
-
         // local wetness rebuild after terrain or water edits
         // clamp the work to a region around the changed samples, then run outward from nearby water with a priority queue
         // this is much cheaper than rebuilding the whole planet for a small edit

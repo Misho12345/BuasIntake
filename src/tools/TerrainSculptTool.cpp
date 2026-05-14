@@ -292,7 +292,7 @@ namespace game::tools
             };
         };
 
-        static constexpr std::array<ToolTier, 9> terrain_tool_tiers{
+        static constexpr std::array<ToolTier, tool_tier_count> terrain_tool_tiers{
             {
                 make_tier(1.85f, 1.15f, 34.0f, 0.60f, 1.85f, 6000u),
                 make_tier(1.93f, 1.24f, 40.0f, 0.42f, 1.65f, 8000u),
@@ -306,7 +306,6 @@ namespace game::tools
             }
         };
 
-        static_assert(terrain_tool_tiers.size() == (max_tool_material_index + 1u) * tool_levels_per_material);
         return terrain_tool_tiers[std::min(tier_index, terrain_tool_tiers.size() - 1u)];
     }
 

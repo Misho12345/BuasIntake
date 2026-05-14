@@ -92,7 +92,7 @@ namespace game::player
 
         const vec2  spawn_up    = normalize(spawn_position - planet_center);
         const float spawn_angle = dir_to_angle(spawn_up);
-        object_.renderable      = make_capsule_drawable(config_.capsule_radius, config_.capsule_half_height);
+        renderable_             = make_capsule_drawable(config_.capsule_radius, config_.capsule_half_height);
 
         if (auto result = create_physics_body(spawn_position, spawn_angle); !result)
         {
@@ -138,8 +138,8 @@ namespace game::player
         body_def.allowFastRotation = false;
         body_def.name              = "player_capsule";
 
-        object_.body = b2CreateBody(world_, &body_def);
-        if (!b2Body_IsValid(object_.body)) return fail("Failed to create player body");
+        body_ = b2CreateBody(world_, &body_def);
+        if (!b2Body_IsValid(body_)) return fail("Failed to create player body");
 
         return {};
     }
@@ -158,7 +158,7 @@ namespace game::player
             .radius  = config_.capsule_radius
         };
 
-        if (!b2Shape_IsValid(b2CreateCapsuleShape(object_.body, &shape_def, &capsule)))
+        if (!b2Shape_IsValid(b2CreateCapsuleShape(body_, &shape_def, &capsule)))
             return fail("Failed to create player capsule shape");
         return {};
     }
@@ -181,7 +181,7 @@ namespace game::player
             { .x = 0.0f, .y = sensor_offset_y },
             b2Rot_identity);
 
-        ground_sensor_shape_ = b2CreatePolygonShape(object_.body, &sensor_shape_def, &ground_sensor);
+        ground_sensor_shape_ = b2CreatePolygonShape(body_, &sensor_shape_def, &ground_sensor);
         if (!b2Shape_IsValid(ground_sensor_shape_)) return fail("Failed to create player ground sensor shape");
 
         return {};
@@ -204,7 +204,7 @@ namespace game::player
             { .x = 0.0f, .y = 0.0f },
             b2Rot_identity);
 
-        water_sensor_shape_ = b2CreatePolygonShape(object_.body, &sensor_shape_def, &water_sensor);
+        water_sensor_shape_ = b2CreatePolygonShape(body_, &sensor_shape_def, &water_sensor);
         if (!b2Shape_IsValid(water_sensor_shape_)) return fail("Failed to create player water sensor shape");
 
         return {};
@@ -212,7 +212,7 @@ namespace game::player
 
     void Player::configure_capsule_drawable()
     {
-        auto& capsule_shape = dynamic_cast<sf::ConvexShape&>(*object_.renderable);
+        auto& capsule_shape = dynamic_cast<sf::ConvexShape&>(*renderable_);
         capsule_shape.setFillColor(0xF29E4C_rgb);
         capsule_shape.setOutlineColor(0xFFF3D9_rgb);
         capsule_shape.setOutlineThickness(0.08f);
@@ -227,9 +227,11 @@ namespace game::player
 
     void Player::destroy()
     {
-        if (b2Body_IsValid(object_.body)) b2DestroyBody(object_.body);
+        if (b2Body_IsValid(body_)) b2DestroyBody(body_);
 
-        object_              = GameObject{};
+        body_                = b2_nullBodyId;
+        transformable_       = {};
+        renderable_.reset();
         world_               = b2_nullWorldId;
         ground_sensor_shape_ = b2_nullShapeId;
         water_sensor_shape_  = b2_nullShapeId;
@@ -284,7 +286,7 @@ namespace game::player
         {
             const auto overlap_shape = overlaps[static_cast<std::size_t>(i)];
             if (!b2Shape_IsValid(overlap_shape)) continue;
-            if (B2_ID_EQUALS(b2Shape_GetBody(overlap_shape), object_.body)) continue;
+            if (B2_ID_EQUALS(b2Shape_GetBody(overlap_shape), body_)) continue;
             if (b2Shape_IsSensor(overlap_shape) != target_is_sensor) continue;
 
             return true;
@@ -298,7 +300,7 @@ namespace game::player
         if (!valid() || !b2World_IsValid(world_)) return std::nullopt;
 
         const vec2 up = up_direction(planet_center);
-        GroundRayCastContext ray_context{ .ignored_body = object_.body };
+        GroundRayCastContext ray_context{ .ignored_body = body_ };
         const vec2 ray_origin = world_position() - up * (config_.capsule_half_height - config_.capsule_radius * 0.35f);
         const vec2 ray_translation = up * -(config_.capsule_radius + config_.ground_probe_distance);
 
@@ -336,18 +338,28 @@ namespace game::player
 
         align_to_planet(planet_center);
         refresh_grounded_state(planet_center);
-        object_.sync_from_physics();
+        const auto position = from_b2(b2Body_GetPosition(body_));
+        const auto angle    = b2Rot_GetAngle(b2Body_GetRotation(body_));
+        transformable_.setPosition(position);
+        transformable_.setRotation(sf::radians(angle));
     }
 
-    void Player::draw_sf(sf::RenderTarget& target) const { object_.draw_sf(target); }
+    void Player::draw_sf(sf::RenderTarget& target) const
+    {
+        if (!renderable_) return;
 
-    b2BodyId Player::body() const { return object_.body; }
-    bool     Player::valid() const { return b2Body_IsValid(object_.body); }
+        sf::RenderStates states{ sf::RenderStates::Default };
+        states.transform = transformable_.getTransform();
+        target.draw(*renderable_, states);
+    }
+
+    b2BodyId Player::body() const { return body_; }
+    bool     Player::valid() const { return b2Body_IsValid(body_); }
 
     vec2 Player::world_position() const
     {
-        if (!valid()) return object_.transformable.getPosition();
-        return from_b2(b2Body_GetPosition(object_.body));
+        if (!valid()) return transformable_.getPosition();
+        return from_b2(b2Body_GetPosition(body_));
     }
 
     vec2 Player::up_direction(const vec2 planet_center) const { return normalize(world_position() - planet_center); }
@@ -383,10 +395,10 @@ namespace game::player
         const vec2                   movement_direction,
         const bool                   in_water)
     {
-        const vec2  current_velocity      = from_b2(b2Body_GetLinearVelocity(object_.body));
+        const vec2  current_velocity      = from_b2(b2Body_GetLinearVelocity(body_));
         const float current_tangent_speed = current_velocity.dot(movement_direction);
         const float move_axis             = movement_axis();
-        const float player_mass           = b2Body_GetMass(object_.body);
+        const float player_mass           = b2Body_GetMass(body_);
         const float movement_scale        = in_water ? 0.68f : 1.0f;
 
         if (move_axis != 0.0f)
@@ -401,7 +413,7 @@ namespace game::player
             if (std::abs(speed_change) <= 1e-4f) return;
 
             const vec2 impulse = movement_direction * (player_mass * speed_change);
-            b2Body_ApplyLinearImpulseToCenter(object_.body, to_b2(impulse), true);
+            b2Body_ApplyLinearImpulseToCenter(body_, to_b2(impulse), true);
             return;
         }
 
@@ -415,7 +427,7 @@ namespace game::player
 
         const float direction     = current_tangent_speed > 0.0f ? -1.0f : 1.0f;
         const vec2  brake_impulse = movement_direction * (player_mass * brake_speed * direction);
-        b2Body_ApplyLinearImpulseToCenter(object_.body, to_b2(brake_impulse), true);
+        b2Body_ApplyLinearImpulseToCenter(body_, to_b2(brake_impulse), true);
     }
 
     void Player::try_jump(
@@ -428,7 +440,7 @@ namespace game::player
 
         if (in_water)
         {
-            const vec2  current_velocity = from_b2(b2Body_GetLinearVelocity(object_.body));
+            const vec2  current_velocity = from_b2(b2Body_GetLinearVelocity(body_));
             const float current_up_speed = current_velocity.dot(up_direction);
             const float desired_up_speed = config_.move_speed * 0.95f;
             const float max_speed_change = config_.move_acceleration * fixed_step * 0.85f;
@@ -439,15 +451,15 @@ namespace game::player
 
             if (speed_change <= 1e-4f) return;
 
-            const vec2 swim_impulse = up_direction * (b2Body_GetMass(object_.body) * speed_change);
-            b2Body_ApplyLinearImpulseToCenter(object_.body, to_b2(swim_impulse), true);
+            const vec2 swim_impulse = up_direction * (b2Body_GetMass(body_) * speed_change);
+            b2Body_ApplyLinearImpulseToCenter(body_, to_b2(swim_impulse), true);
             return;
         }
 
         if (!grounded_ || jump_cooldown_timer_ > 0.0f) return;
 
-        const vec2 jump_impulse = up_direction * (b2Body_GetMass(object_.body) * config_.jump_speed);
-        b2Body_ApplyLinearImpulseToCenter(object_.body, to_b2(jump_impulse), true);
+        const vec2 jump_impulse = up_direction * (b2Body_GetMass(body_) * config_.jump_speed);
+        b2Body_ApplyLinearImpulseToCenter(body_, to_b2(jump_impulse), true);
         grounded_            = false;
         ground_normal_       = up_direction;
         jump_cooldown_timer_ = config_.jump_cooldown;
@@ -476,11 +488,11 @@ namespace game::player
 
         const float gravity_scale = in_water ? 0.18f : 1.0f;
         const vec2  gravity_force = up_direction(planet_center) * (
-            -b2Body_GetMass(object_.body) *
+            -b2Body_GetMass(body_) *
             config_.gravity_acceleration *
             gravity_scale);
 
-        b2Body_ApplyForceToCenter(object_.body, to_b2(gravity_force), true);
+        b2Body_ApplyForceToCenter(body_, to_b2(gravity_force), true);
     }
 
     void Player::align_to_planet(const vec2 planet_center) const
@@ -490,11 +502,11 @@ namespace game::player
         // The capsule always stays upright relative to the planet; spinning physics is not part of the movement here.
         const vec2  position      = world_position();
         const float target_angle  = dir_to_angle(up_direction(planet_center));
-        const float current_angle = b2Rot_GetAngle(b2Body_GetRotation(object_.body));
+        const float current_angle = b2Rot_GetAngle(b2Body_GetRotation(body_));
 
-        b2Body_SetAngularVelocity(object_.body, 0.0f);
+        b2Body_SetAngularVelocity(body_, 0.0f);
         if (std::abs(shortest_angle_delta(current_angle, target_angle)) <= 1e-4f) return;
 
-        b2Body_SetTransform(object_.body, to_b2(position), b2MakeRot(target_angle));
+        b2Body_SetTransform(body_, to_b2(position), b2MakeRot(target_angle));
     }
 }

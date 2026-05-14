@@ -2,8 +2,6 @@
 
 #include "pch.hpp"
 
-#include "GameObject.hpp"
-
 namespace game::player
 {
     struct PlayerConfig final
@@ -26,6 +24,8 @@ namespace game::player
     class Player final
     {
     public:
+        using Drawable = std::unique_ptr<sf::Drawable>;
+
         Player() = default;
         ~Player();
 
@@ -98,8 +98,10 @@ namespace game::player
 
         b2WorldId world_{ b2_nullWorldId };
 
-        GameObject   object_{};
-        PlayerConfig config_{};
+        b2BodyId          body_{ b2_nullBodyId };
+        sf::Transformable transformable_{};
+        Drawable          renderable_{};
+        PlayerConfig      config_{};
 
         b2ShapeId ground_sensor_shape_{ b2_nullShapeId };
         b2ShapeId water_sensor_shape_{ b2_nullShapeId };
