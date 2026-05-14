@@ -39,6 +39,9 @@ namespace game::resources
         // harvest_at finds the nearest node in range and applies both the inventory reward and the node removal in one place
         Result<void> harvest_at(vec2 world_position);
 
+        // for the testers
+        void grant_seeds(std::uint32_t amount);
+
         bool spend(const ResourceInventory& cost);
         void update(float dt);
         void validate() const;

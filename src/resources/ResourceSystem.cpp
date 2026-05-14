@@ -82,6 +82,11 @@ namespace game::resources
         return inventory_.can_afford(make_inventory_cost(cost));
     }
 
+    void ResourceSystem::grant_seeds(const std::uint32_t amount)
+    {
+        add_count(InventoryItem::Seeds, static_cast<std::int32_t>(amount));
+    }
+
     bool ResourceSystem::spend(const ResourceInventory& cost)
     {
         if (!can_afford(cost)) return false;

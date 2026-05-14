@@ -371,6 +371,22 @@ namespace game
             return true;
         }
 
+        // added these "hacks" for the sake of the testers, so it's easier for them
+        if (InputSystem::just_pressed(Key::Enter))
+        {
+            if (const auto context = terrain_tool_context();
+                context.has_value())
+                terrain_tools_.handle_instant_resource_shortcut(*context);
+
+            return true;
+        }
+
+        if (InputSystem::just_pressed(Key::U))
+        {
+            terrain_tools_.handle_instant_upgrade_shortcut();
+            return true;
+        }
+
         if (InputSystem::just_pressed(Key::Escape))
         {
             terrain_tools_.close_upgrade_menu();

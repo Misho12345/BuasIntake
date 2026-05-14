@@ -67,6 +67,30 @@ namespace game::tools
         select_slot(static_cast<HotbarSlot>((current + direction + slot_count) % slot_count));
     }
 
+    void TerrainToolController::handle_instant_resource_shortcut(const TerrainToolContext& context)
+    {
+        if (upgrade_menu_open_) return;
+
+        if (is_water_slot_selected())
+        {
+            water_tool_.fill_to_capacity();
+            return;
+        }
+
+        if (is_seed_slot_selected() && context.resources != nullptr)
+        {
+            context.resources->grant_seeds(10u);
+        }
+    }
+
+    void TerrainToolController::handle_instant_upgrade_shortcut()
+    {
+        if (upgrade_menu_open_) return;
+
+        if (is_water_slot_selected()) water_tool_.upgrade();
+        else if (!is_seed_slot_selected()) terrain_tool_.upgrade();
+    }
+
     void TerrainToolController::toggle_upgrade_menu()
     {
         upgrade_menu_open_ = !upgrade_menu_open_;
@@ -312,6 +336,8 @@ namespace game::tools
     }
 
     bool TerrainToolController::is_water_slot_selected() const { return selected_slot_ == HotbarSlot::Water; }
+
+    bool TerrainToolController::is_seed_slot_selected() const { return selected_slot_ == HotbarSlot::Seeds; }
 
     sf::IntRect TerrainToolController::tool_icon_rect(const std::size_t column, const std::size_t row) const
     {

@@ -31,6 +31,10 @@ namespace game::tools
         void handle_mouse_pressed(const TerrainToolContext& context, MouseButton button);
         void handle_scroll(float delta);
 
+        // for the testers
+        void handle_instant_resource_shortcut(const TerrainToolContext& context);
+        void handle_instant_upgrade_shortcut();
+
         void toggle_upgrade_menu();
         void close_upgrade_menu();
 
@@ -78,6 +82,7 @@ namespace game::tools
         TerrainToolHudSlotData build_seed_slot_data() const;
 
         bool is_water_slot_selected() const;
+        bool is_seed_slot_selected() const;
 
         sf::IntRect tool_icon_rect(std::size_t column, std::size_t row) const;
 

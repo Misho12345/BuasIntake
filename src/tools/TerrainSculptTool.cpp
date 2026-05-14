@@ -298,14 +298,14 @@ namespace game::tools
         static constexpr std::array<ToolTier, 9> terrain_tool_tiers{
             {
                 make_tier(1.85f, 1.15f, 34.0f, 0.60f, 1.85f, 6000u),
-                make_tier(1.98f, 1.24f, 40.0f, 0.42f, 1.65f, 8000u),
-                make_tier(2.10f, 1.34f, 46.0f, 0.34f, 1.48f, 10000u),
-                make_tier(2.24f, 1.47f, 54.0f, 0.46f, 1.62f, 13000u),
-                make_tier(2.38f, 1.60f, 62.0f, 0.42f, 1.58f, 16000u),
-                make_tier(2.52f, 1.74f, 70.0f, 0.38f, 1.54f, 19000u),
-                make_tier(2.66f, 1.86f, 76.0f, 0.35f, 1.51f, 22000u),
-                make_tier(2.78f, 1.98f, 84.0f, 0.34f, 1.49f, 25000u),
-                make_tier(2.90f, 2.10f, 92.0f, 0.33f, 1.47f, 29000u)
+                make_tier(1.93f, 1.24f, 40.0f, 0.42f, 1.65f, 8000u),
+                make_tier(2.01f, 1.34f, 46.0f, 0.34f, 1.48f, 10000u),
+                make_tier(2.09f, 1.47f, 54.0f, 0.46f, 1.62f, 13000u),
+                make_tier(2.17f, 1.60f, 62.0f, 0.42f, 1.58f, 16000u),
+                make_tier(2.25f, 1.74f, 70.0f, 0.38f, 1.54f, 19000u),
+                make_tier(2.33f, 1.86f, 76.0f, 0.35f, 1.51f, 22000u),
+                make_tier(2.41f, 1.98f, 84.0f, 0.34f, 1.49f, 25000u),
+                make_tier(2.50f, 2.10f, 92.0f, 0.33f, 1.47f, 29000u)
             }
         };
 

@@ -20,7 +20,11 @@ namespace game::tools
 
         void adjust_placement_amount(float delta);
         void upgrade();
-        void destroy_preview_resources();
+
+        // for the testers
+        void fill_to_capacity();
+        
+    	void destroy_preview_resources();
 
         struct PreviewState final
         {

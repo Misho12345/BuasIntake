@@ -119,6 +119,15 @@ namespace game::tools
         invalidate_preview_cache();
     }
 
+    void WaterTool::fill_to_capacity()
+    {
+        const std::uint32_t capacity = current_capacity();
+        if (current_amount_ == capacity) return;
+
+        current_amount_ = capacity;
+        invalidate_preview_cache();
+    }
+
     void WaterTool::cancel_placement()
     {
         placement_mode_ = false;
