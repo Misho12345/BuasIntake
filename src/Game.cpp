@@ -66,6 +66,10 @@ namespace game
             };
 
             const std::string_view safe_message = message != nullptr ? std::string_view{ message } : std::string_view{};
+
+			// silence spam of deprecated warnings that are due to the use of SFML
+            if (type == GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR && safe_message.contains("GL_LIGHTING")) return;
+
             if (severity == GL_DEBUG_SEVERITY_HIGH)
             {
                 Log::error(
