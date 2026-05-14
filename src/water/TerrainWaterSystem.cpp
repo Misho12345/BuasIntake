@@ -2,6 +2,8 @@
 
 #include "water/TerrainWaterSystem.hpp"
 
+#include "terrain/TerrainGridMath.hpp"
+
 namespace game::water
 {
     GridView TerrainWaterSystem::make_grid_view(const terrain::TerrainField& field, const vec2 world_center)
@@ -95,34 +97,16 @@ namespace game::water
     {
         if (field.empty()) return false;
 
-        const auto field_size = field.size();
-        const auto cell_size  = field.cell_size();
-        const auto origin     = field.origin();
-
-        const float gx = (world_position.x - origin.x) / cell_size.x;
-        const float gy = (world_position.y - origin.y) / cell_size.y;
-
-        const float clamped_x = std::clamp(gx, 0.0f, static_cast<float>(field_size.x - 1u));
-        const float clamped_y = std::clamp(gy, 0.0f, static_cast<float>(field_size.y - 1u));
-
-        const auto x0 = static_cast<std::uint32_t>(std::floor(clamped_x));
-        const auto y0 = static_cast<std::uint32_t>(std::floor(clamped_y));
-        const auto x1 = std::min(x0 + 1u, field_size.x - 1u);
-        const auto y1 = std::min(y0 + 1u, field_size.y - 1u);
-
-        const float tx = clamped_x - static_cast<float>(x0);
-        const float ty = clamped_y - static_cast<float>(y0);
-
-        auto water_field_at = [&field](const std::uint32_t x, const std::uint32_t y)
-        {
-            const auto& sample = field.samples()[static_cast<std::size_t>(y) * field.size().x + x];
-            return std::min(-sample.terrain, sample.water);
-        };
-
-        const float value = std::lerp(
-            std::lerp(water_field_at(x0, y0), water_field_at(x1, y0), tx),
-            std::lerp(water_field_at(x0, y1), water_field_at(x1, y1), tx),
-            ty);
+        const float value = terrain::sample_field_channel_bilinear(
+            field.samples(),
+            field.size(),
+            field.origin(),
+            field.cell_size(),
+            world_position,
+            [](const terrain::TerrainField::FieldSample& sample)
+            {
+                return std::min(-sample.terrain, sample.water);
+            });
 
         return value > 0.0f;
     }

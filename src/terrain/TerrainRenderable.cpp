@@ -2,7 +2,6 @@
 
 #include "TerrainRenderable.hpp"
 
-#include "gfx/AlphaBlendPass.hpp"
 #include "gfx/Projection.hpp"
 #include "terrain/TerrainConstants.hpp"
 

@@ -27,13 +27,6 @@ namespace game::terrain
             };
         }
 
-        float bilerp(const float a, const float b, const float c, const float d, const float tx, const float ty)
-        {
-            const float ab = std::lerp(a, b, tx);
-            const float cd = std::lerp(c, d, tx);
-            return std::lerp(ab, cd, ty);
-        }
-
         template <typename Accessor>
         float sample_field_channel(
             const std::span<const TerrainChunk::FieldSample> field_samples,
@@ -41,31 +34,13 @@ namespace game::terrain
             const vec2                                       world_position,
             Accessor&&                                       accessor)
         {
-            if (field_samples.empty()) return 0.0f;
-
-            const auto size              = padded_field_size(settings);
-            const auto terrain_cell_size = cell_size(settings);
-            const auto origin            = field_origin(settings);
-
-            const vec2 grid = (world_position - origin) / terrain_cell_size;
-
-            const float clamped_x = std::clamp(grid.x, 0.0f, static_cast<float>(size.x - 1u));
-            const float clamped_y = std::clamp(grid.y, 0.0f, static_cast<float>(size.y - 1u));
-
-            const auto x0 = static_cast<std::uint32_t>(std::floor(clamped_x));
-            const auto y0 = static_cast<std::uint32_t>(std::floor(clamped_y));
-            const auto x1 = std::min(x0 + 1u, size.x - 1u);
-            const auto y1 = std::min(y0 + 1u, size.y - 1u);
-
-            const float tx = clamped_x - static_cast<float>(x0);
-            const float ty = clamped_y - static_cast<float>(y0);
-
-            auto channel_at = [&](const std::uint32_t x, const std::uint32_t y)
-            {
-                return accessor(field_samples[static_cast<std::size_t>(y) * size.x + x]);
-            };
-
-            return bilerp(channel_at(x0, y0), channel_at(x1, y0), channel_at(x0, y1), channel_at(x1, y1), tx, ty);
+            return sample_field_channel_bilinear(
+                field_samples,
+                padded_field_size(settings),
+                field_origin(settings),
+                cell_size(settings),
+                world_position,
+                std::forward<Accessor>(accessor));
         }
     }
 
@@ -212,30 +187,6 @@ namespace game::terrain
     {
         TRY(generator_.dispatch_surface_rebuild(channel_index, iso));
         return read_scored_surface();
-    }
-
-    Result<void> TerrainChunk::rebuild_chunk_meshes(
-        const std::span<const FieldSample> field_samples,
-        const bool                         rebuild_water,
-        const bool                         rebuild_terrain_geometry)
-    {
-        if (rebuild_terrain_geometry)
-        {
-            auto terrain_result = rebuild_scored_surface(TerrainGenerator::terrain_channel_index, 0.0f);
-            if (!terrain_result) return fail(terrain_result.error());
-
-            cache_terrain_surface(*terrain_result, field_samples);
-            collider_.build(terrain_result->collider_loops, terrain_result->collider_paths);
-        }
-        else if (!cached_terrain_vertices_.empty() && !cached_terrain_indices_.empty())
-        {
-            build_terrain_mesh(cached_terrain_vertices_, cached_terrain_indices_, field_samples);
-        }
-
-        if (!rebuild_water) return {};
-
-        TRY(water_surface_.dispatch_rebuild(generator_));
-        return water_surface_.finalize_rebuild(generator_, settings_);
     }
 
     void TerrainChunk::build_chunk(

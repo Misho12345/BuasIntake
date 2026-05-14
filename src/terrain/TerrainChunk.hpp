@@ -56,11 +56,6 @@ namespace game::terrain
         Result<TerrainContour::ScoredResult> read_scored_surface();
         Result<TerrainContour::ScoredResult> rebuild_scored_surface(std::uint32_t channel_index, float iso);
 
-        Result<void> rebuild_chunk_meshes(
-            std::span<const FieldSample> field_samples,
-            bool                         rebuild_water            = true,
-            bool                         rebuild_terrain_geometry = true);
-
         void build_chunk(
             const TerrainContour::ScoredResult& terrain_result,
             const TerrainContour::ScoredResult& water_result,
