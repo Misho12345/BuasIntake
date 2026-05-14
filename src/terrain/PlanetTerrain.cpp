@@ -205,7 +205,7 @@ namespace game::terrain
     {
         const auto attachment = exposed_surface_attachment(coord);
         if (!attachment.has_value()) return false;
-        if (normalized_depth(attachment->anchor_world) > 0.12f) return false;
+        if (normalized_depth(attachment->anchor_world) > constants::surface_plant_depth_limit) return false;
         return attachment->floor_alignment >= 0.74f;
     }
 
@@ -228,9 +228,6 @@ namespace game::terrain
 
         const auto field_size = field_.size();
 
-        static constexpr float surface_depth_limit    = 0.12f;
-        static constexpr float green_sample_threshold = 0.25f;
-
         std::uint32_t surface_sample_count = 0u;
         std::uint32_t green_sample_count   = 0u;
 
@@ -241,7 +238,7 @@ namespace game::terrain
                 const ivec2 coord{ x, y };
                 const auto& sample = field_.sample(coord);
                 if (!is_solid_sample(sample)) continue;
-                if (normalized_depth(global_sample_world_position(coord)) > surface_depth_limit) continue;
+                if (normalized_depth(global_sample_world_position(coord)) > constants::surface_plant_depth_limit) continue;
 
                 bool has_open_neighbor = false;
                 for (int oy = -1; oy <= 1 && !has_open_neighbor; ++oy)
@@ -262,7 +259,7 @@ namespace game::terrain
                 if (!has_open_neighbor) continue;
 
                 ++surface_sample_count;
-                if (sample.greenness >= green_sample_threshold) ++green_sample_count;
+                if (sample.greenness >= constants::green_surface_sample_threshold) ++green_sample_count;
             }
         }
 

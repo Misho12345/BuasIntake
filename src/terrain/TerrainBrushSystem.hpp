@@ -136,10 +136,6 @@ namespace game::terrain
             return dx * dx + dy * dy <= radius * radius;
         }
 
-        static bool has_water(const TerrainFieldSample& sample) { return has_water_sample(sample); }
-
-        static bool is_solid(const TerrainFieldSample& sample) { return is_solid_sample(sample); }
-
         static bool point_inside_brush_blocker(const vec2 point, const GroundBrushBlocker& blocker, const vec2 padding)
         {
             if (blocker.radius > 0.0f)
@@ -221,7 +217,7 @@ namespace game::terrain
                     if (falloff <= 1e-6f) continue;
 
                     const auto& sample             = global_field[global_field_index(coord)];
-                    const bool  had_water          = has_water(sample);
+                    const bool  had_water          = has_water_sample(sample);
                     const bool  had_wetness        = sample.wetness > 1e-4f;
                     const bool  had_water_adjacent = has_water_neighbor(coord);
                     const float next_terrain       = clamp_terrain_density(sample.terrain + signed_strength * falloff,
@@ -283,8 +279,8 @@ namespace game::terrain
                 const vec2  world        = sample_world_position(coord);
                 const auto  sample_index = global_field_index(coord);
                 auto&       sample       = global_field[sample_index];
-                const bool  had_water    = has_water(sample);
-                const bool  was_solid    = is_solid(sample);
+                const bool  had_water    = has_water_sample(sample);
+                const bool  was_solid    = is_solid_sample(sample);
                 const float next_terrain = clamp_terrain_density(sample.terrain + signed_strength * candidates[i].
                                                                   falloff,
                                                                   world,
@@ -302,7 +298,7 @@ namespace game::terrain
                 }
 
                 if (!local_changed) continue;
-                const bool is_solid_now = is_solid(sample);
+                const bool is_solid_now = is_solid_sample(sample);
 
                 result.water_changed = result.water_changed || candidates[i].affects_water;
 

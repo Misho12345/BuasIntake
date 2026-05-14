@@ -2,12 +2,12 @@
 
 #include "TerrainCollider.hpp"
 
+#include "terrain/TerrainConstants.hpp"
+
 namespace game::terrain
 {
     namespace
     {
-        constexpr float minimum_segment_length_sq = 1e-4f;
-
         bool is_valid_segment(const vec2& start, const vec2& end)
         {
             if (!std::isfinite(start.x) || !std::isfinite(start.y) || !std::isfinite(end.x) || !std::isfinite(end.y))
@@ -16,7 +16,7 @@ namespace game::terrain
             }
 
             const vec2 delta = end - start;
-            return delta.lengthSquared() > minimum_segment_length_sq;
+            return delta.lengthSquared() > constants::collider_minimum_segment_length_sq;
         }
 
         std::vector<b2Vec2> sanitize_points(const std::vector<vec2>& source, const bool loop)

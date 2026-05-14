@@ -19,9 +19,6 @@ namespace game::terrain
 
     namespace
     {
-        constexpr float rock_blend_start_depth      = 0.24f;
-        constexpr float rock_blend_end_depth        = 0.88f;
-
         std::weak_ptr<TerrainRenderable::SharedAssets> shared_assets_cache;
 
         Result<void> load_terrain_texture(sf::Texture& texture, const char* path)
@@ -99,8 +96,8 @@ namespace game::terrain
         assets_->shader.set_uniform("uRockTexture", 2);
         assets_->shader.set_uniform("uHardRockTexture", 3);
         assets_->shader.set_uniform("uTextureScale", 0.085f);
-        assets_->shader.set_uniform("uRockBlendStartDepth", rock_blend_start_depth);
-        assets_->shader.set_uniform("uRockBlendEndDepth", rock_blend_end_depth);
+        assets_->shader.set_uniform("uRockBlendStartDepth", constants::terrain_rock_blend_start_depth);
+        assets_->shader.set_uniform("uRockBlendEndDepth", constants::terrain_rock_blend_end_depth);
         assets_->shader.set_uniform("uHardRockStartDepth", constants::hard_rock_depth_threshold);
 
         mesh.draw();

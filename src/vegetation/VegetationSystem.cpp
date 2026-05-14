@@ -4,20 +4,12 @@
 
 #include "resources/ResourceSystem.hpp"
 #include "terrain/PlanetTerrain.hpp"
+#include "terrain/TerrainResourceNoise.hpp"
 
 namespace game::vegetation
 {
     namespace
     {
-        float hash01(const float x, const float y, const std::uint32_t seed)
-        {
-            const float value = std::sin(x * 12.9898f + y * 78.233f + static_cast<float>(seed) * 0.013f) * 43758.5453f;
-            return value - std::floor(value);
-        }
-
-        bool is_solid(const terrain::PlanetTerrain::FieldSample& sample) { return sample.terrain >= 0.0f; }
-        bool has_water(const terrain::PlanetTerrain::FieldSample& sample) { return water::has_water(sample); }
-
         bool is_low_cover_family(const PlantFamily family)
         {
             return family == PlantFamily::Grass || family == PlantFamily::Flowers;
@@ -233,8 +225,8 @@ namespace game::vegetation
 
                 const auto& sample = terrain.global_sample(coord);
 
-                if (!is_solid(sample) ||
-                    has_water(sample) ||
+                if (!game::terrain::is_solid_sample(sample) ||
+                    water::has_water(sample) ||
                     sample.wetness < seed_plantable_wetness_threshold)
                     continue;
 
@@ -372,7 +364,7 @@ namespace game::vegetation
     // the hashes give variety but the tree ratio and spacing checks stop the map from degenerating into all woody plants
     PlantFamily VegetationSystem::choose_plant_family(const terrain::PlanetTerrain& terrain, const ivec2 coord) const
     {
-        const float roll = hash01(
+        const float roll = game::terrain::TerrainResourceNoise::hash01(
             static_cast<float>(coord.x),
             static_cast<float>(coord.y),
             terrain.seed() + 6001u);
@@ -394,7 +386,7 @@ namespace game::vegetation
         const ivec2                   coord,
         const PlantFamily             family) const
     {
-        const float random_value = hash01(
+        const float random_value = game::terrain::TerrainResourceNoise::hash01(
             static_cast<float>(coord.x),
             static_cast<float>(coord.y),
             terrain.seed() + 911u);
@@ -453,8 +445,10 @@ namespace game::vegetation
             else if (plant.family == PlantFamily::Bush) radius = 8;
 
             const int start_offset = static_cast<int>(
-                hash01(static_cast<float>(origin.x), static_cast<float>(origin.y),
-                       terrain.seed() + 7103u) * 32.0f);
+                game::terrain::TerrainResourceNoise::hash01(
+                    static_cast<float>(origin.x),
+                    static_cast<float>(origin.y),
+                    terrain.seed() + 7103u) * 32.0f);
 
             static constexpr std::array offsets{
                 ivec2{ 1, 0 }, ivec2{ 2, 0 },
@@ -492,8 +486,8 @@ namespace game::vegetation
 
                 const auto& sample = terrain.global_sample(coord);
 
-                if (!is_solid(sample) ||
-                    has_water(sample) || sample.wetness < seed_plantable_wetness_threshold)
+                if (!game::terrain::is_solid_sample(sample) ||
+                    water::has_water(sample) || sample.wetness < seed_plantable_wetness_threshold)
                     continue;
 
                 if (plant_samples_[target_index].stage != PlantStage::Empty) continue;

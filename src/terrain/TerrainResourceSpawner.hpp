@@ -41,13 +41,6 @@ namespace game::terrain
         {
             if (global_field.empty()) return;
 
-            static constexpr float cave_generation_min_depth{ 0.14f };
-            static constexpr float cave_resource_min_depth{ 0.18f };
-            static constexpr float cave_resource_max_depth{ 0.56f };
-            static constexpr float ground_copper_min_depth{ 0.24f };
-            static constexpr float ground_iron_min_depth{ 0.32f };
-            static constexpr int   ground_resource_spacing_radius{ 4 };
-
             // depth gates keep common ores near the surface and reserve rare ore rolls for deeper stone and caves
 
             auto is_exposed_to_air = [](const TerrainFieldSample& sample, const int solid_neighbors)
@@ -56,6 +49,7 @@ namespace game::terrain
             };
 
             TerrainResourcePlacement placement;
+            TerrainResourcePlacement embedded_placement;
 
             auto emit_node = [&](
                 const resources::ResourceNodeKind kind,
@@ -82,7 +76,7 @@ namespace game::terrain
 
                     const vec2  world      = global_sample_world_position(coord);
                     const float depth      = normalized_depth(world);
-                    const bool  cave       = depth > cave_resource_min_depth && depth < cave_resource_max_depth;
+                    const bool  cave       = depth > constants::cave_resource_min_depth && depth < constants::cave_resource_max_depth;
                     const auto  attachment = exposed_surface_attachment(coord);
 
                     if (!attachment.has_value()) continue;
@@ -91,7 +85,7 @@ namespace game::terrain
                     const float roll      = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 1701u);
                     const float density   = !cave
                                                 ? 0.070f
-                                                : (alignment > 0.95f ? 0.012f : alignment > 0.86f ? 0.032f : 0.075f);
+                                                : (alignment > 0.95f ? 0.008f : alignment > 0.86f ? 0.020f : 0.040f);
 
                     // cave floors should stay mostly walkable, so flatter alignment gets a lower resource density than walls and rough surfaces
                     if (roll > density) continue;
@@ -111,7 +105,7 @@ namespace game::terrain
                     else if (cave && depth > 0.22f && ore_roll > 0.44f) kind = ResourceNodeKind::IronOre;
                     else if (cave && ore_roll > 0.20f) kind = ResourceNodeKind::CopperOre;
 
-                    if (!cave && placement.has_occupied_neighbor(coord, ground_resource_spacing_radius, is_valid_global_sample)) continue;
+                    if (!cave && placement.has_occupied_neighbor(coord, constants::ground_resource_spacing_radius, is_valid_global_sample)) continue;
 
                     emit_node(
                         kind, coord,
@@ -129,19 +123,21 @@ namespace game::terrain
                 {
                     const ivec2 coord{ x, y };
                     if (placement.is_occupied(coord) ||
-                        placement.has_occupied_neighbor(coord, ground_resource_spacing_radius, is_valid_global_sample))
+                        embedded_placement.has_occupied_neighbor(coord, constants::embedded_resource_spacing_radius, is_valid_global_sample))
                         continue;
 
                     const auto& sample = global_field[global_field_index(coord)];
                     if (!is_solid_sample(sample)) continue;
 
                     const int neighbors = solid_neighbor_count(coord);
-                    if (neighbors < 8) continue;
+                    if (is_exposed_to_air(sample, neighbors)) continue;
+                    if (neighbors < 6) continue;
 
                     const vec2  world = global_sample_world_position(coord);
                     const float depth = normalized_depth(world);
-                    if (depth < cave_generation_min_depth ||
-                        depth > constants::hard_rock_depth_threshold - 0.03f)
+                    const bool shallow_rock = depth < constants::shallow_rock_max_depth;
+                    const bool above_cave   = depth < constants::cave_resource_min_depth;
+                    if (depth > constants::hard_rock_depth_threshold - 0.03f)
                         continue;
 
                     const float cluster_noise = TerrainResourceNoise::perlin_fbm(world * 0.076f + vec2{ 14.0f, -11.0f }, seed + 3209u);
@@ -152,20 +148,21 @@ namespace game::terrain
                     // cluster_noise makes broad ore pockets, seam_noise cuts holes through them so deposits do not become solid carpets
 
                     const float depth_factor =
-                            std::clamp((depth - cave_generation_min_depth) /
-                                       std::max(
-                                           constants::hard_rock_depth_threshold - cave_generation_min_depth - 0.03f,
-                                           0.01f),
-                                       0.0f,
-                                       1.0f);
+                            std::clamp((depth - constants::shallow_rock_max_depth) /
+                                        std::max(
+                                            constants::hard_rock_depth_threshold - constants::shallow_rock_max_depth - 0.03f,
+                                            0.01f),
+                                        0.0f,
+                                        1.0f);
 
-                    const float upper_stone_factor = 1.0f - std::clamp(depth / ground_copper_min_depth, 0.0f, 1.0f);
-
-                    const float density = 0.0085f + std::max(cluster_noise, 0.0f) * 0.045f +
-                        depth_factor * 0.018f + upper_stone_factor * 0.020f;
+                    const float density = shallow_rock
+                                              ? 0.023f + std::max(cluster_noise, 0.0f) * 0.016f
+                                              : above_cave
+                                                    ? 0.006f + std::max(cluster_noise, 0.0f) * 0.023f + depth_factor * 0.008f
+                                                    : 0.007f + std::max(cluster_noise, 0.0f) * 0.027f + depth_factor * 0.009f;
 
                     const float placement_roll = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 5003u);
-                    if (seam_noise > 0.46f || placement_roll > density) continue;
+                    if (seam_noise > 0.54f || placement_roll > density) continue;
 
 
                     const float ore_roll = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 5407u);
@@ -173,21 +170,18 @@ namespace game::terrain
                     using resources::ResourceNodeKind;
 
                     auto kind = ResourceNodeKind::Rock;
-                    if (depth > 0.50f && ore_roll > 0.86f) kind = ResourceNodeKind::DiamondOre;
-                    else if (depth > 0.38f && ore_roll > 0.62f) kind = ResourceNodeKind::GoldOre;
-                    else if (depth > ground_iron_min_depth && ore_roll > 0.34f) kind = ResourceNodeKind::IronOre;
-                    else if (depth > ground_copper_min_depth && ore_roll > 0.18f) kind = ResourceNodeKind::CopperOre;
+                    if (!shallow_rock)
+                    {
+                        if (depth > 0.50f && ore_roll > 0.94f) kind = ResourceNodeKind::DiamondOre;
+                        else if (depth > 0.38f && ore_roll > 0.83f) kind = ResourceNodeKind::GoldOre;
+                        else if (depth > constants::ground_iron_min_depth && ore_roll > 0.70f) kind = ResourceNodeKind::IronOre;
+                        else if (ore_roll > 0.42f) kind = ResourceNodeKind::CopperOre;
+                    }
 
-                    emit_node(kind, coord, TerrainResourceNoise::choose_variant_row(coord, seed, 149u), true);
+                    emit_node(kind, coord, TerrainResourceNoise::choose_variant_row(coord, seed, 149u));
+                    embedded_placement.occupy(coord);
                 }
             }
-
-            static constexpr std::uint8_t dead_bush_family{ 5u };
-            static constexpr std::uint8_t dead_tree_family{ 6u };
-            // these indexes line up with the dead plant texture layers in VegetationRenderer, split by how damp or flat the cave floor is
-            static constexpr std::array<std::size_t, 5> dry_floor_dead_families{ 0u, 2u, 3u, dead_bush_family, dead_tree_family };
-            static constexpr std::array<std::size_t, 5> damp_floor_dead_families{ 1u, 2u, 4u, dead_bush_family, dead_tree_family };
-            static constexpr std::array<std::size_t, 5> shelf_dead_families{ 0u, 2u, 3u, dead_bush_family, dead_tree_family };
 
             // cave plants after resource placement has claimed important cells
             for (int y = 1; y < static_cast<int>(global_field_size.y) - 1; ++y)
@@ -201,7 +195,7 @@ namespace game::terrain
                     const vec2  world = global_sample_world_position(coord);
                     const float depth = normalized_depth(world);
 
-                    if (depth < cave_resource_min_depth || depth > cave_resource_max_depth) continue;
+                    if (depth < constants::cave_resource_min_depth || depth > constants::cave_resource_max_depth) continue;
                     if (has_water_neighbor(coord)) continue;
 
                     const auto attachment = exposed_surface_attachment(coord);
@@ -232,10 +226,11 @@ namespace game::terrain
                         static_cast<float>(y),
                         seed + 4483u);
 
+                    // These indexes line up with the dead plant texture layers in VegetationRenderer.
                     const auto& family_pool =
                             alignment > 0.93f
-                                ? (damp_family ? damp_floor_dead_families : dry_floor_dead_families)
-                                : shelf_dead_families;
+                                ? (damp_family ? constants::damp_floor_dead_resource_families : constants::dry_floor_dead_resource_families)
+                                : constants::shelf_dead_resource_families;
 
                     // choose a family first, then the low 4 bits pick a sprite row variant inside that family
                     const auto family_slot = std::min(
@@ -246,8 +241,8 @@ namespace game::terrain
 
                     const float large_prop_roll = TerrainResourceNoise::hash01(static_cast<float>(x), static_cast<float>(y), seed + 4937u);
 
-                    if (alignment > 0.988f && large_prop_roll > (damp_family ? 0.96f : 0.92f)) family_index = dead_tree_family;
-                    else if (alignment > 0.94f && large_prop_roll > 0.74f) family_index = dead_tree_family;
+                    if (alignment > 0.988f && large_prop_roll > (damp_family ? 0.96f : 0.92f)) family_index = constants::dead_tree_resource_family;
+                    else if (alignment > 0.94f && large_prop_roll > 0.74f) family_index = constants::dead_tree_resource_family;
 
                     const std::uint8_t variant = static_cast<std::uint8_t>(
                         family_index * 16u + TerrainResourceNoise::choose_variant_row(coord, seed, 4673u));

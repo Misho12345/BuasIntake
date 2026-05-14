@@ -2,16 +2,11 @@
 
 #include "terrain/TerrainGenerationFinalizer.hpp"
 
+#include "terrain/TerrainConstants.hpp"
 #include "terrain/TerrainResourceSpawner.hpp"
 
 namespace game::terrain
 {
-    namespace
-    {
-        constexpr float cave_generation_min_depth{ 0.10f };
-        constexpr float cave_generation_max_depth{ 0.45f };
-    }
-
     // this is the bridge between raw generated density and gameplay ready terrain
     // reset derived channels first then smooth only the cave boundaries because fully smoothing caves made them lose all their shape
     std::vector<ivec2> terrain_generation_finalizer::initialize_visual_channels_and_smooth_caves(
@@ -52,7 +47,7 @@ namespace game::terrain
                     const ivec2 coord{ x, y };
                     const vec2  world = callbacks.global_sample_world_position(coord);
                     const float depth = callbacks.normalized_depth(world);
-                    if (depth < cave_generation_min_depth || depth > cave_generation_max_depth) continue;
+                    if (depth < constants::cave_smoothing_min_depth || depth > constants::cave_smoothing_max_depth) continue;
 
                     float terrain_total  = 0.0f;
                     float terrain_weight = 0.0f;

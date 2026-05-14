@@ -5,6 +5,7 @@
 #include "gfx/AlphaBlendPass.hpp"
 #include "resources/ResourceSystem.hpp"
 #include "terrain/PlanetTerrain.hpp"
+#include "terrain/TerrainResourceNoise.hpp"
 
 namespace game::render
 {
@@ -86,6 +87,11 @@ namespace game::render
                 radial_offset = world_height * (exposed ? 0.46f : 0.38f);
             }
 
+            const float angle_offset = game::terrain::TerrainResourceNoise::hash01(
+                static_cast<float>(resource.coord.x),
+                static_cast<float>(resource.coord.y),
+                static_cast<std::uint32_t>(resource.variant) + static_cast<std::uint32_t>(resource.kind) * 131u) * tau;
+
             cached_instances_.push_back({
                 .center_world  = world_position,
                 .up            = up,
@@ -94,7 +100,7 @@ namespace game::render
                 .texture_layer = texture_layer_for(resource.kind),
                 .tile_column   = static_cast<float>((resource.variant * 5u + 3u) % 8u),
                 .tile_row      = static_cast<float>(resource.variant % 16u),
-                .angle_offset = 0.0f
+                .angle_offset  = angle_offset
             });
         }
 

@@ -3,6 +3,7 @@
 #include "pch.hpp"
 
 
+#include "terrain/TerrainConstants.hpp"
 #include "terrain/TerrainFieldSample.hpp"
 
 namespace game::terrain
@@ -80,9 +81,6 @@ namespace game::terrain
             const int                                max_wetness_radius_cells,
             CollectWaterComponent&&                  collect_water_component)
         {
-            static constexpr float base_wetness_radius_cells = 16.0f;
-            static constexpr float pond_radius_scale         = 5.75f;
-
             auto field_index = [global_field_size](const ivec2 coord)
             {
                 return static_cast<std::size_t>(coord.y) * static_cast<std::size_t>(global_field_size.x) +
@@ -94,7 +92,8 @@ namespace game::terrain
             {
                 const float equivalent_radius_cells = std::sqrt(static_cast<float>(water_sample_count) / pi);
                 const float radius_cells            = std::clamp(
-                    base_wetness_radius_cells + equivalent_radius_cells * pond_radius_scale,
+                    constants::base_wetness_radius_cells +
+                        equivalent_radius_cells * constants::pond_wetness_radius_scale,
                     1.0f,
                     static_cast<float>(max_wetness_radius_cells));
                 return std::max(radius_cells * min_cell_extent, min_cell_extent);
@@ -226,18 +225,16 @@ namespace game::terrain
 
             const float          min_cell_extent = std::min(terrain_cell_size.x, terrain_cell_size.y);
 
-            static constexpr int max_wetness_radius_cells = 96;
-
             const auto changed_bounds  = clamp_sample_bounds(changed_min, changed_max, global_field_size);
 
             const auto affected_bounds = expand_sample_bounds(
                 changed_bounds,
-                max_wetness_radius_cells,
+                constants::max_wetness_radius_cells,
                 global_field_size);
 
             const auto component_discovery_bounds = expand_sample_bounds(
                 affected_bounds,
-                max_wetness_radius_cells,
+                constants::max_wetness_radius_cells,
                 global_field_size);
 
             auto clear_affected_wetness = [&]
@@ -302,7 +299,7 @@ namespace game::terrain
                 global_field_size,
                 component_discovery_bounds,
                 min_cell_extent,
-                max_wetness_radius_cells,
+                constants::max_wetness_radius_cells,
                 std::forward<CollectWaterComponent>(
                     collect_water_component));
 

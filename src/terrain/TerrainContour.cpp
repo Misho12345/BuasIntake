@@ -2,6 +2,7 @@
 
 #include "TerrainContour.hpp"
 
+#include "terrain/TerrainConstants.hpp"
 #include "terrain/TerrainGridMath.hpp"
 
 namespace game::terrain
@@ -205,9 +206,6 @@ namespace game::terrain
         bool changed    = true;
 
         const float            min_segment_length_sq       = min_segment_length * min_segment_length;
-        static constexpr float combine_dot_threshold       = 0.9985f;
-        static constexpr float sharp_feature_dot_threshold = 0.92f;
-
         // simplify conservatively: collider jitter matters, but deleting tight cave corners would change gameplay space
         while (changed && simplified.size() >= min_points)
         {
@@ -257,7 +255,7 @@ namespace game::terrain
                     }
 
                     // Keep tight corners and narrow cavity walls intact even if one local edge is short.
-                    if (alignment < sharp_feature_dot_threshold || corner_distance > collinear_epsilon * 0.35f)
+                    if (alignment < constants::contour_sharp_feature_dot_threshold || corner_distance > collinear_epsilon * 0.35f)
                     {
                         next.push_back(current);
                         continue;
@@ -268,7 +266,7 @@ namespace game::terrain
                 }
 
                 if (const bool nearly_collinear =
-                            alignment >= combine_dot_threshold &&
+                            alignment >= constants::contour_combine_dot_threshold &&
                             corner_distance <= collinear_epsilon;
                     nearly_collinear && simplified.size() > min_points)
                 {
