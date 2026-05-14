@@ -57,7 +57,14 @@ namespace game::ui
 	            "- U: upgrade the selected tool (for digging tool & bucket).\n"
 	            "- Enter: fill the bucket or add +10 seeds with the seed tool.",
                 false
+            },
+			#ifdef _DEBUG
+            {
+                "Performance warning",
+                "If the game feels laggy, especially on older hardware, run it in Release mode instead for a better testing experience.",
+                false
             }
+			#endif
         }};
 
         struct TutorialLayout final
