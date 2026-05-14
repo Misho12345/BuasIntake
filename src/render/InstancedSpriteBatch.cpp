@@ -163,6 +163,12 @@ namespace game::render
         tile_size_pixels_  = 32u;
     }
 
+    void InstancedSpriteBatch::reserve_instances(const std::size_t count)
+    {
+        if (!instance_vbo_.valid() || count <= instance_capacity_) return;
+        grow_instance_buffer(count);
+    }
+
     void InstancedSpriteBatch::upload_instances(const std::span<const SpriteInstance> instances)
     {
         if (!instance_vbo_.valid()) return;
@@ -176,13 +182,12 @@ namespace game::render
         if (instances.size() > instance_capacity_)
         {
             // grow the buffer only when needed, otherwise reuse it to avoid reallocating during camera movement
-            glNamedBufferData(
+            grow_instance_buffer(instances.size());
+            glNamedBufferSubData(
                 instance_vbo_.id(),
+                0,
                 static_cast<GLsizeiptr>(instances.size() * sizeof(SpriteInstance)),
-                instances.data(),
-                GL_DYNAMIC_DRAW);
-
-            instance_capacity_ = instances.size();
+                instances.data());
         }
         else
         {
@@ -194,6 +199,24 @@ namespace game::render
         }
 
         instance_count_ = static_cast<GLsizei>(instances.size());
+    }
+
+    void InstancedSpriteBatch::grow_instance_buffer(const std::size_t required_capacity)
+    {
+        std::size_t next_capacity = std::max<std::size_t>(required_capacity, 256u);
+        if (instance_capacity_ > 0u)
+        {
+            next_capacity = std::max(next_capacity, instance_capacity_ * 2u);
+        }
+
+        glNamedBufferData(
+            instance_vbo_.id(),
+            static_cast<GLsizeiptr>(next_capacity * sizeof(SpriteInstance)),
+            nullptr,
+            GL_DYNAMIC_DRAW);
+
+        instance_count_ = 0;
+        instance_capacity_ = next_capacity;
     }
 
     void InstancedSpriteBatch::draw(const sf::View& view) const

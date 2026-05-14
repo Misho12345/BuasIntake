@@ -116,6 +116,25 @@ namespace game::render
 
             return spec;
         }
+
+        bool same_sprite_instance(const SpriteInstance& lhs, const SpriteInstance& rhs)
+        {
+            return lhs.center_world == rhs.center_world &&
+                   lhs.up == rhs.up &&
+                   lhs.world_height == rhs.world_height &&
+                   lhs.radial_offset == rhs.radial_offset &&
+                   lhs.texture_layer == rhs.texture_layer &&
+                   lhs.tile_column == rhs.tile_column &&
+                   lhs.tile_row == rhs.tile_row &&
+                   lhs.angle_offset == rhs.angle_offset;
+        }
+
+        bool same_sprite_instances(
+            const std::span<const SpriteInstance> lhs,
+            const std::span<const SpriteInstance> rhs)
+        {
+            return std::ranges::equal(lhs, rhs, same_sprite_instance);
+        }
     }
 
     Result<void> VegetationRenderer::initialize_assets()
@@ -167,9 +186,11 @@ namespace game::render
         visible_low_cover_live32_instances_.clear();
         visible_dead32_instances_.clear();
         visible_dead64_instances_.clear();
+        pending_visible_instances_.clear();
 
         last_vegetation_revision_ = std::numeric_limits<std::uint64_t>::max();
         last_resource_revision_   = std::numeric_limits<std::uint64_t>::max();
+        uploaded_stream_ids_.fill(std::numeric_limits<std::uint64_t>::max());
     }
 
     // this rebuilds the cpu side instance lists from the sim state
@@ -270,6 +291,19 @@ namespace game::render
 
         last_vegetation_revision_ = vegetation.revision();
         last_resource_revision_   = resources.nodes_revision();
+        reserve_instance_buffers();
+        uploaded_stream_ids_.fill(std::numeric_limits<std::uint64_t>::max());
+    }
+
+    void VegetationRenderer::reserve_instance_buffers()
+    {
+        batch_resources_[static_cast<std::size_t>(VegetationBatchId::Live64)].reserve_instances(cached_live64_instances_.size());
+        batch_resources_[static_cast<std::size_t>(VegetationBatchId::Live32)].reserve_instances(std::max(
+                cached_woody_live32_instances_.size(), 
+                cached_low_cover_live32_instances_.size()));
+
+        batch_resources_[static_cast<std::size_t>(VegetationBatchId::Dead32)].reserve_instances(cached_dead32_instances_.size());
+        batch_resources_[static_cast<std::size_t>(VegetationBatchId::Dead64)].reserve_instances(cached_dead64_instances_.size());
     }
 
     // rebuild only when the source revisions changed then do a cheap radius cull against the current view before upload and draw
@@ -316,20 +350,29 @@ namespace game::render
         auto draw_batch = [&](
             const VegetationBatchId         batch_id,
             std::span<const SpriteInstance> source_instances,
-            std::vector<SpriteInstance>&    visible_instances)
+            std::vector<SpriteInstance>&    visible_instances,
+            const std::uint64_t             stream_id)
         {
             const auto batch_index = static_cast<std::size_t>(batch_id);
-            filter_visible_instances(source_instances, visible_instances);
+            filter_visible_instances(source_instances, pending_visible_instances_);
+            const bool stream_uploaded = uploaded_stream_ids_[batch_index] == stream_id;
+            const bool visible_changed = !same_sprite_instances(visible_instances, pending_visible_instances_);
+
+            if (visible_changed || !stream_uploaded)
+            {
+                visible_instances = pending_visible_instances_;
+                batch_resources_[batch_index].upload_instances(visible_instances);
+                uploaded_stream_ids_[batch_index] = stream_id;
+            }
+
             if (visible_instances.empty()) return;
-            // upload only visible instances each frame; rebuilding the full cached list is reserved for revision changes
-            batch_resources_[batch_index].upload_instances(visible_instances);
             batch_resources_[batch_index].draw(view);
         };
 
-        draw_batch(VegetationBatchId::Live64, cached_live64_instances_, visible_live64_instances_);
-        draw_batch(VegetationBatchId::Live32, cached_woody_live32_instances_, visible_woody_live32_instances_);
-        draw_batch(VegetationBatchId::Live32, cached_low_cover_live32_instances_, visible_low_cover_live32_instances_);
-        draw_batch(VegetationBatchId::Dead32, cached_dead32_instances_, visible_dead32_instances_);
-        draw_batch(VegetationBatchId::Dead64, cached_dead64_instances_, visible_dead64_instances_);
+        draw_batch(VegetationBatchId::Live64, cached_live64_instances_, visible_live64_instances_, 0u);
+        draw_batch(VegetationBatchId::Live32, cached_woody_live32_instances_, visible_woody_live32_instances_, 1u);
+        draw_batch(VegetationBatchId::Live32, cached_low_cover_live32_instances_, visible_low_cover_live32_instances_, 2u);
+        draw_batch(VegetationBatchId::Dead32, cached_dead32_instances_, visible_dead32_instances_, 3u);
+        draw_batch(VegetationBatchId::Dead64, cached_dead64_instances_, visible_dead64_instances_, 4u);
     }
 }

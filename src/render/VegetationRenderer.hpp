@@ -42,6 +42,8 @@ namespace game::render
             const vegetation::VegetationSystem& vegetation,
             const resources::ResourceSystem&    resources);
 
+        void reserve_instance_buffers();
+
         std::array<InstancedSpriteBatch, batch_count> batch_resources_{};
 
         std::vector<SpriteInstance> cached_live64_instances_{};
@@ -55,8 +57,10 @@ namespace game::render
         std::vector<SpriteInstance> visible_low_cover_live32_instances_{};
         std::vector<SpriteInstance> visible_dead32_instances_{};
         std::vector<SpriteInstance> visible_dead64_instances_{};
+        std::vector<SpriteInstance> pending_visible_instances_{};
 
         std::uint64_t last_vegetation_revision_{ std::numeric_limits<std::uint64_t>::max() };
         std::uint64_t last_resource_revision_{ std::numeric_limits<std::uint64_t>::max() };
+        std::array<std::uint64_t, batch_count> uploaded_stream_ids_{};
     };
 }

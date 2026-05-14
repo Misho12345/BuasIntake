@@ -25,11 +25,14 @@ namespace game::render
         // owns one texture array, one shared quad, and a stream of per-instance sprite data
         Result<void> initialize(std::span<const char* const> texture_paths, std::uint32_t tile_size_pixels);
         void destroy_graphics_resources();
+        void reserve_instances(std::size_t count);
         void upload_instances(std::span<const SpriteInstance> instances);
         void draw(const sf::View& view) const;
         bool valid() const;
 
     private:
+        void grow_instance_buffer(std::size_t required_capacity);
+
         gfx::GlVertexArray vao_{};
         gfx::GlBuffer      quad_vbo_{};
         gfx::GlBuffer      instance_vbo_{};
