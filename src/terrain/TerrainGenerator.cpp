@@ -370,11 +370,7 @@ namespace game::terrain
         shader.set_uniform("uChannelIndex", static_cast<std::int32_t>(channel_index));
         shader.set_uniform("uFieldPadding", layout.field_padding);
 
-        shader.set_uniform("uFieldSize",
-                           ivec2{
-                               static_cast<std::int32_t>(settings_.field_size.x),
-                               static_cast<std::int32_t>(settings_.field_size.y)
-                           });
+        shader.set_uniform("uFieldSize", static_cast<ivec2>(settings_.field_size));
 
         shader.set_uniform("uMaxBoundaryEdges", max_boundary_edge_count(settings_));
         shader.set_uniform("uMaxMeshVertices", max_mesh_vertex_count(settings_));

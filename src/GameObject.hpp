@@ -26,9 +26,9 @@ namespace game
         {
             if (!b2Body_IsValid(body)) return;
 
-            const auto [x, y] = b2Body_GetPosition(body);
-            const auto angle  = b2Rot_GetAngle(b2Body_GetRotation(body));
-            transformable.setPosition({ x, y });
+            const auto position = from_b2(b2Body_GetPosition(body));
+            const auto angle    = b2Rot_GetAngle(b2Body_GetRotation(body));
+            transformable.setPosition(position);
             transformable.setRotation(sf::radians(angle));
         }
 

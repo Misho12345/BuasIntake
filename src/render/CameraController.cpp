@@ -84,7 +84,7 @@ namespace game::render
     {
         const auto pixel_position = sf::Mouse::getPosition(window);
         const auto world_position = window.mapPixelToCoords(pixel_position, view_);
-        return { world_position.x, world_position.y };
+        return world_position;
     }
 
     vec2 CameraController::player_up_dir(const world::World& world) const

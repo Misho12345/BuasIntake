@@ -28,20 +28,16 @@ namespace game::terrain
 
         vec2 global_sample_world_position(const TerrainSurfaceFieldView& view, const ivec2 coord)
         {
-            return {
-                view.field_origin.x + static_cast<float>(coord.x) * view.cell_size.x,
-                view.field_origin.y + static_cast<float>(coord.y) * view.cell_size.y
-            };
+            return view.field_origin + view.cell_size * coord;
         }
 
         ivec2 world_to_global_sample(const TerrainSurfaceFieldView& view, const vec2 world_position)
         {
-            const float gx = (world_position.x - view.field_origin.x) / view.cell_size.x;
-            const float gy = (world_position.y - view.field_origin.y) / view.cell_size.y;
+            const vec2 grid = (world_position - view.field_origin) / view.cell_size;
 
             return {
-                std::clamp(static_cast<int>(std::lround(gx)), 0, static_cast<int>(view.field_size.x) - 1),
-                std::clamp(static_cast<int>(std::lround(gy)), 0, static_cast<int>(view.field_size.y) - 1)
+                std::clamp(static_cast<int>(std::lround(grid.x)), 0, static_cast<int>(view.field_size.x) - 1),
+                std::clamp(static_cast<int>(std::lround(grid.y)), 0, static_cast<int>(view.field_size.y) - 1)
             };
         }
 
@@ -106,7 +102,7 @@ namespace game::terrain
             {
                 if (ox == 0 && oy == 0) continue;
 
-                const ivec2 neighbor{ coord.x + ox, coord.y + oy };
+                const ivec2 neighbor = coord + ivec2{ ox, oy };
 
                 if (!is_valid_global_sample(view, neighbor)) continue;
                 if (is_solid_sample(view.field_samples[global_field_index(view, neighbor)])) continue;
@@ -124,8 +120,9 @@ namespace game::terrain
             view,
             coord,
             surface_up,
-            std::max(std::min(view.cell_size.x, view.cell_size.y) * 0.10f, 0.02f),
-            std::max(std::min(view.cell_size.x, view.cell_size.y) * 3.4f, 0.45f));
+            std::max(min(view.cell_size) * 0.10f, 0.02f),
+            std::max(min(view.cell_size) * 3.4f, 0.45f));
+
         if (!anchor.has_value()) return std::nullopt;
 
         return TerrainSurfaceAttachment{
@@ -151,7 +148,7 @@ namespace game::terrain
             view,
             coord,
             up,
-            std::max(std::min(view.cell_size.x, view.cell_size.y) * 0.12f, 0.02f),
-            std::max(std::min(view.cell_size.x, view.cell_size.y) * 3.0f, 0.35f));
+            std::max(min(view.cell_size) * 0.12f, 0.02f),
+            std::max(min(view.cell_size) * 3.0f, 0.35f));
     }
 }

@@ -27,23 +27,23 @@ namespace game::ui
 
     void GoalProgressHud::draw_progress_bar(sf::RenderWindow& window, const world::PlanetRestorationGoal& goal) const
     {
-        const auto  target_size = window.getSize();
-        const float ui_scale    = std::clamp(static_cast<float>(target_size.x) / 800.0f, 0.72f, 1.18f);
+        const vec2  target_size = static_cast<vec2>(window.getSize());
+        const float ui_scale    = std::clamp(target_size.x / 800.0f, 0.72f, 1.18f);
 
         const vec2 bar_size{
-            std::max(80.0f, std::min(static_cast<float>(target_size.x) - 48.0f, 420.0f * ui_scale)),
+            std::max(80.0f, std::min(target_size.x - 48.0f, 420.0f * ui_scale)),
             18.0f * ui_scale
         };
 
         const vec2 bar_position{
-            (static_cast<float>(target_size.x) - bar_size.x) * 0.5f,
+            (target_size.x - bar_size.x) * 0.5f,
             18.0f * ui_scale
         };
 
         const float progress = goal.progress();
 
-        sf::RectangleShape shadow{ { bar_size.x + 8.0f * ui_scale, bar_size.y + 8.0f * ui_scale } };
-        shadow.setPosition({ bar_position.x - 4.0f * ui_scale, bar_position.y - 4.0f * ui_scale });
+        sf::RectangleShape shadow{ bar_size + 8.0f * ui_scale };
+        shadow.setPosition(bar_position - 4.0f * ui_scale);
         shadow.setFillColor(0x030604A8_rgba);
         window.draw(shadow);
 
@@ -62,22 +62,17 @@ namespace game::ui
         };
 
         sf::RectangleShape fill{ fill_size };
-        fill.setPosition({ bar_position.x + inset, bar_position.y + inset });
+        fill.setPosition(bar_position + inset);
         fill.setFillColor(0x68E85FFF_rgba);
         window.draw(fill);
     }
 
     void GoalProgressHud::draw_win_overlay(sf::RenderWindow& window) const
     {
-        const auto target_size = window.getSize();
-        const vec2 center{ static_cast<float>(target_size.x) * 0.5f, static_cast<float>(target_size.y) * 0.5f };
+        const vec2 target_size = static_cast<vec2>(window.getSize());
+        const vec2 center = target_size * 0.5f;
 
-        sf::RectangleShape dim{
-            {
-                static_cast<float>(target_size.x),
-                static_cast<float>(target_size.y)
-            }
-        };
+        sf::RectangleShape dim{ target_size };
 
         dim.setFillColor(0x07120CBC_rgba);
         window.draw(dim);
@@ -87,13 +82,9 @@ namespace game::ui
         title.setOutlineColor(0x061006E6_rgba);
         title.setOutlineThickness(2.4f);
 
-        const auto title_bounds = title.getLocalBounds();
-        title.setOrigin({
-            title_bounds.position.x + title_bounds.size.x * 0.5f,
-            title_bounds.position.y + title_bounds.size.y * 0.5f
-        });
+        title.setOrigin(title.getLocalBounds().getCenter());
 
-        title.setPosition({ center.x, center.y - 24.0f });
+        title.setPosition(center + vec2{ 0.0f, -24.0f });
         window.draw(title);
 
         sf::Text subtitle{ ui_font(), "The planet is green again", 22u };
@@ -101,14 +92,9 @@ namespace game::ui
         subtitle.setOutlineColor(0x061006D0_rgba);
         subtitle.setOutlineThickness(1.4f);
 
-        const auto subtitle_bounds = subtitle.getLocalBounds();
+        subtitle.setOrigin(subtitle.getLocalBounds().getCenter());
 
-        subtitle.setOrigin({
-            subtitle_bounds.position.x + subtitle_bounds.size.x * 0.5f,
-            subtitle_bounds.position.y + subtitle_bounds.size.y * 0.5f
-        });
-
-        subtitle.setPosition({ center.x, center.y + 38.0f });
+        subtitle.setPosition(center + vec2{ 0.0f, 38.0f });
 
         window.draw(subtitle);
     }

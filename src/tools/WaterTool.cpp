@@ -170,7 +170,7 @@ namespace game::tools
             return;
         }
 
-        const float cell_extent = std::min(context.terrain->terrain_cell_size().x, context.terrain->terrain_cell_size().y);
+        const float cell_extent = min(context.terrain->terrain_cell_size());
         const bool same_target = preview_cache_.valid && (preview_cache_.target_world - *target_position).lengthSquared() <= (cell_extent * 0.35f) * (cell_extent * 0.35f);
         const bool same_amount = preview_cache_.valid && preview_cache_.amount == desired_place_amount_;
         const bool same_terrain = preview_cache_.valid && preview_cache_.terrain_revision == context.terrain->field_revision();

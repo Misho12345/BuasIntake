@@ -61,10 +61,7 @@ namespace game::tools
             return PlayerPlacementFrame{
                 .up = up,
                 .right = { up.y, -up.x },
-                .extents = {
-                    (player_bounds.upperBound.x - player_bounds.lowerBound.x) * 0.5f,
-                    (player_bounds.upperBound.y - player_bounds.lowerBound.y) * 0.5f
-                }
+                .extents = (from_b2(player_bounds.upperBound) - from_b2(player_bounds.lowerBound)) * 0.5f
             };
         }
 
@@ -73,7 +70,7 @@ namespace game::tools
             const auto frame = player_placement_frame(context);
             if (!frame.has_value()) return std::nullopt;
 
-            const float player_radius = std::max(frame->extents.y, frame->extents.x + placement_blocker_padding_radius);
+            const float player_radius = max(frame->extents + vec2{ placement_blocker_padding_radius, 0.0f });
 
             // placing ground right into the player feels bad, so placement keeps a little safety gap around them
             return terrain::GroundBrushBlocker{
@@ -162,7 +159,7 @@ namespace game::tools
             const vec2 next_position    = current_position + frame->up * capped_lift_distance;
             const auto current_rotation = b2Body_GetRotation(context.player_body);
 
-            b2Body_SetLinearVelocity(context.player_body, { .x = 0.0f, .y = 0.0f });
+            b2Body_SetLinearVelocity(context.player_body, to_b2({ 0.0f, 0.0f }));
             b2Body_SetTransform(context.player_body, to_b2(next_position), current_rotation);
             lift_cooldown = placement_lift_cooldown_seconds;
         }
@@ -400,10 +397,7 @@ namespace game::tools
 
         const auto previous_position = *state.last_stamp_world;
 
-        const vec2 delta{
-            world_position->x - previous_position.x,
-            world_position->y - previous_position.y
-        };
+        const vec2 delta = *world_position - previous_position;
 
         const float distance = delta.length();
         const float spacing  = std::max(config.radius * config.spacing_factor, 0.05f);

@@ -70,7 +70,7 @@ namespace game::player
 
             ray_context.hit      = true;
             ray_context.fraction = fraction;
-            ray_context.normal   = { normal.x, normal.y };
+            ray_context.normal   = from_b2(normal);
 
             return fraction;
         }
@@ -129,7 +129,7 @@ namespace game::player
     {
         b2BodyDef body_def         = b2DefaultBodyDef();
         body_def.type              = b2_dynamicBody;
-        body_def.position          = { .x = spawn_position.x, .y = spawn_position.y };
+        body_def.position          = to_b2(spawn_position);
         body_def.rotation          = b2MakeRot(spawn_angle);
         body_def.linearDamping     = 0.9f;
         body_def.angularDamping    = 8.0f;

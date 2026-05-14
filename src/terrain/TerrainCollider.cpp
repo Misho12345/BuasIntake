@@ -30,7 +30,7 @@ namespace game::terrain
 
                 if (!points.empty())
                 {
-                    const vec2 previous{ points.back().x, points.back().y };
+                    const vec2 previous = from_b2(points.back());
                     if (!is_valid_segment(previous, point)) continue;
                 }
 
@@ -39,8 +39,8 @@ namespace game::terrain
 
             if (loop && points.size() >= 2u)
             {
-                const vec2 first{ points.front().x, points.front().y };
-                const vec2 last{ points.back().x, points.back().y };
+                const vec2 first = from_b2(points.front());
+                const vec2 last  = from_b2(points.back());
                 if (!is_valid_segment(last, first)) points.pop_back();
             }
 

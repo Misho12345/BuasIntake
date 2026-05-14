@@ -42,7 +42,7 @@ namespace game::terrain
             point = { fract01(point.x * 0.1031f + seed_offset), fract01(point.y * 0.11369f + seed_offset) };
             const vec2  hash_vector{ point.y + 19.19f + seed_offset * 7.0f, point.x + 19.19f + seed_offset * 7.0f };
             const float hash_offset = point.dot(hash_vector);
-            point                   += vec2{ hash_offset, hash_offset };
+            point                   += hash_offset;
             return fract01((point.x + point.y) * (point.x + 13.37f));
         }
 
@@ -116,7 +116,7 @@ namespace game::terrain
         {
             // edited terrain still respects the original planet shell bounds, so digging cannot leave huge noisy spikes behind
             const vec2  offset           = world_position - settings.world_center;
-            const float dist_from_center = std::sqrt(offset.x * offset.x + offset.y * offset.y);
+            const float dist_from_center = offset.length();
             const vec2  dir              = dist_from_center > 1e-5f ? offset / dist_from_center : vec2{ 0.0f, 1.0f };
             const float base_density     = generated_surface_radius(dir, settings) - dist_from_center;
             return std::clamp(density, -1.0f, std::max(1.0f, base_density));
@@ -247,7 +247,7 @@ namespace game::terrain
                     {
                         if (ox == 0 && oy == 0) continue;
 
-                        const ivec2 neighbor{ coord.x + ox, coord.y + oy };
+                        const ivec2 neighbor = coord + ivec2{ ox, oy };
                         if (!is_valid_global_sample(neighbor) || !is_solid_sample(field_.sample(neighbor)))
                         {
                             has_open_neighbor = true;
@@ -447,7 +447,7 @@ namespace game::terrain
             {
                 if (x == 0 && y == 0) continue;
 
-                const ivec2 neighbor{ coord.x + x, coord.y + y };
+                const ivec2 neighbor = coord + ivec2{ x, y };
                 if (!is_valid_global_sample(neighbor)) continue;
                 if (is_solid_sample(field_.sample(neighbor))) ++count;
             }
@@ -733,15 +733,15 @@ namespace game::terrain
 
         const auto ray_result = b2World_CastRayClosest(
 	        world_id_,
-	        { ray_origin.x, ray_origin.y },
-	        { ray_end.x - ray_origin.x, ray_end.y - ray_origin.y },
+	        to_b2(ray_origin),
+	        to_b2(ray_end - ray_origin),
 	        filter);
 
         if (ray_result.hit)
         {
-            const vec2 hit_point{ ray_result.point.x, ray_result.point.y };
+            const vec2 hit_point = from_b2(ray_result.point);
             const vec2 radial_up = normalize(hit_point - terrain_world_center);
-            return { hit_point.x + radial_up.x * height_offset, hit_point.y + radial_up.y * height_offset };
+            return hit_point + radial_up * height_offset;
         }
 
         return { terrain_world_center.x, chunk_grid_.display_max().y + height_offset };
@@ -753,13 +753,10 @@ namespace game::terrain
 	    const ChunkSettings defaults{};
 	    const auto          terrain_chunk_size = defaults.chunk_size;
 
-	    const vec2 total_world_size{
-		    terrain_chunk_size.x * static_cast<float>(total_chunk_count.x),
-		    terrain_chunk_size.y * static_cast<float>(total_chunk_count.y)
-	    };
+	    const vec2 total_world_size = terrain_chunk_size * total_chunk_count;
 
-	    const auto min_half_extent = std::min(total_world_size.x, total_world_size.y) * 0.5f;
-        const auto edge_padding    = std::min(terrain_chunk_size.x, terrain_chunk_size.y) * 0.75f;
+	    const auto min_half_extent = min(total_world_size) * 0.5f;
+        const auto edge_padding    = min(terrain_chunk_size) * 0.75f;
         return std::max(min_half_extent - edge_padding, 1.0f);
     }
 

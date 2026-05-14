@@ -251,7 +251,7 @@ namespace game::render
                     : family_index);
 
             const vec2 up = resource.surface_up.lengthSquared() > 1e-6f
-                                ? normalize(resource.surface_up * -1.0f)
+                                ? normalize(-resource.surface_up)
                                 : normalize(world_position - terrain.planet_center());
 
             auto& cached_instances = batch_id == VegetationBatchId::Dead64 ? cached_dead64_instances_ : cached_dead32_instances_;
@@ -285,9 +285,9 @@ namespace game::render
             return;
         }
 
-        const vec2  view_center{ view.getCenter().x, view.getCenter().y };
+        const vec2  view_center = view.getCenter();
         const vec2  view_size{ std::abs(view.getSize().x), std::abs(view.getSize().y) };
-        const float visible_radius    = std::sqrt(view_size.x * view_size.x + view_size.y * view_size.y) * 0.5f + 4.0f;
+        const float visible_radius    = view_size.length() * 0.5f + 4.0f;
         const float visible_radius_sq = visible_radius * visible_radius;
 
         if (last_vegetation_revision_ != vegetation.revision() ||
@@ -308,7 +308,7 @@ namespace game::render
             for (const auto& instance : source)
             {
                 const vec2 delta = instance.center_world - view_center;
-                if (delta.x * delta.x + delta.y * delta.y > visible_radius_sq) continue;
+                if (delta.lengthSquared() > visible_radius_sq) continue;
                 visible_instances.push_back(instance);
             }
         };

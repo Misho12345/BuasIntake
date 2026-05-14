@@ -72,13 +72,13 @@ namespace game::water
         {
             const vec2 center    = terrain.global_sample_world_position(coord);
             const vec2 cell_size = terrain.terrain_cell_size();
-            const vec2 half_cell{ cell_size.x * 0.5f, cell_size.y * 0.5f };
+            const vec2 half_cell = cell_size * 0.5f;
             const auto base_index = static_cast<std::uint32_t>(vertices.size());
 
-            vertices.emplace_back(center.x - half_cell.x, center.y - half_cell.y);
-            vertices.emplace_back(center.x + half_cell.x, center.y - half_cell.y);
-            vertices.emplace_back(center.x + half_cell.x, center.y + half_cell.y);
-            vertices.emplace_back(center.x - half_cell.x, center.y + half_cell.y);
+            vertices.emplace_back(center - half_cell);
+            vertices.emplace_back(center + vec2{ half_cell.x, -half_cell.y });
+            vertices.emplace_back(center + half_cell);
+            vertices.emplace_back(center + vec2{ -half_cell.x, half_cell.y });
 
             indices.insert(
                 indices.end(), {

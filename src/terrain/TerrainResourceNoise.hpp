@@ -18,7 +18,7 @@ namespace game::terrain
         static float perlin_noise(const vec2 point, const std::uint32_t seed)
         {
             const vec2 cell{ std::floor(point.x), std::floor(point.y) };
-            const vec2 local{ point.x - cell.x, point.y - cell.y };
+            const vec2 local = point - cell;
 
             auto gradient = [seed](const vec2 corner)
             {
@@ -29,11 +29,11 @@ namespace game::terrain
             auto fade = [](const float t) { return t * t * (3.0f - 2.0f * t); };
 
             const vec2 c00 = cell;
-            const vec2 c10{ cell.x + 1.0f, cell.y };
-            const vec2 c01{ cell.x, cell.y + 1.0f };
-            const vec2 c11{ cell.x + 1.0f, cell.y + 1.0f };
+            const vec2 c10 = cell + vec2{ 1.0f, 0.0f };
+            const vec2 c01 = cell + vec2{ 0.0f, 1.0f };
+            const vec2 c11 = cell + vec2{ 1.0f, 1.0f };
 
-            const float n00 = gradient(c00).dot(local - vec2{ 0.0f, 0.0f });
+            const float n00 = gradient(c00).dot(local);
             const float n10 = gradient(c10).dot(local - vec2{ 1.0f, 0.0f });
             const float n01 = gradient(c01).dot(local - vec2{ 0.0f, 1.0f });
             const float n11 = gradient(c11).dot(local - vec2{ 1.0f, 1.0f });
@@ -52,7 +52,7 @@ namespace game::terrain
             for (int i = 0; i < 5; ++i)
             {
                 value     += perlin_noise(point, seed + i * 131u) * amplitude;
-                point     = { point.x * 2.04f - 4.8f, point.y * 2.04f + 9.2f };
+                point     = point * 2.04f + vec2{ -4.8f, 9.2f };
                 amplitude *= 0.5f;
             }
 
@@ -77,8 +77,8 @@ namespace game::terrain
         {
             const float seed_offset = static_cast<float>(seed) * 0.0009765625f;
             point = { fract01(point.x * 0.1031f + seed_offset), fract01(point.y * 0.11369f + seed_offset) };
-            const float dot_value = point.x * (point.y + 19.19f) + point.y * (point.x + 19.19f);
-            point = { point.x + dot_value, point.y + dot_value };
+            const float dot_value = point.dot({ point.y + 19.19f, point.x + 19.19f });
+            point += dot_value;
             return fract01((point.x + point.y) * point.x * point.y);
         }
     };

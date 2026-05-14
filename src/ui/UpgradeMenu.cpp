@@ -18,26 +18,18 @@ namespace game::ui
 
         UpgradeMenuLayout make_upgrade_menu_layout(const uvec2 target_size)
         {
-            const vec2 available{
-                std::max(static_cast<float>(target_size.x) - upgrade_menu_margin * 2.0f, 1.0f),
-                std::max(static_cast<float>(target_size.y) - upgrade_menu_margin * 2.0f, 1.0f)
-            };
+            const vec2 target_extent = static_cast<vec2>(target_size);
+            const vec2 available     = vec2_each(target_extent - upgrade_menu_margin * 2.0f, [](const float value, const float floor)
+            {
+                return std::max(value, floor);
+            }, 1.0f);
 
-            const float scale = std::min({
-                available.x / preferred_upgrade_panel_size.x,
-                available.y / preferred_upgrade_panel_size.y, 1.0f
-            });
+            const float scale = std::min(min(available / preferred_upgrade_panel_size), 1.0f);
 
-            const vec2 panel_size{
-                preferred_upgrade_panel_size.x * scale,
-                preferred_upgrade_panel_size.y * scale
-            };
+            const vec2 panel_size = preferred_upgrade_panel_size * scale;
 
             return {
-                .panel_position = {
-                    (static_cast<float>(target_size.x) - panel_size.x) * 0.5f,
-                    (static_cast<float>(target_size.y) - panel_size.y) * 0.5f
-                },
+                .panel_position = (target_extent - panel_size) * 0.5f,
                 .panel_size = panel_size,
                 .scale      = scale
             };
@@ -45,10 +37,7 @@ namespace game::ui
 
         vec2 card_position_for(const UpgradeMenuLayout& layout, const std::size_t card_index)
         {
-            return {
-                layout.panel_position.x + (34.0f + static_cast<float>(card_index) * 550.0f) * layout.scale,
-                layout.panel_position.y + 108.0f * layout.scale
-            };
+            return layout.panel_position + vec2{ 34.0f + static_cast<float>(card_index) * 550.0f, 108.0f } * layout.scale;
         }
 
         std::string roman_tier(const std::size_t level_index)
@@ -71,22 +60,14 @@ namespace game::ui
 
         const auto panel_point = [&](const float x, const float y)
         {
-            return vec2{
-                layout.panel_position.x + scaled(x),
-                layout.panel_position.y + scaled(y)
-            };
+            return layout.panel_position + vec2{ scaled(x), scaled(y) };
         };
 
         const auto scaled_size = [&](const float x, const float y) { return vec2{ scaled(x), scaled(y) }; };
 
         const auto scaled_thickness = [&](const float value) { return std::max(1.0f, scaled(value)); };
 
-        sf::RectangleShape dim{
-            {
-                static_cast<float>(target_size.x),
-                static_cast<float>(target_size.y)
-            }
-        };
+        sf::RectangleShape dim{ static_cast<vec2>(target_size) };
 
         dim.setFillColor(0x020508B0_rgba);
         target.draw(dim);
@@ -126,11 +107,7 @@ namespace game::ui
 
             if (centered)
             {
-                const auto bounds = text.getLocalBounds();
-                text.setOrigin({
-                    bounds.position.x + bounds.size.x * 0.5f,
-                    bounds.position.y + bounds.size.y * 0.5f
-                });
+                text.setOrigin(text.getLocalBounds().getCenter());
             }
 
             text.setPosition(position);
@@ -139,7 +116,7 @@ namespace game::ui
 
         auto draw_roman_badge = [&](const vec2 center, const std::size_t level_index)
         {
-            draw_text(roman_tier(level_index), { center.x + 2.0f, center.y + 2.0f }, 28u, 0x000000BE_rgba, true, true);
+            draw_text(roman_tier(level_index), center + 2.0f, 28u, 0x000000BE_rgba, true, true);
             draw_text(roman_tier(level_index), center, 28u, 0xFFDF5BFF_rgba, true, true);
         };
 
@@ -151,15 +128,15 @@ namespace game::ui
             const float head_half_height)
         {
             sf::RectangleShape shaft{ { shaft_length, shaft_height } };
-            shaft.setOrigin({ shaft_length * 0.5f, shaft_height * 0.5f });
-            shaft.setPosition({ center.x - head_length * 0.38f, center.y });
+            shaft.setOrigin(shaft.getSize() * 0.5f);
+            shaft.setPosition(center + vec2{ -head_length * 0.38f, 0.0f });
             shaft.setFillColor(0xEBBE4AFF_rgba);
             target.draw(shaft);
 
             sf::ConvexShape head{ 3u };
-            head.setPoint(0u, { center.x + shaft_length * 0.5f, center.y });
-            head.setPoint(1u, { center.x + shaft_length * 0.5f - head_length, center.y - head_half_height });
-            head.setPoint(2u, { center.x + shaft_length * 0.5f - head_length, center.y + head_half_height });
+            head.setPoint(0u, center + vec2{ shaft_length * 0.5f, 0.0f });
+            head.setPoint(1u, center + vec2{ shaft_length * 0.5f - head_length, -head_half_height });
+            head.setPoint(2u, center + vec2{ shaft_length * 0.5f - head_length, head_half_height });
             head.setFillColor(0xFFD352FF_rgba);
             head.setOutlineColor(0x52370CDC_rgba);
             head.setOutlineThickness(1.5f);
@@ -169,13 +146,13 @@ namespace game::ui
         auto draw_icon_box = [&](const sf::IntRect icon_rect, const vec2 center, const std::size_t level_index)
         {
             sf::RectangleShape shadow{ scaled_size(162.0f, 162.0f) };
-            shadow.setOrigin({ scaled(81.0f), scaled(81.0f) });
-            shadow.setPosition({ center.x + scaled(4.0f), center.y + scaled(5.0f) });
+            shadow.setOrigin(shadow.getSize() * 0.5f);
+            shadow.setPosition(center + vec2{ scaled(4.0f), scaled(5.0f) });
             shadow.setFillColor(0x00000058_rgba);
             target.draw(shadow);
 
             sf::RectangleShape box{ scaled_size(162.0f, 162.0f) };
-            box.setOrigin({ scaled(81.0f), scaled(81.0f) });
+            box.setOrigin(box.getSize() * 0.5f);
             box.setPosition(center);
             box.setFillColor(0x192126FC_rgba);
             box.setOutlineColor(0x657F87F5_rgba);
@@ -185,11 +162,11 @@ namespace game::ui
             sf::Sprite icon{ tools_texture, icon_rect };
             const auto bounds = icon.getLocalBounds();
             icon.setOrigin(bounds.getCenter());
-            const float icon_scale = std::min(scaled(108.0f) / bounds.size.x, scaled(108.0f) / bounds.size.y);
+            const float icon_scale = min(vec2{ scaled(108.0f), scaled(108.0f) } / bounds.size);
             icon.setScale({ icon_scale, icon_scale });
-            icon.setPosition({ center.x, center.y - scaled(9.0f) });
+            icon.setPosition(center + vec2{ 0.0f, -scaled(9.0f) });
             target.draw(icon);
-            draw_roman_badge({ center.x, center.y + scaled(63.0f) }, level_index);
+            draw_roman_badge(center + vec2{ 0.0f, scaled(63.0f) }, level_index);
         };
 
         draw_text(
@@ -220,40 +197,29 @@ namespace game::ui
             target.draw(card);
 
             draw_text(
-                title, {
-                    card_position.x + scaled(262.5f),
-                    card_position.y + scaled(33.0f)
-                },
+                title,
+                card_position + vec2{ scaled(262.5f), scaled(33.0f) },
                 34u, 0xF3F5E0FF_rgba,
                 true, true);
 
             draw_icon_box(
-                current_icon, {
-                    card_position.x + scaled(149.0f),
-                    card_position.y + scaled(139.0f)
-                },
+                current_icon,
+                card_position + vec2{ scaled(149.0f), scaled(139.0f) },
                 current_level);
 
-            draw_arrow({
-                           card_position.x + scaled(262.5f),
-                           card_position.y + scaled(139.0f)
-                       },
-                       scaled(56.0f),
-                       scaled(7.0f),
-                       scaled(22.0f),
-                       scaled(12.0f));
+            draw_arrow(
+                card_position + vec2{ scaled(262.5f), scaled(139.0f) },
+                scaled(56.0f),
+                scaled(7.0f),
+                scaled(22.0f),
+                scaled(12.0f));
 
             draw_icon_box(
-                next_icon, {
-                    card_position.x + scaled(376.0f),
-                    card_position.y + scaled(139.0f)
-                },
+                next_icon,
+                card_position + vec2{ scaled(376.0f), scaled(139.0f) },
                 next_level);
 
-            const vec2 table_position{
-                card_position.x + scaled(40.0f),
-                card_position.y + scaled(244.0f)
-            };
+            const vec2 table_position = card_position + vec2{ scaled(40.0f), scaled(244.0f) };
 
             for (std::size_t row = 0u; row < stats.size(); ++row)
             {
@@ -266,18 +232,18 @@ namespace game::ui
 
                 draw_text(
                     stats[row].label,
-                    { table_position.x + scaled(70.0f), y },
+                    table_position + vec2{ scaled(70.0f), static_cast<float>(row) * scaled(48.0f) },
                     22u, 0xE0E9E2FF_rgba,
                     true, true);
 
                 draw_text(
                     stats[row].current,
-                    { table_position.x + scaled(210.0f), y },
+                    table_position + vec2{ scaled(210.0f), static_cast<float>(row) * scaled(48.0f) },
                     23u, 0xCDDADBFF_rgba,
                     true, true);
 
                 draw_arrow(
-                    { table_position.x + scaled(292.0f), y },
+                    table_position + vec2{ scaled(292.0f), static_cast<float>(row) * scaled(48.0f) },
                     scaled(42.0f),
                     scaled(5.0f),
                     scaled(15.0f),
@@ -285,7 +251,7 @@ namespace game::ui
 
                 draw_text(
                     stats[row].next,
-                    { table_position.x + scaled(386.0f), y },
+                    table_position + vec2{ scaled(386.0f), static_cast<float>(row) * scaled(48.0f) },
                     23u, 0xFFE270FF_rgba,
                     true, true);
             }
@@ -300,20 +266,14 @@ namespace game::ui
 
             draw_text(
                 maxed ? "MAXED" : "UPGRADE",
-                {
-                    action_button_rect.getCenter().x,
-                    action_button_rect.getCenter().y - scaled(7.0f)
-                },
+                action_button_rect.getCenter() + vec2{ 0.0f, -scaled(7.0f) },
                 24u,
                 maxed ? 0xAEB5B5FF_rgba : 0xFFF2BEFF_rgba,
                 true, true);
 
             draw_text(
                 maxed ? "" : cost_text,
-                {
-                    action_button_rect.getCenter().x,
-                    action_button_rect.getCenter().y + scaled(16.0f)
-                },
+                action_button_rect.getCenter() + vec2{ 0.0f, scaled(16.0f) },
                 17u,
                 0xFFE28EFF_rgba,
                 true, true);

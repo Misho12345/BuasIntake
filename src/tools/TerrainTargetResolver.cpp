@@ -41,17 +41,13 @@ namespace game::tools
                 !b2Body_IsValid(context.player_body))
                 return std::nullopt;
 
-            const vec2 ray_delta{
-                context.mouse_world_position.x - context.player_world_position.x,
-                context.mouse_world_position.y - context.player_world_position.y
-            };
+            const vec2 ray_delta = context.mouse_world_position - context.player_world_position;
             const float ray_distance = ray_delta.length();
             if (ray_distance <= eps) return std::nullopt;
 
             // keep all tool targeting within the same reach limit
             const float clamped_distance = std::min(ray_distance, max_tool_reach);
-            const float scale            = clamped_distance / ray_distance;
-            return vec2{ ray_delta.x * scale, ray_delta.y * scale };
+            return normalize(ray_delta) * clamped_distance;
         }
 
         std::optional<vec2> cast_tool_ray(const TerrainToolContext& context)
@@ -84,7 +80,7 @@ namespace game::tools
             const vec2 start = context.player_world_position;
             const vec2 end   = end_override.has_value()
                                    ? *end_override
-                                   : vec2{ start.x + translation->x, start.y + translation->y };
+                                   : start + *translation;
 
             const vec2  effective_translation = end - start;
             const float ray_distance          = effective_translation.length();
@@ -92,8 +88,7 @@ namespace game::tools
             if (ray_distance <= eps) return std::nullopt;
 
             const float step_length = std::max(
-                std::min(context.terrain->terrain_cell_size().x,
-                         context.terrain->terrain_cell_size().y) * 0.35f,
+                min(context.terrain->terrain_cell_size()) * 0.35f,
                 0.05f);
 
             const int step_count = std::max(2, static_cast<int>(std::ceil(ray_distance / step_length)));
@@ -140,10 +135,7 @@ namespace game::tools
         const auto translation = tool_ray_translation(context);
         if (!translation.has_value()) return std::nullopt;
 
-        return vec2{
-            context.player_world_position.x + translation->x,
-            context.player_world_position.y + translation->y
-        };
+        return context.player_world_position + *translation;
     }
 
     std::optional<vec2> TerrainTargetResolver::terrain_tool_hit_world_position(const TerrainToolContext& context) const

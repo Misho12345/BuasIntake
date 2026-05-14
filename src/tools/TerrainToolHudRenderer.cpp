@@ -45,10 +45,7 @@ namespace game::tools
                 std::max(size.y - 4.0f, 0.0f)
             };
 
-            const vec2 inner_position{
-                position.x + 2.0f,
-                position.y + 2.0f
-            };
+            const vec2 inner_position = position + 2.0f;
 
             sf::RectangleShape gutter{ inner_size };
             gutter.setPosition(inner_position);
@@ -72,7 +69,7 @@ namespace game::tools
 
             const float        overlay_width = inner_size.x * clamped_overlay;
             sf::RectangleShape overlay{ { overlay_width, std::max(inner_size.y - 2.0f, 0.0f) } };
-            overlay.setPosition({ inner_position.x, inner_position.y + 1.0f });
+            overlay.setPosition(inner_position + vec2{ 0.0f, 1.0f });
             overlay.setFillColor(overlay_color);
             target.draw(overlay);
         }
@@ -84,10 +81,7 @@ namespace game::tools
     {
         if (slots.empty()) return;
 
-        const auto      target_size     = target.getSize();
-
-        const float     width           = static_cast<float>(target_size.x);
-        const float     height          = static_cast<float>(target_size.y);
+        const vec2      target_size     = static_cast<vec2>(target.getSize());
 
         constexpr float slot_size       = 72.0f;
         constexpr float slot_gap        = 9.0f;
@@ -103,8 +97,8 @@ namespace game::tools
         const float hotbar_height = panel_padding_y * 2.0f + slot_size;
 
         const vec2  hotbar_position{
-            width - hotbar_width - 22.0f,
-            height - hotbar_height - 22.0f
+            target_size.x - hotbar_width - 22.0f,
+            target_size.y - hotbar_height - 22.0f
         };
 
         draw_panel(
@@ -118,9 +112,9 @@ namespace game::tools
         for (std::size_t i = 0; i < slots.size(); ++i)
         {
             const auto& slot = slots[i];
-            const vec2  slot_position{
-                hotbar_position.x + panel_padding_x + static_cast<float>(i) * (slot_size + slot_gap),
-                hotbar_position.y + panel_padding_y
+            const vec2 slot_position = hotbar_position + vec2{
+                panel_padding_x + static_cast<float>(i) * (slot_size + slot_gap),
+                panel_padding_y
             };
 
             const sf::Color frame = slot.selected ? 0xF8DD89FF_rgba : 0x495C6BDC_rgba;
@@ -129,7 +123,7 @@ namespace game::tools
             if (slot.selected)
             {
                 sf::RectangleShape glow{ { slot_size + 8.0f, slot_size + 8.0f } };
-                glow.setPosition({ slot_position.x - 4.0f, slot_position.y - 4.0f });
+                glow.setPosition(slot_position - 4.0f);
                 glow.setFillColor(0xF7DD8E1C_rgba);
                 glow.setOutlineColor(0xF7DD8E5A_rgba);
                 glow.setOutlineThickness(1.0f);
@@ -141,7 +135,7 @@ namespace game::tools
             if (slot.selected)
             {
                 sf::RectangleShape accent{ { slot_size - 12.0f, 3.0f } };
-                accent.setPosition({ slot_position.x + 6.0f, slot_position.y + 6.0f });
+                accent.setPosition(slot_position + 6.0f);
                 accent.setFillColor(0xF7DD8EDC_rgba);
                 target.draw(accent);
             }
@@ -153,10 +147,10 @@ namespace game::tools
                 const auto bounds = icon.getLocalBounds();
                 icon.setOrigin(bounds.getCenter());
 
-                const float scale = std::min(48.0f / bounds.size.x, 48.0f / bounds.size.y);
+                const float scale = 48.0f / max(bounds.size);
                 icon.setScale({ scale, scale });
                 icon.setColor(slot.selected ? sf::Color::White : 0xCDDADEDC_rgba);
-                icon.setPosition({ slot_position.x + slot_size * 0.5f, slot_position.y + slot_size * 0.47f });
+                icon.setPosition(slot_position + vec2{ slot_size * 0.5f, slot_size * 0.47f });
 
                 target.draw(icon);
             }
@@ -165,7 +159,7 @@ namespace game::tools
             {
                 draw_slot_meter(
                     target,
-                    { slot_position.x + 8.0f, slot_position.y + slot_size - 14.0f },
+                    slot_position + vec2{ 8.0f, slot_size - 14.0f },
                     { slot_size - 16.0f, meter_height },
                     slot.fill_ratio,
                     slot.bar_fill,
@@ -179,7 +173,7 @@ namespace game::tools
             {
                 sf::RectangleShape aim_ring{ { slot_size - 12.0f, slot_size - 12.0f } };
 
-                aim_ring.setPosition({ slot_position.x + 6.0f, slot_position.y + 6.0f });
+                aim_ring.setPosition(slot_position + 6.0f);
                 aim_ring.setFillColor(sf::Color::Transparent);
                 aim_ring.setOutlineThickness(1.5f);
                 aim_ring.setOutlineColor(0xC2F4FFDC_rgba);

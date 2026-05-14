@@ -10,14 +10,11 @@ namespace game::terrain
     {
         bool aabb_intersects_view_circle(const vec2 min, const vec2 max, const sf::View& view)
         {
-            const vec2  center{ view.getCenter().x, view.getCenter().y };
+            const vec2  center = view.getCenter();
             const vec2  size{ std::abs(view.getSize().x), std::abs(view.getSize().y) };
-            const float radius    = std::sqrt(size.x * size.x + size.y * size.y) * 0.5f;
-            const float closest_x = std::clamp(center.x, min.x, max.x);
-            const float closest_y = std::clamp(center.y, min.y, max.y);
-            const float dx        = center.x - closest_x;
-            const float dy        = center.y - closest_y;
-            return dx * dx + dy * dy <= radius * radius;
+            const float radius    = size.length() * 0.5f;
+            const vec2  closest{ std::clamp(center.x, min.x, max.x), std::clamp(center.y, min.y, max.y) };
+            return (center - closest).lengthSquared() <= radius * radius;
         }
 
         std::pair<ivec2, ivec2> owned_local_sample_bounds(const ChunkSettings& settings)
@@ -48,10 +45,7 @@ namespace game::terrain
         const auto terrain_chunk_size   = settings_.chunk_size;
         const auto terrain_world_center = settings_.world_center;
 
-        const vec2 total_world_size{
-            terrain_chunk_size.x * static_cast<float>(total_chunk_count.x),
-            terrain_chunk_size.y * static_cast<float>(total_chunk_count.y)
-        };
+        const vec2 total_world_size = terrain_chunk_size * total_chunk_count;
 
         grid_min_ = terrain_world_center - total_world_size * 0.5f;
         grid_max_ = grid_min_ + total_world_size;
@@ -129,15 +123,9 @@ namespace game::terrain
         const auto padding           = settings_.field_padding;
         const auto terrain_cell_size = cell_size(settings_);
 
-        const uvec2 global_field_size = {
-            static_cast<std::uint32_t>((total_chunk_count.x - 1) * stride.x + static_cast<int>(padded_size.x)),
-            static_cast<std::uint32_t>((total_chunk_count.y - 1) * stride.y + static_cast<int>(padded_size.y))
-        };
+        const uvec2 global_field_size = static_cast<uvec2>((total_chunk_count - 1) * stride + static_cast<ivec2>(padded_size));
 
-        const vec2 global_field_origin = {
-            grid_min_.x - terrain_cell_size.x * static_cast<float>(padding.x),
-            grid_min_.y - terrain_cell_size.y * static_cast<float>(padding.y)
-        };
+        const vec2 global_field_origin = grid_min_ - terrain_cell_size * padding;
 
         field.reset(global_field_size, global_field_origin, terrain_cell_size);
     }
@@ -175,13 +163,13 @@ namespace game::terrain
         const auto  padded_size            = padded_field_size(chunk_settings);
         const auto  stride                 = chunk_sample_stride(chunk_settings);
         const auto  [owned_min, owned_max] = owned_local_sample_bounds(chunk_settings);
-        const ivec2 chunk_base{ chunk_coord.x * stride.x, chunk_coord.y * stride.y };
+        const ivec2 chunk_base = chunk_coord * stride;
 
         for (int y = owned_min.y; y <= owned_max.y; ++y)
         {
             for (int x = owned_min.x; x <= owned_max.x; ++x)
             {
-                const ivec2 global_coord{ chunk_base.x + x, chunk_base.y + y };
+                const ivec2 global_coord = chunk_base + ivec2{ x, y };
                 if (!field.is_valid_sample(global_coord)) continue;
 
                 const auto  global_index    = field.sample_index(global_coord);
@@ -310,8 +298,9 @@ namespace game::terrain
         {
             for (int chunk_x = std::max(0, base_x - 1); chunk_x <= std::min(total_chunk_count.x - 1, base_x + 1); ++chunk_x)
             {
-                const int local_x = coord.x - chunk_x * stride.x;
-                const int local_y = coord.y - chunk_y * stride.y;
+                const ivec2 local = coord - ivec2{ chunk_x, chunk_y } * stride;
+                const int   local_x = local.x;
+                const int   local_y = local.y;
                 if (local_x < 0 || local_y < 0) continue;
                 if (local_x >= static_cast<int>(padded_size.x) || local_y >= static_cast<int>(padded_size.y)) continue;
 
@@ -366,7 +355,7 @@ namespace game::terrain
     {
         const auto  padded_size = padded_field_size(settings_);
         const auto  stride      = chunk_sample_stride(settings_);
-        const ivec2 chunk_base{ chunk_coord.x * stride.x, chunk_coord.y * stride.y };
+        const ivec2 chunk_base = chunk_coord * stride;
 
         std::vector<FieldSample> field_samples(
             static_cast<std::size_t>(padded_size.x) * static_cast<std::size_t>(padded_size.y));
@@ -374,7 +363,7 @@ namespace game::terrain
         {
             for (std::uint32_t x = 0; x < padded_size.x; ++x)
             {
-                const ivec2 global_coord{ chunk_base.x + static_cast<int>(x), chunk_base.y + static_cast<int>(y) };
+                const ivec2 global_coord = chunk_base + ivec2{ static_cast<int>(x), static_cast<int>(y) };
                 field_samples[static_cast<std::size_t>(y) * padded_size.x + x] = field.sample(global_coord);
             }
         }

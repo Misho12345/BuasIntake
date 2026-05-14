@@ -46,57 +46,53 @@ namespace game::terrain
     {
         if (empty()) return origin_;
 
-        return {
-            origin_.x + static_cast<float>(coord.x) * cell_size_.x,
-            origin_.y + static_cast<float>(coord.y) * cell_size_.y
-        };
+        return origin_ + cell_size_ * coord;
     }
 
     ivec2 TerrainField::world_to_sample(const vec2 world_position) const
     {
         if (empty()) return { 0, 0 };
 
-        const float gx = (world_position.x - origin_.x) / cell_size_.x;
-        const float gy = (world_position.y - origin_.y) / cell_size_.y;
+        const vec2 grid = (world_position - origin_) / cell_size_;
 
         return {
-            std::clamp(static_cast<int>(std::lround(gx)), 0, static_cast<int>(size_.x) - 1),
-            std::clamp(static_cast<int>(std::lround(gy)), 0, static_cast<int>(size_.y) - 1)
+            std::clamp(static_cast<int>(std::lround(grid.x)), 0, static_cast<int>(size_.x) - 1),
+            std::clamp(static_cast<int>(std::lround(grid.y)), 0, static_cast<int>(size_.y) - 1)
         };
     }
 
     std::span<TerrainField::FieldSample> TerrainField::sample_span()
     {
-        return samples_;
+	    return samples_;
     }
 
     std::span<const TerrainField::FieldSample> TerrainField::sample_span() const
     {
-        return samples_;
+	    return samples_;
     }
 
     std::vector<TerrainField::FieldSample>& TerrainField::samples()
     {
-        return samples_;
+	    return samples_;
     }
 
     const std::vector<TerrainField::FieldSample>& TerrainField::samples() const
     {
-        return samples_;
+	    return samples_;
     }
 
     vec2 TerrainField::origin() const
     {
-        return origin_;
+	    return origin_;
     }
 
     vec2 TerrainField::cell_size() const
     {
-        return cell_size_;
+	    return cell_size_;
     }
 
     uvec2 TerrainField::size() const
     {
-        return size_;
+	    return size_;
     }
 }

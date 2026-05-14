@@ -59,7 +59,7 @@ namespace game::terrain
                     {
                         for (int ox = -1; ox <= 1; ++ox)
                         {
-                            const ivec2 neighbor{ x + ox, y + oy };
+                            const ivec2 neighbor = coord + ivec2{ ox, oy };
                             const auto& neighbor_sample = view.global_field[callbacks.global_field_index(neighbor)];
                             const float weight          = (ox == 0 && oy == 0) ? 2.0f : 1.0f;
                             terrain_total               += neighbor_sample.terrain * weight;

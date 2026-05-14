@@ -38,7 +38,7 @@ namespace game::water
 
             // Water needs a bit of solid support toward the planet core or it will look like it is hanging outward.
             const float sample_radial = distance(global_sample_world_position(grid, coord), grid.world_center);
-            const float radial_tolerance = std::min(grid.cell_size.x, grid.cell_size.y) * 0.25f;
+            const float radial_tolerance = min(grid.cell_size) * 0.25f;
 
             for (int y = -1; y <= 1; ++y)
             {
@@ -46,7 +46,7 @@ namespace game::water
                 {
                     if (x == 0 && y == 0) continue;
 
-                    const ivec2 neighbor{ coord.x + x, coord.y + y };
+                    const ivec2 neighbor = coord + ivec2{ x, y };
 
                     if (!is_valid_global_sample(grid, neighbor)) continue;
 
@@ -96,10 +96,7 @@ namespace game::water
 
     vec2 global_sample_world_position(const GridView& grid, const ivec2 coord)
     {
-        return {
-            grid.field_origin.x + static_cast<float>(coord.x) * grid.cell_size.x,
-            grid.field_origin.y + static_cast<float>(coord.y) * grid.cell_size.y
-        };
+        return grid.field_origin + grid.cell_size * coord;
     }
 
     // for pickup we care more about what the player is obviously pointing at than the mathematically deepest part of the blob
@@ -125,7 +122,7 @@ namespace game::water
 
                 const vec2  sample_world  = global_sample_world_position(grid, coord);
                 const vec2  click_delta   = sample_world - world_position;
-                const float click_dist_sq = click_delta.x * click_delta.x + click_delta.y * click_delta.y;
+                const float click_dist_sq = click_delta.lengthSquared();
 
                 const WaterCandidate candidate{
                     coord, distance(sample_world, grid.world_center), click_dist_sq
@@ -153,7 +150,7 @@ namespace game::water
         const ivec2 hit_coord = world_to_grid_coord(grid, world_position);
 
         const vec2                    up          = normalize(world_position - grid.world_center, { 0.0f, 1.0f });
-        const float                   cell_extent = std::min(grid.cell_size.x, grid.cell_size.y);
+        const float                   cell_extent = min(grid.cell_size);
         std::optional<WaterCandidate> best_candidate;
         for (int step = 1; step <= 24; ++step)
         {
@@ -166,7 +163,7 @@ namespace game::water
 
             const vec2  probe_sample_world = global_sample_world_position(grid, probe_coord);
             const vec2  delta              = probe_sample_world - world_position;
-            const float click_dist_sq      = delta.x * delta.x + delta.y * delta.y;
+            const float click_dist_sq      = delta.lengthSquared();
 
             const WaterCandidate candidate{
                 .coord         = probe_coord,
@@ -226,7 +223,7 @@ namespace game::water
 
             for (const auto& offset : orthogonal_neighbors)
             {
-                const ivec2 neighbor{ coord.x + offset.x, coord.y + offset.y };
+                const ivec2 neighbor = coord + offset;
                 if (!is_valid_global_sample(grid, neighbor)) continue;
                 if (!has_water(grid.field_samples[global_field_index(grid, neighbor)])) continue;
 
@@ -240,7 +237,7 @@ namespace game::water
 
             for (const auto& offset : diagonal_neighbors)
             {
-                const ivec2 neighbor{ coord.x + offset.x, coord.y + offset.y };
+                const ivec2 neighbor = coord + offset;
                 if (!is_valid_global_sample(grid, neighbor)) continue;
                 if (!has_water(grid.field_samples[global_field_index(grid, neighbor)])) continue;
 
@@ -272,7 +269,7 @@ namespace game::water
         plan.dried_component = std::move(previous_water);
         if (desired_wet_sample_count == 0u) return plan;
 
-        const float cell_extent    = std::min(grid.cell_size.x, grid.cell_size.y);
+        const float cell_extent    = min(grid.cell_size);
         const float water_strength = 8.0f;
         const float surface_bias   = cell_extent * 0.5f;
         const vec2  start_world    = global_sample_world_position(grid, start_coord);
@@ -367,10 +364,7 @@ namespace game::water
 
             for (const auto& offset : neighbors)
             {
-                push_neighbor({
-                                  node.coord.x + offset.x,
-                                  node.coord.y + offset.y
-                              }, node.spill_level);
+                push_neighbor(node.coord + offset, node.spill_level);
             }
         }
 

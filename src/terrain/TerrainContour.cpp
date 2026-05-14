@@ -9,18 +9,16 @@ namespace game::terrain
 {
     namespace
     {
-        float distance(const vec2& a, const vec2& b) { return vec2{ a.x - b.x, a.y - b.y }.length(); }
-
         float distance_to_segment(const vec2& point, const vec2& a, const vec2& b)
         {
-            const vec2  ab{ b.x - a.x, b.y - a.y };
+            const vec2  ab = b - a;
             const float ab_length_sq = ab.lengthSquared();
 
             if (ab_length_sq <= eps) return distance(point, a);
 
-            const vec2  ap{ point.x - a.x, point.y - a.y };
+            const vec2  ap = point - a;
             const float t = std::clamp(ap.dot(ab) / ab_length_sq, 0.0f, 1.0f);
-            const vec2  closest{ a.x + ab.x * t, a.y + ab.y * t };
+            const vec2  closest = a + ab * t;
             return distance(point, closest);
         }
 
@@ -33,7 +31,7 @@ namespace game::terrain
             {
                 const auto& a = points[i];
                 const auto& b = points[(i + 1) % points.size()];
-                area          += a.x * b.y - b.x * a.y;
+                area          += a.cross(b);
             }
 
             return area * 0.5f;
@@ -63,15 +61,9 @@ namespace game::terrain
             const auto min = chunk_min(settings);
             const auto max = chunk_max(settings);
 
-            const vec2 padded_min{
-                min.x - terrain_cell_size.x * static_cast<float>(settings.field_padding.x),
-                min.y - terrain_cell_size.y * static_cast<float>(settings.field_padding.y)
-            };
-
-            const vec2 padded_max{
-                max.x + terrain_cell_size.x * static_cast<float>(settings.field_padding.x),
-                max.y + terrain_cell_size.y * static_cast<float>(settings.field_padding.y)
-            };
+            const vec2 padding = terrain_cell_size * settings.field_padding;
+            const vec2 padded_min = min - padding;
+            const vec2 padded_max = max + padding;
 
             for (const auto& point : points)
             {
@@ -225,8 +217,8 @@ namespace game::terrain
                 const auto& current   = simplified[i];
                 const auto& following = simplified[(i + 1) % simplified.size()];
 
-                const vec2  first_edge{ current.x - prev.x, current.y - prev.y };
-                const vec2  second_edge{ following.x - current.x, following.y - current.y };
+                const vec2  first_edge  = current - prev;
+                const vec2  second_edge = following - current;
 
                 const float first_length_sq  = first_edge.lengthSquared();
                 const float second_length_sq = second_edge.lengthSquared();
@@ -301,11 +293,11 @@ namespace game::terrain
 
         const auto  terrain_cell_size  = cell_size(settings);
 
-        const float min_segment_length = std::min(terrain_cell_size.x, terrain_cell_size.y) * 0.035f;
-        const float collinear_epsilon  = std::min(terrain_cell_size.x, terrain_cell_size.y) * 0.075f;
+        const float min_segment_length = min(terrain_cell_size) * 0.035f;
+        const float collinear_epsilon  = min(terrain_cell_size) * 0.075f;
         const float min_loop_area      = terrain_cell_size.x * terrain_cell_size.y * 0.12f;
-        const float min_path_length    = std::min(terrain_cell_size.x, terrain_cell_size.y) * 1.5f;
-        const float boundary_epsilon   = std::max(terrain_cell_size.x, terrain_cell_size.y) * 0.1f;
+        const float min_path_length    = min(terrain_cell_size) * 1.5f;
+        const float boundary_epsilon   = max(terrain_cell_size) * 0.1f;
         // these thresholds remove small gpu contour fragments before they become expensive or noisy physics shapes
         for (const auto& loop : loops)
         {

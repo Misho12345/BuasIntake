@@ -103,9 +103,7 @@ namespace game::ui
             const auto icon_bounds = icon.getLocalBounds();
             icon.setOrigin(icon_bounds.getCenter());
 
-            const float icon_scale = std::min(
-                entries[i].icon_target_size / icon_bounds.size.x,
-                entries[i].icon_target_size / icon_bounds.size.y);
+            const float icon_scale = min(vec2{ entries[i].icon_target_size, entries[i].icon_target_size } / icon_bounds.size);
 
             icon.setScale({ icon_scale, icon_scale });
             icon.setPosition({ icon_center_x, row_center_y });
@@ -114,10 +112,7 @@ namespace game::ui
             auto       text        = make_counter_text(ui_font(), count, 28u);
             const auto text_bounds = text.getLocalBounds();
 
-            text.setOrigin({
-                text_bounds.position.x + text_bounds.size.x,
-                text_bounds.position.y + text_bounds.size.y * 0.5f
-            });
+            text.setOrigin(text_bounds.position + vec2{ text_bounds.size.x, text_bounds.size.y * 0.5f });
 
             text.setPosition({ icon_center_x - 42.0f, row_center_y - 1.0f });
 
@@ -131,9 +126,7 @@ namespace game::ui
                                                         feedback_amount);
             sf::Text   delta_text{ ui_font(), delta_value, 20u };
             const auto delta_bounds = delta_text.getLocalBounds();
-            delta_text.setOrigin({
-                delta_bounds.position.x + delta_bounds.size.x, delta_bounds.position.y + delta_bounds.size.y * 0.5f
-            });
+            delta_text.setOrigin(delta_bounds.position + vec2{ delta_bounds.size.x, delta_bounds.size.y * 0.5f });
 
             delta_text.setFillColor(feedback_amount > 0
                                         ? with_alpha(0x4FF471_rgb, alpha)

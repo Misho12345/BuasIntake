@@ -37,7 +37,7 @@ namespace game::terrain
             {
                 for (int ox = -1; ox <= 1; ++ox)
                 {
-                    const ivec2 neighbor{ coord.x + ox, coord.y + oy };
+                    const ivec2 neighbor = coord + ivec2{ ox, oy };
                     if (!field.is_valid_sample(neighbor)) continue;
                     affected_keys.insert(sample_key(neighbor));
                 }

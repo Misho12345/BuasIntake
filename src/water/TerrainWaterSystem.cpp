@@ -135,7 +135,7 @@ namespace game::water
             {
                 if (x == 0 && y == 0) continue;
 
-                const ivec2 neighbor{ coord.x + x, coord.y + y };
+                const ivec2 neighbor = coord + ivec2{ x, y };
                 if (!field.is_valid_sample(neighbor)) continue;
                 if (has_water(field.sample(neighbor))) return true;
             }
@@ -155,7 +155,7 @@ namespace game::water
         const vec2  up                = normalize(sample_world - world_center, { 0.0f, 1.0f });
         const vec2  tangent{ up.y, -up.x };
         const auto  cell_size         = field.cell_size();
-        const float cell_extent       = std::min(cell_size.x, cell_size.y);
+        const float cell_extent       = min(cell_size);
         const float tangential_limit  = cell_extent * 2.35f;
         const float outward_limit     = cell_extent * 2.35f;
         const float inward_allowance  = cell_extent * 0.60f;
@@ -168,7 +168,7 @@ namespace game::water
             {
                 if (x == 0 && y == 0) continue;
 
-                const ivec2 neighbor{ coord.x + x, coord.y + y };
+                const ivec2 neighbor = coord + ivec2{ x, y };
                 if (!field.is_valid_sample(neighbor)) continue;
 
                 const auto& neighbor_sample = field.sample(neighbor);

@@ -47,8 +47,8 @@ namespace game::terrain
             const uvec2                field_size)
         {
             return clamp_sample_bounds(
-                { bounds.min.x - radius_cells, bounds.min.y - radius_cells },
-                { bounds.max.x + radius_cells, bounds.max.y + radius_cells },
+                bounds.min - radius_cells,
+                bounds.max + radius_cells,
                 field_size);
         }
 
@@ -197,9 +197,7 @@ namespace game::terrain
 
             auto neighbor_distance = [terrain_cell_size](const ivec2 offset)
             {
-                const float dx = terrain_cell_size.x * static_cast<float>(offset.x);
-                const float dy = terrain_cell_size.y * static_cast<float>(offset.y);
-                return std::sqrt(dx * dx + dy * dy);
+                return (terrain_cell_size * offset).length();
             };
 
             static constexpr std::array wetness_neighbors{
@@ -223,7 +221,7 @@ namespace game::terrain
                 changed_max.y = std::max(changed_max.y, coord.y);
             }
 
-            const float          min_cell_extent = std::min(terrain_cell_size.x, terrain_cell_size.y);
+            const float          min_cell_extent = min(terrain_cell_size);
 
             const auto changed_bounds  = clamp_sample_bounds(changed_min, changed_max, global_field_size);
 
@@ -312,16 +310,16 @@ namespace game::terrain
                 return;
             }
 
-            const int   affected_width  = affected_bounds.max.x - affected_bounds.min.x + 1;
-            const int   affected_height = affected_bounds.max.y - affected_bounds.min.y + 1;
+            const ivec2 affected_size = affected_bounds.max - affected_bounds.min + 1;
             std::vector best_wetness(
-                static_cast<std::size_t>(affected_width) * static_cast<std::size_t>(affected_height), 0.0f);
+                static_cast<std::size_t>(affected_size.x) * static_cast<std::size_t>(affected_size.y), 0.0f);
 
-            auto affected_index = [affected_bounds, affected_width](const ivec2 coord)
+            auto affected_index = [affected_bounds, affected_width = affected_size.x](const ivec2 coord)
             {
-                return static_cast<std::size_t>(coord.y - affected_bounds.min.y) *
+                const ivec2 local = coord - affected_bounds.min;
+                return static_cast<std::size_t>(local.y) *
                         static_cast<std::size_t>(affected_width) +
-                        static_cast<std::size_t>(coord.x - affected_bounds.min.x);
+                        static_cast<std::size_t>(local.x);
             };
 
             struct WetnessNode final
@@ -347,20 +345,20 @@ namespace game::terrain
 
                 if (!sample_bounds_intersect(component_influence_bounds, affected_bounds)) continue;
 
-                const auto propagation_bounds = component_influence_bounds;
-                const int  propagation_width  = propagation_bounds.max.x - propagation_bounds.min.x + 1;
-                const int  propagation_height = propagation_bounds.max.y - propagation_bounds.min.y + 1;
+                const auto  propagation_bounds = component_influence_bounds;
+                const ivec2 propagation_size   = propagation_bounds.max - propagation_bounds.min + 1;
 
                 std::vector best_distances(
-                    static_cast<std::size_t>(propagation_width) *
-                    static_cast<std::size_t>(propagation_height),
+                    static_cast<std::size_t>(propagation_size.x) *
+                    static_cast<std::size_t>(propagation_size.y),
                     inf);
 
-                auto propagation_index = [propagation_bounds, propagation_width](const ivec2 coord)
+                auto propagation_index = [propagation_bounds, propagation_width = propagation_size.x](const ivec2 coord)
                 {
-                    return static_cast<std::size_t>(coord.y - propagation_bounds.min.y) *
+                    const ivec2 local = coord - propagation_bounds.min;
+                    return static_cast<std::size_t>(local.y) *
                             static_cast<std::size_t>(propagation_width) +
-                            static_cast<std::size_t>(coord.x - propagation_bounds.min.x);
+                            static_cast<std::size_t>(local.x);
                 };
 
                 std::priority_queue<WetnessNode, std::vector<WetnessNode>, WetnessNodeCompare> frontier;
@@ -385,7 +383,7 @@ namespace game::terrain
                     for (const auto& offset : wetness_neighbors)
                     {
                         try_push(
-                            { water_coord.x + offset.x, water_coord.y + offset.y },
+                            water_coord + offset,
                             neighbor_distance(offset));
                     }
                 }
@@ -407,7 +405,7 @@ namespace game::terrain
                     for (const auto& offset : wetness_neighbors)
                     {
                         try_push(
-                            { coord.x + offset.x, coord.y + offset.y },
+                            coord + offset,
                             distance + neighbor_distance(offset));
                     }
                 }

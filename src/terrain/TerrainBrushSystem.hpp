@@ -129,11 +129,8 @@ namespace game::terrain
         static bool circle_overlaps_rect(const vec2 center, const float radius, const vec2 rect_min,
                                          const vec2 rect_max)
         {
-            const float closest_x = std::clamp(center.x, rect_min.x, rect_max.x);
-            const float closest_y = std::clamp(center.y, rect_min.y, rect_max.y);
-            const float dx        = center.x - closest_x;
-            const float dy        = center.y - closest_y;
-            return dx * dx + dy * dy <= radius * radius;
+            const vec2 closest{ std::clamp(center.x, rect_min.x, rect_max.x), std::clamp(center.y, rect_min.y, rect_max.y) };
+            return (center - closest).lengthSquared() <= radius * radius;
         }
 
         static bool point_inside_brush_blocker(const vec2 point, const GroundBrushBlocker& blocker, const vec2 padding)
@@ -141,7 +138,7 @@ namespace game::terrain
             if (blocker.radius > 0.0f)
             {
                 const vec2  delta         = point - blocker.center;
-                const float padded_radius = blocker.radius + std::max(padding.x, padding.y);
+                const float padded_radius = blocker.radius + max(padding);
                 return delta.lengthSquared() <= padded_radius * padded_radius;
             }
 
@@ -179,14 +176,12 @@ namespace game::terrain
                                        std::vector<Candidate>&                  candidates,
                                        bool&                                    requires_wetness_rebuild)
         {
-            const auto min_x = static_cast<int>(std::floor(
-                (edit_center.x - radius - global_field_origin.x) / terrain_cell_size.x));
-            const auto min_y = static_cast<int>(std::floor(
-                (edit_center.y - radius - global_field_origin.y) / terrain_cell_size.y));
-            const auto max_x = static_cast<int>(std::ceil(
-                (edit_center.x + radius - global_field_origin.x) / terrain_cell_size.x));
-            const auto max_y = static_cast<int>(std::ceil(
-                (edit_center.y + radius - global_field_origin.y) / terrain_cell_size.y));
+            const vec2 min_grid = (edit_center - radius - global_field_origin) / terrain_cell_size;
+            const vec2 max_grid = (edit_center + radius - global_field_origin) / terrain_cell_size;
+            const auto min_x = static_cast<int>(std::floor(min_grid.x));
+            const auto min_y = static_cast<int>(std::floor(min_grid.y));
+            const auto max_x = static_cast<int>(std::ceil(max_grid.x));
+            const auto max_y = static_cast<int>(std::ceil(max_grid.y));
 
             const int clamped_min_x = std::clamp(min_x, 0, static_cast<int>(global_field_size.x) - 1);
             const int clamped_min_y = std::clamp(min_y, 0, static_cast<int>(global_field_size.y) - 1);
@@ -202,13 +197,10 @@ namespace game::terrain
                 {
                     const ivec2 coord{ x, y };
                     const vec2  world              = sample_world_position(coord);
-                    const vec2  delta              = world - edit_center;
-                    const float distance_to_center = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+                    const float distance_to_center = distance(world, edit_center);
                     if (distance_to_center >= radius) continue;
                     if (blocker.has_value() &&
-                        point_inside_brush_blocker(world, *blocker, {
-                                                       terrain_cell_size.x * 0.35f, terrain_cell_size.y * 0.35f
-                                                   })) { continue; }
+                        point_inside_brush_blocker(world, *blocker, terrain_cell_size * 0.35f)) { continue; }
 
                     if (digging && is_dig_protected(coord)) continue;
 

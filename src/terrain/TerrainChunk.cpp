@@ -47,11 +47,10 @@ namespace game::terrain
             const auto terrain_cell_size = cell_size(settings);
             const auto origin            = field_origin(settings);
 
-            const float gx = (world_position.x - origin.x) / terrain_cell_size.x;
-            const float gy = (world_position.y - origin.y) / terrain_cell_size.y;
+            const vec2 grid = (world_position - origin) / terrain_cell_size;
 
-            const float clamped_x = std::clamp(gx, 0.0f, static_cast<float>(size.x - 1u));
-            const float clamped_y = std::clamp(gy, 0.0f, static_cast<float>(size.y - 1u));
+            const float clamped_x = std::clamp(grid.x, 0.0f, static_cast<float>(size.x - 1u));
+            const float clamped_y = std::clamp(grid.y, 0.0f, static_cast<float>(size.y - 1u));
 
             const auto x0 = static_cast<std::uint32_t>(std::floor(clamped_x));
             const auto y0 = static_cast<std::uint32_t>(std::floor(clamped_y));
@@ -77,12 +76,9 @@ namespace game::terrain
         const auto chunk_max = terrain::chunk_max(settings_);
 
         const auto terrain_cell_size = cell_size(settings_);
-        const vec2 padding_extent{
-            terrain_cell_size.x * static_cast<float>(settings_.field_padding.x),
-            terrain_cell_size.y * static_cast<float>(settings_.field_padding.y)
-        };
-        display_min_ = { chunk_min.x - padding_extent.x, chunk_min.y - padding_extent.y };
-        display_max_ = { chunk_max.x + padding_extent.x, chunk_max.y + padding_extent.y };
+        const vec2 padding_extent = terrain_cell_size * settings_.field_padding;
+        display_min_ = chunk_min - padding_extent;
+        display_max_ = chunk_max + padding_extent;
     }
 
     Result<void> TerrainChunk::initialize()
@@ -270,9 +266,7 @@ namespace game::terrain
 
         for (const auto& point : vertices)
         {
-            const vec2 offset{ point.x - settings_.world_center.x, point.y - settings_.world_center.y };
-
-            const auto dist_from_center = std::sqrt(offset.x * offset.x + offset.y * offset.y);
+            const auto dist_from_center = distance(point, settings_.world_center);
             const auto gradient         = clamp01(dist_from_center / radius);
 
             const auto wetness =

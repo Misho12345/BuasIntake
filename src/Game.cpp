@@ -241,10 +241,7 @@ namespace game
         TRY(create_world());
         TRY(world_state_.initialize(world_, player_config_));
 
-        camera_.set_world_span({
-            world_state_.terrain().chunk_size().x * 1.75f,
-            world_state_.terrain().chunk_size().y * 1.75f
-        });
+        camera_.set_world_span(world_state_.terrain().chunk_size() * 1.75f);
 
         camera_.update_view_size(settings_.win_size);
         camera_.sync_to_player(world_state_, 0.0f, is_player_move_input_active());
@@ -558,10 +555,11 @@ namespace game
 
     sf::View Game::make_ui_view() const
     {
-        const auto window_size = window_.getSize();
+        const auto window_size = static_cast<vec2>(window_.getSize());
+
         return {
-            { static_cast<float>(window_size.x) * 0.5f, static_cast<float>(window_size.y) * 0.5f },
-            { static_cast<float>(window_size.x), static_cast<float>(window_size.y) }
+            window_size * 0.5f,
+            window_size
         };
     }
 

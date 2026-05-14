@@ -102,9 +102,7 @@ namespace game::terrain
                         const auto  target_index = global_field_index(target_coord);
                         if (!is_solid_sample(global_field[target_index])) continue;
 
-                        const vec2  world    = global_sample_world_position(target_coord);
-                        const vec2  delta    = world - center;
-                        const float distance = std::sqrt(delta.x * delta.x + delta.y * delta.y);
+                        const float distance = game::distance(global_sample_world_position(target_coord), center);
                         if (distance >= radius_world) continue;
 
                         float falloff = 0.0f;

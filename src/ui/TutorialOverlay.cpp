@@ -69,27 +69,18 @@ namespace game::ui
 
         TutorialLayout make_tutorial_layout(const uvec2 target_size)
         {
-            const vec2 available{
-                std::max(static_cast<float>(target_size.x) - tutorial_margin * 2.0f, 1.0f),
-                std::max(static_cast<float>(target_size.y) - tutorial_margin * 2.0f, 1.0f)
-            };
+            const vec2 target_extent = static_cast<vec2>(target_size);
+            const vec2 available     = vec2_each(target_extent - tutorial_margin * 2.0f, [](const float value, const float floor)
+            {
+                return std::max(value, floor);
+            }, 1.0f);
 
-            const float scale = std::min({
-                available.x / preferred_tutorial_panel_size.x,
-                available.y / preferred_tutorial_panel_size.y,
-                1.0f
-            });
+            const float scale = std::min(min(available / preferred_tutorial_panel_size), 1.0f);
 
-            const vec2 panel_size{
-                preferred_tutorial_panel_size.x * scale,
-                preferred_tutorial_panel_size.y * scale
-            };
+            const vec2 panel_size = preferred_tutorial_panel_size * scale;
 
             return {
-                .panel_position = {
-                    (static_cast<float>(target_size.x) - panel_size.x) * 0.5f,
-                    (static_cast<float>(target_size.y) - panel_size.y) * 0.5f
-                },
+                .panel_position = (target_extent - panel_size) * 0.5f,
                 .panel_size = panel_size,
                 .scale      = scale
             };
@@ -175,21 +166,13 @@ namespace game::ui
         const auto scaled = [&](const float value) { return value * layout.scale; };
         const auto panel_point = [&](const float x, const float y)
         {
-            return vec2{
-                layout.panel_position.x + scaled(x),
-                layout.panel_position.y + scaled(y)
-            };
+            return layout.panel_position + vec2{ scaled(x), scaled(y) };
         };
 
         const auto scaled_size      = [&](const float x, const float y) { return vec2{ scaled(x), scaled(y) }; };
         const auto scaled_thickness = [&](const float value) { return std::max(1.0f, scaled(value)); };
 
-        sf::RectangleShape dim{
-            {
-                static_cast<float>(target_size.x),
-                static_cast<float>(target_size.y)
-            }
-        };
+        sf::RectangleShape dim{ static_cast<vec2>(target_size) };
         dim.setFillColor(0x020508C8_rgba);
         target.draw(dim);
 
@@ -224,16 +207,15 @@ namespace game::ui
             if (outlined)
             {
                 text.setOutlineColor(0x03080CD2_rgba);
-                text.setOutlineThickness(size >= 28u ? std::max(1.0f, scaled(1.7f)) : std::max(0.75f, scaled(0.75f)));
+                text.setOutlineThickness(size >= 28u 
+                    ? std::max(1.0f, scaled(1.7f)) 
+                    : std::max(0.75f, scaled(0.75f)));
             }
 
             if (centered)
             {
-                const auto bounds = text.getLocalBounds();
-                text.setOrigin({
-                    std::round(bounds.position.x + bounds.size.x * 0.5f),
-                    std::round(bounds.position.y + bounds.size.y * 0.5f)
-                });
+                const vec2 center = text.getLocalBounds().getCenter();
+                text.setOrigin({ std::round(center.x), std::round(center.y) });
             }
 
             text.setPosition({ std::round(position.x), std::round(position.y) });
@@ -264,19 +246,15 @@ namespace game::ui
             };
 
             const auto image_bounds = image.getLocalBounds();
-            image.setOrigin({ image_bounds.position.x, image_bounds.position.y });
+            image.setOrigin(image_bounds.position);
             const vec2  image_max_size{ scaled(1030.0f), scaled(410.0f) };
 
-            const float image_scale = std::min(
-                image_max_size.x / image_bounds.size.x, 
-                image_max_size.y / image_bounds.size.y
-            );
+            const float image_scale = min(image_max_size / image_bounds.size);
 
             image.setScale({ image_scale, image_scale });
-            image.setPosition({
-                layout.panel_position.x + scaled(60.0f) + (scaled(1060.0f) - image_bounds.size.x * image_scale) * 0.5f,
-                layout.panel_position.y + scaled(100.0f) + (scaled(440.0f) - image_bounds.size.y * image_scale) * 0.5f
-            });
+            image.setPosition(
+                panel_point(60.0f, 100.0f) +
+                (scaled_size(1060.0f, 440.0f) - image_bounds.size * image_scale) * 0.5f);
             target.draw(image);
 
             draw_text(

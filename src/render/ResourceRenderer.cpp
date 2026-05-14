@@ -74,7 +74,7 @@ namespace game::render
                                             : terrain.global_sample_world_position(resource.coord);
 
             const vec2 up = resource.surface_up.lengthSquared() > 1e-6f
-                                ? normalize(resource.surface_up * -1.0f)
+                                ? normalize(-resource.surface_up)
                                 : normalize(world_position - terrain.planet_center());
 
             const bool exposed = terrain.is_sample_exposed_to_air(resource.coord);

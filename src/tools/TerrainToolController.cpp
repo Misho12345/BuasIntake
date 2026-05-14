@@ -187,8 +187,8 @@ namespace game::tools
         if (!ray_end.has_value()) return;
 
         sf::VertexArray ray{ sf::PrimitiveType::Lines, 2u };
-        ray[0].position = { context.player_world_position.x, context.player_world_position.y };
-        ray[1].position = { ray_end->x, ray_end->y };
+        ray[0].position = context.player_world_position;
+        ray[1].position = *ray_end;
         ray[0].color = 0x78DCFFB4_rgba;
         ray[1].color = 0x78DCFFB4_rgba;
         target.draw(ray);
@@ -197,10 +197,10 @@ namespace game::tools
 
         constexpr float marker_half_size = 0.16f;
         sf::VertexArray marker{ sf::PrimitiveType::Lines, 4u };
-        marker[0].position = { ground_hit->x - marker_half_size, ground_hit->y - marker_half_size };
-        marker[1].position = { ground_hit->x + marker_half_size, ground_hit->y + marker_half_size };
-        marker[2].position = { ground_hit->x - marker_half_size, ground_hit->y + marker_half_size };
-        marker[3].position = { ground_hit->x + marker_half_size, ground_hit->y - marker_half_size };
+        marker[0].position = *ground_hit - marker_half_size;
+        marker[1].position = *ground_hit + marker_half_size;
+        marker[2].position = *ground_hit + vec2{ -marker_half_size, marker_half_size };
+        marker[3].position = *ground_hit + vec2{ marker_half_size, -marker_half_size };
         for (std::size_t i = 0; i < 4u; ++i) marker[i].color = 0x50FF6EDC_rgba;
         target.draw(marker);
     }
@@ -336,7 +336,6 @@ namespace game::tools
     }
 
     bool TerrainToolController::is_water_slot_selected() const { return selected_slot_ == HotbarSlot::Water; }
-
     bool TerrainToolController::is_seed_slot_selected() const { return selected_slot_ == HotbarSlot::Seeds; }
 
     sf::IntRect TerrainToolController::tool_icon_rect(const std::size_t column, const std::size_t row) const
@@ -346,8 +345,8 @@ namespace game::tools
         const int cell_height = static_cast<int>(texture_size.y / 3u);
         return {
             {
-                static_cast<int>(std::min<std::size_t>(column, 2u)) * cell_width,
-                static_cast<int>(std::min<std::size_t>(row, 2u)) * cell_height
+                static_cast<int>(std::min(column, 2zu)) * cell_width,
+                static_cast<int>(std::min(row, 2zu)) * cell_height
             },
             { cell_width, cell_height }
         };

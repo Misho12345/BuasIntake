@@ -205,7 +205,7 @@ namespace game::vegetation
         const ivec2 center    = terrain.world_to_global_sample(world_position);
         const auto  cell_size = terrain.terrain_cell_size();
 
-        const float min_cell_size = std::max(std::min(cell_size.x, cell_size.y), 0.01f);
+        const float min_cell_size = std::max(min(cell_size), 0.01f);
         const int   search_radius = std::clamp(static_cast<int>(std::ceil(1.25f / min_cell_size)), 3, 8);
 
         std::optional<PlantCandidate> best_candidate;
@@ -261,7 +261,7 @@ namespace game::vegetation
 
                 const PlantCandidate candidate{
                     .coord          = coord,
-                    .anchor_dist_sq = anchor_delta.x * anchor_delta.x + anchor_delta.y * anchor_delta.y,
+                    .anchor_dist_sq = anchor_delta.lengthSquared(),
                     .radial         = distance(*anchor, terrain.planet_center())
                 };
 
@@ -303,10 +303,9 @@ namespace game::vegetation
                 static_cast<int>(index / field_size.x)
             };
 
-            const float dx = static_cast<float>(other_coord.x - coord.x);
-            const float dy = static_cast<float>(other_coord.y - coord.y);
+            const auto delta = other_coord - coord;
 
-            if (dx * dx + dy * dy <= radius_sq) ++count;
+            if (delta.lengthSquared() <= radius_sq) ++count;
         }
 
         return count;
@@ -351,10 +350,7 @@ namespace game::vegetation
                 static_cast<int>(index / field_size.x)
             };
 
-            const int   dx = other_coord.x - coord.x;
-            const int   dy = other_coord.y - coord.y;
-
-            if (dx * dx + dy * dy < min_spacing_samples * min_spacing_samples) return false;
+            if ((other_coord - coord).lengthSquared() < min_spacing_samples * min_spacing_samples) return false;
         }
 
         return true;
@@ -364,7 +360,7 @@ namespace game::vegetation
     // the hashes give variety but the tree ratio and spacing checks stop the map from degenerating into all woody plants
     PlantFamily VegetationSystem::choose_plant_family(const terrain::PlanetTerrain& terrain, const ivec2 coord) const
     {
-        const float roll = game::terrain::TerrainResourceNoise::hash01(
+        const float roll = terrain::TerrainResourceNoise::hash01(
             static_cast<float>(coord.x),
             static_cast<float>(coord.y),
             terrain.seed() + 6001u);
@@ -386,7 +382,7 @@ namespace game::vegetation
         const ivec2                   coord,
         const PlantFamily             family) const
     {
-        const float random_value = game::terrain::TerrainResourceNoise::hash01(
+        const float random_value = terrain::TerrainResourceNoise::hash01(
             static_cast<float>(coord.x),
             static_cast<float>(coord.y),
             terrain.seed() + 911u);
@@ -445,7 +441,7 @@ namespace game::vegetation
             else if (plant.family == PlantFamily::Bush) radius = 8;
 
             const int start_offset = static_cast<int>(
-                game::terrain::TerrainResourceNoise::hash01(
+                terrain::TerrainResourceNoise::hash01(
                     static_cast<float>(origin.x),
                     static_cast<float>(origin.y),
                     terrain.seed() + 7103u) * 32.0f);
@@ -474,7 +470,7 @@ namespace game::vegetation
                 const auto offset = offsets[(attempt + start_offset) % offsets.size()];
                 if (offset.x * offset.x + offset.y * offset.y > radius * radius) continue;
 
-                const ivec2 coord{ origin.x + offset.x, origin.y + offset.y };
+                const ivec2 coord = origin + offset;
 
                 if (!terrain.is_valid_global_sample(coord)) continue;
                 if (!terrain.is_surface_suitable_for_plant(coord)) continue;
