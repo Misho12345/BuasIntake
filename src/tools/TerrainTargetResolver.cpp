@@ -151,12 +151,6 @@ namespace game::tools
         return cast_tool_ray(context);
     }
 
-    std::optional<vec2> TerrainTargetResolver::terrain_placement_world_position(const TerrainToolContext& context) const
-    {
-        if (const auto hit = terrain_tool_hit_world_position(context); hit.has_value()) return hit;
-        return tool_reach_world_position(context);
-    }
-
     std::optional<vec2> TerrainTargetResolver::water_pickup_target_world_position(
         const TerrainToolContext& context) const
     {
