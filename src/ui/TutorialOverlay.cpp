@@ -10,11 +10,13 @@ namespace game::ui
     {
         constexpr vec2  preferred_tutorial_panel_size{ 1180.0f, 740.0f };
         constexpr float tutorial_margin = 16.0f;
+        constexpr std::size_t tutorial_image_slide_count = 7u;
 
         struct TutorialSlide final
         {
             std::string_view title{};
             std::string_view body{};
+            bool             has_image{ true };
         };
 
         constexpr std::array<TutorialSlide, TutorialOverlay::slide_count> tutorial_slides{{
@@ -45,6 +47,16 @@ namespace game::ui
             {
                 "Restore the planet",
                 "Make the whole planet green. Track your restoration progress with the bar at the top of the screen."
+            },
+            {
+	            "Additional controls",
+	            "- Ctrl + Mouse Scroll: zoom.\n"
+	            "- (In water preview mode) Mouse Scroll: changes the amount to place.\n"
+	            "- (In water) W/Space: swim up.\n\n"
+	            "For playtesting:\n"
+	            "- U: upgrade the selected tool (for digging tool & bucket).\n"
+	            "- Enter: fill the bucket or add +10 seeds with the seed tool.",
+                false
             }
         }};
 
@@ -90,25 +102,38 @@ namespace game::ui
             const float           max_width)
         {
             std::vector<std::string> lines;
-            std::istringstream       words{ std::string{ value } };
-            std::string              word;
-            std::string              line;
+            std::istringstream       paragraphs{ std::string{ value } };
+            std::string              paragraph;
 
-            while (words >> word)
+            while (std::getline(paragraphs, paragraph))
             {
-                const std::string candidate = line.empty() ? word : line + ' ' + word;
-                sf::Text          text{ font, candidate, character_size };
-                if (!line.empty() && text.getLocalBounds().size.x > max_width)
+                if (paragraph.empty())
                 {
-                    lines.push_back(line);
-                    line = word;
+                    lines.emplace_back();
                     continue;
                 }
 
-                line = candidate;
+                std::istringstream words{ paragraph };
+                std::string        word;
+                std::string        line;
+
+                while (words >> word)
+                {
+                    const std::string candidate = line.empty() ? word : line + ' ' + word;
+                    sf::Text          text{ font, candidate, character_size };
+                    if (!line.empty() && text.getLocalBounds().size.x > max_width)
+                    {
+                        lines.push_back(line);
+                        line = word;
+                        continue;
+                    }
+
+                    line = candidate;
+                }
+
+                if (!line.empty()) lines.push_back(line);
             }
 
-            if (!line.empty()) lines.push_back(line);
             return lines;
         }
     }
@@ -222,43 +247,70 @@ namespace game::ui
         image_frame.setOutlineThickness(scaled_thickness(2.0f));
         target.draw(image_frame);
 
-        const auto texture_size = tutorial_texture_.getSize();
-        const int  slide_width  = static_cast<int>(texture_size.x / slide_count);
-        const int  slide_height = static_cast<int>(texture_size.y);
+        if (slide.has_image)
+        {
+            const auto texture_size = tutorial_texture_.getSize();
+            const int  slide_width  = static_cast<int>(texture_size.x / tutorial_image_slide_count);
+            const int  slide_height = static_cast<int>(texture_size.y);
 
-        sf::Sprite image{ tutorial_texture_, sf::IntRect{
-            { static_cast<int>(slide_index) * slide_width, 0 },
-            { slide_width, slide_height }
-        } };
+            sf::Sprite image{ tutorial_texture_, sf::IntRect{
+                { static_cast<int>(slide_index) * slide_width, 0 },
+                { slide_width, slide_height }
+            } };
 
-        const auto image_bounds = image.getLocalBounds();
-        image.setOrigin({ image_bounds.position.x, image_bounds.position.y });
-        const vec2 image_max_size{ scaled(1030.0f), scaled(410.0f) };
-        const float image_scale = std::min(image_max_size.x / image_bounds.size.x, image_max_size.y / image_bounds.size.y);
-        image.setScale({ image_scale, image_scale });
-        image.setPosition({
-            layout.panel_position.x + scaled(60.0f) + (scaled(1060.0f) - image_bounds.size.x * image_scale) * 0.5f,
-            layout.panel_position.y + scaled(100.0f) + (scaled(440.0f) - image_bounds.size.y * image_scale) * 0.5f
-        });
-        target.draw(image);
+            const auto image_bounds = image.getLocalBounds();
+            image.setOrigin({ image_bounds.position.x, image_bounds.position.y });
+            const vec2  image_max_size{ scaled(1030.0f), scaled(410.0f) };
+            const float image_scale = std::min(image_max_size.x / image_bounds.size.x, image_max_size.y / image_bounds.size.y);
+            image.setScale({ image_scale, image_scale });
+            image.setPosition({
+                layout.panel_position.x + scaled(60.0f) + (scaled(1060.0f) - image_bounds.size.x * image_scale) * 0.5f,
+                layout.panel_position.y + scaled(100.0f) + (scaled(440.0f) - image_bounds.size.y * image_scale) * 0.5f
+            });
+            target.draw(image);
 
-        draw_text(
-            std::format("{}. {}", slide_index + 1u, slide.title),
-            panel_point(590.0f, 566.0f), 35u, 0xF3F5E0FF_rgba,
-            true, true);
+            draw_text(
+                std::format("{}. {}", slide_index + 1u, slide.title),
+                panel_point(590.0f, 566.0f), 35u, 0xF3F5E0FF_rgba,
+                true, true);
 
-        const auto body_character_size = static_cast<std::uint32_t>(std::max(12.0f, std::round(25.0f * layout.scale)));
-        const auto body_lines = wrap_text(ui_font(), slide.body, body_character_size, scaled(1010.0f));
-        for (std::size_t line_index = 0u; line_index < body_lines.size(); ++line_index)
+            const auto body_character_size = static_cast<std::uint32_t>(std::max(12.0f, std::round(25.0f * layout.scale)));
+            const auto body_lines = wrap_text(ui_font(), slide.body, body_character_size, scaled(1010.0f));
+            for (std::size_t line_index = 0u; line_index < body_lines.size(); ++line_index)
+            {
+                draw_text(
+                    body_lines[line_index],
+                    panel_point(590.0f, 615.0f + static_cast<float>(line_index) * 32.0f),
+                    25u,
+                    0xDCE7E0FF_rgba,
+                    true,
+                    false,
+                    false);
+            }
+        }
+        else
         {
             draw_text(
-                body_lines[line_index],
-                panel_point(590.0f, 615.0f + static_cast<float>(line_index) * 32.0f),
-                25u,
-                0xDCE7E0FF_rgba,
+                std::format("{}. {}", slide_index + 1u, slide.title),
+                panel_point(590.0f, 165.0f),
+                42u,
+                0xF3F5E0FF_rgba,
                 true,
-                false,
-                false);
+                true);
+
+            const auto body_character_size = static_cast<std::uint32_t>(std::max(12.0f, std::round(24.0f * layout.scale)));
+            const auto body_lines = wrap_text(ui_font(), slide.body, body_character_size, scaled(930.0f));
+            for (std::size_t line_index = 0u; line_index < body_lines.size(); ++line_index)
+            {
+                draw_text(
+                    body_lines[line_index],
+                    panel_point(145.0f, 235.0f + static_cast<float>(line_index) * 34.0f),
+                    24u,
+                    0xDCE7E0FF_rgba,
+                    false,
+                    false,
+                    false);
+            }
         }
 
         const auto draw_button = [&](const sf::FloatRect rect, const std::string& label, const bool highlighted)

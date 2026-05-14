@@ -7,7 +7,7 @@ namespace game::ui
     class TutorialOverlay final
     {
     public:
-        static constexpr std::size_t slide_count{ 7u };
+        static constexpr std::size_t slide_count{ 8u };
 
         Result<void> initialize_assets();
         void         destroy_graphics_resources();
