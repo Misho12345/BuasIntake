@@ -153,6 +153,34 @@ namespace game::tools
         return water_tool_.preview_state(context, target_resolver_);
     }
 
+    void TerrainToolController::draw_targeting_overlay(sf::RenderTarget& target, const TerrainToolContext& context) const
+    {
+        if (upgrade_menu_open_) return;
+
+        auto ray_end = target_resolver_.tool_reach_world_position(context);
+        const auto ground_hit = target_resolver_.terrain_tool_hit_world_position(context);
+        if (ground_hit.has_value()) ray_end = ground_hit;
+        if (!ray_end.has_value()) return;
+
+        sf::VertexArray ray{ sf::PrimitiveType::Lines, 2u };
+        ray[0].position = { context.player_world_position.x, context.player_world_position.y };
+        ray[1].position = { ray_end->x, ray_end->y };
+        ray[0].color = 0x78DCFFB4_rgba;
+        ray[1].color = 0x78DCFFB4_rgba;
+        target.draw(ray);
+
+        if (!ground_hit.has_value()) return;
+
+        constexpr float marker_half_size = 0.16f;
+        sf::VertexArray marker{ sf::PrimitiveType::Lines, 4u };
+        marker[0].position = { ground_hit->x - marker_half_size, ground_hit->y - marker_half_size };
+        marker[1].position = { ground_hit->x + marker_half_size, ground_hit->y + marker_half_size };
+        marker[2].position = { ground_hit->x - marker_half_size, ground_hit->y + marker_half_size };
+        marker[3].position = { ground_hit->x + marker_half_size, ground_hit->y - marker_half_size };
+        for (std::size_t i = 0; i < 4u; ++i) marker[i].color = 0x50FF6EDC_rgba;
+        target.draw(marker);
+    }
+
     void TerrainToolController::draw_ui(sf::RenderTarget& target) const
     {
         if (!ui_assets_ready_) return;

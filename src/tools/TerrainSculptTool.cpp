@@ -349,7 +349,9 @@ namespace game::tools
 
         if (!state.active) state.begin();
 
-        const auto world_position = resolver.terrain_tool_hit_world_position(context);
+        const auto world_position = digging
+                                        ? resolver.terrain_tool_hit_world_position(context)
+                                        : resolver.terrain_placement_world_position(context);
         if (!world_position.has_value())
         {
             state.reset();

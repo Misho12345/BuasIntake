@@ -47,6 +47,7 @@ namespace game::tools
         // render code asks this for the cached water preview when the bucket is in placement mode
         std::optional<WaterTool::PreviewState> active_water_preview(const TerrainToolContext& context) const;
 
+        void draw_targeting_overlay(sf::RenderTarget& target, const TerrainToolContext& context) const;
         void draw_ui(sf::RenderTarget& target) const;
 
     private:

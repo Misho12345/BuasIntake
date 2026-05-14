@@ -8,7 +8,7 @@ namespace game::tools
 {
     namespace
     {
-        constexpr float max_tool_reach = 5.5f;
+        constexpr float max_tool_reach = 7.5f;
 
         struct ToolRayCastContext final
         {
@@ -135,7 +135,7 @@ namespace game::tools
         }
     }
 
-    std::optional<vec2> TerrainTargetResolver::clamped_tool_world_position(const TerrainToolContext& context) const
+    std::optional<vec2> TerrainTargetResolver::tool_reach_world_position(const TerrainToolContext& context) const
     {
         const auto translation = tool_ray_translation(context);
         if (!translation.has_value()) return std::nullopt;
@@ -151,6 +151,12 @@ namespace game::tools
         return cast_tool_ray(context);
     }
 
+    std::optional<vec2> TerrainTargetResolver::terrain_placement_world_position(const TerrainToolContext& context) const
+    {
+        if (const auto hit = terrain_tool_hit_world_position(context); hit.has_value()) return hit;
+        return tool_reach_world_position(context);
+    }
+
     std::optional<vec2> TerrainTargetResolver::water_pickup_target_world_position(
         const TerrainToolContext& context) const
     {
@@ -158,7 +164,7 @@ namespace game::tools
             water_hit.has_value())
             return water_hit;
 
-        const auto clamped_position = clamped_tool_world_position(context);
+        const auto clamped_position = tool_reach_world_position(context);
         if (context.terrain != nullptr &&
             clamped_position.has_value() &&
             context.terrain-> contains_water_volume(*clamped_position))
@@ -186,6 +192,6 @@ namespace game::tools
 
         if (terrain_hit.has_value()) return terrain_hit;
 
-        return clamped_tool_world_position(context);
+        return tool_reach_world_position(context);
     }
 }

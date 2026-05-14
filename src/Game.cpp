@@ -300,6 +300,10 @@ namespace game
     void Game::render_sfml()
     {
         window_.setView(camera_.view());
+        if (const auto context = terrain_tool_context();
+            context.has_value())
+            terrain_tools_.draw_targeting_overlay(window_, *context);
+
         if (world_state_.ready()) world_state_.player().draw_sf(window_);
 
         window_.setView(make_ui_view());
