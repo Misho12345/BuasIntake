@@ -27,8 +27,6 @@ namespace game::terrain::constants
     inline constexpr int ground_resource_spacing_radius{ 4 };
     inline constexpr int embedded_resource_spacing_radius{ 4 };
 
-    inline constexpr float base_wetness_radius_cells{ 16.0f };
-    inline constexpr float pond_wetness_radius_scale{ 5.75f };
     inline constexpr int max_wetness_radius_cells{ 96 };
 
     inline constexpr float contour_combine_dot_threshold{ 0.9985f };

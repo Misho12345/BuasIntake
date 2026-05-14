@@ -175,6 +175,10 @@ namespace game::terrain
             .rebuild_deferred_wetness = [this](const std::vector<bool>& dirty_chunks)
             {
                 return rebuild_dirty_chunks(dirty_chunks, false, false, true);
+            },
+            .refresh_surface_attachments = [this](const std::vector<ivec2>& changed_coords)
+            {
+                refresh_surface_attachments_around(changed_coords);
             }
         });
     }
@@ -485,13 +489,6 @@ namespace game::terrain
         };
     }
 
-    std::vector<ivec2> PlanetTerrain::collect_water_component(const ivec2 start_coord,
-                                                              const bool  include_diagonals) const
-    {
-        return water_system_.collect_water_component(field_, base_chunk_settings_.world_center, start_coord,
-                                                     include_diagonals);
-    }
-
     std::optional<PlanetTerrain::WaterPlan> PlanetTerrain::build_targeted_water_plan(const vec2 world_position,
         const std::uint32_t                                                                     volume_cap,
         const bool                                                                              pickup) const
@@ -560,8 +557,10 @@ namespace game::terrain
                 cleared_keys.insert(sample_key(coord));
             });
 
-        if (resources_ != nullptr && !cleared_keys.empty()) static_cast<void>(resources_->remove_nodes(cleared_keys));
-        refresh_surface_attachments_around(changed_coords);
+        if (resources_ != nullptr && !cleared_keys.empty())
+        {
+            static_cast<void>(resources_->remove_nodes(cleared_keys));
+        }
         return result;
     }
 
@@ -586,10 +585,6 @@ namespace game::terrain
         moisture_system_.recompute_wetness_around(
             field_,
             changed_coords,
-            [this](const ivec2 coord, const bool include_diagonals)
-            {
-                return collect_water_component(coord, include_diagonals);
-            },
             [this, &dirty_chunks](const ivec2 coord) { mark_chunks_covering_global_sample(coord, dirty_chunks); },
             vegetation_,
             recompute_greenness,

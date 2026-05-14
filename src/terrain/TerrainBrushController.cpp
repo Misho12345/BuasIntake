@@ -80,6 +80,11 @@ namespace game::terrain
                 Log::error(rebuild_result.error());
         }
 
+        if (callbacks.refresh_surface_attachments)
+        {
+            callbacks.refresh_surface_attachments(pending_changed_coords_);
+        }
+
         pending_changed_coords_.clear();
         std::fill(pending_dirty_chunks_.begin(), pending_dirty_chunks_.end(), false);
         pending_changed_water_            = false;

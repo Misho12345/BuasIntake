@@ -15,12 +15,10 @@ namespace game::terrain
     {
     public:
         using MarkDirty = std::function<void(ivec2)>;
-        using CollectWaterComponent = std::function<std::vector<ivec2>(ivec2, bool)>;
 
         void recompute_wetness_around(
             TerrainField&                       field,
             const std::vector<ivec2>&           changed_coords,
-            const CollectWaterComponent&        collect_water_component,
             const MarkDirty&                    mark_dirty,
             const vegetation::VegetationSystem* vegetation,
             bool                                recompute_greenness = true,

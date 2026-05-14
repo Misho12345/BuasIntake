@@ -406,7 +406,7 @@ namespace game::tools
         const int movement_stamp_count = static_cast<int>(std::floor(distance / spacing));
 
         // mix time-based and distance-based stamping so quick drags do not leave holes
-        static constexpr int max_stamps_per_frame = 16;
+        static constexpr int max_stamps_per_frame = 4;
         const int stamp_count = std::min(std::max(time_stamp_count, movement_stamp_count), max_stamps_per_frame);
 
         if (stamp_count <= 0) return;

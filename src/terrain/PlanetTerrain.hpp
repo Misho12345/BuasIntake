@@ -125,7 +125,6 @@ namespace game::terrain
         bool                 has_water_neighbor(ivec2 coord) const;
         bool                 has_protective_water_neighbor(ivec2 coord) const;
         bool                 is_dig_protected(ivec2 coord) const;
-        std::vector<ivec2>   collect_water_component(ivec2 start_coord, bool include_diagonals = false) const;
 
         TerrainEditResult apply_terrain_edit_to_global_field(
             const TerrainEdit&  edit,

@@ -11,7 +11,6 @@ namespace game::terrain
     void TerrainMoistureSystem::recompute_wetness_around(
         TerrainField&                       field,
         const std::vector<ivec2>&           changed_coords,
-        const CollectWaterComponent&        collect_water_component,
         const MarkDirty&                    mark_dirty,
         const vegetation::VegetationSystem* vegetation,
         const bool                          recompute_greenness,
@@ -23,7 +22,6 @@ namespace game::terrain
             field.cell_size(),
             changed_coords,
             mark_dirty,
-            collect_water_component,
             mark_affected_visuals_dirty);
 
         if (recompute_greenness) recompute_ground_greenness(field, vegetation, mark_dirty);

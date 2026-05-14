@@ -14,14 +14,6 @@ namespace game::terrain
         ivec2 max{ -1, -1 };
     };
 
-    struct TerrainWetnessComponent final
-    {
-        std::vector<ivec2>  water_cells{};
-        TerrainSampleBounds water_bounds{};
-        float               max_distance{ 0.0f };
-        int                 radius_cells{ 0 };
-    };
-
     namespace terrain_wetness
     {
         inline TerrainSampleBounds clamp_sample_bounds(
@@ -70,92 +62,16 @@ namespace game::terrain
             };
         }
 
-        // find connected water components near the changed area, then give each component an influence radius based on size
-        // the recompute pass can then walk outward from those components instead of treating all water as one source
-        template <typename CollectWaterComponent>
-        std::vector<TerrainWetnessComponent> collect_wetness_components(
-            const std::span<const TerrainFieldSample> global_field,
-            const uvec2                              global_field_size,
-            const TerrainSampleBounds&               discovery_bounds,
-            const float                              min_cell_extent,
-            const int                                max_wetness_radius_cells,
-            CollectWaterComponent&&                  collect_water_component)
-        {
-            auto field_index = [global_field_size](const ivec2 coord)
-            {
-                return static_cast<std::size_t>(coord.y) * static_cast<std::size_t>(global_field_size.x) +
-                        static_cast<std::size_t>(coord.x);
-            };
-
-            auto component_wetness_distance = [min_cell_extent, max_wetness_radius_cells
-                    ](const std::size_t water_sample_count)
-            {
-                const float equivalent_radius_cells = std::sqrt(static_cast<float>(water_sample_count) / pi);
-                const float radius_cells            = std::clamp(
-                    constants::base_wetness_radius_cells +
-                        equivalent_radius_cells * constants::pond_wetness_radius_scale,
-                    1.0f,
-                    static_cast<float>(max_wetness_radius_cells));
-                return std::max(radius_cells * min_cell_extent, min_cell_extent);
-            };
-
-            std::unordered_set<std::uint64_t>    visited_water;
-            std::vector<TerrainWetnessComponent> components;
-
-            for (int y = discovery_bounds.min.y; y <= discovery_bounds.max.y; ++y)
-            {
-                for (int x = discovery_bounds.min.x; x <= discovery_bounds.max.x; ++x)
-                {
-                    const ivec2 coord{ x, y };
-                    if (!has_water_sample(global_field[field_index(coord)])) continue;
-
-                    const auto key = sample_key(coord);
-                    if (!visited_water.insert(key).second) continue;
-
-                    auto water_cells = collect_water_component(coord, false);
-                    for (const auto water_coord : water_cells) { visited_water.insert(game::sample_key(water_coord)); }
-
-                    if (water_cells.empty()) continue;
-
-                    TerrainSampleBounds water_bounds{ .min = water_cells.front(), .max = water_cells.front() };
-
-                    for (const auto water_coord : water_cells)
-                    {
-                        water_bounds.min.x = std::min(water_bounds.min.x, water_coord.x);
-                        water_bounds.min.y = std::min(water_bounds.min.y, water_coord.y);
-                        water_bounds.max.x = std::max(water_bounds.max.x, water_coord.x);
-                        water_bounds.max.y = std::max(water_bounds.max.y, water_coord.y);
-                    }
-
-                    const float max_distance = component_wetness_distance(water_cells.size());
-                    const int   radius_cells = std::max(
-                        1, static_cast<int>(std::ceil(max_distance / std::max(min_cell_extent, 1e-6f))));
-                    const auto component_bounds = expand_sample_bounds(water_bounds, radius_cells, global_field_size);
-                    if (!sample_bounds_intersect(component_bounds, discovery_bounds)) continue;
-
-                    components.push_back({
-                        .water_cells  = std::move(water_cells),
-                        .water_bounds = water_bounds,
-                        .max_distance = max_distance,
-                        .radius_cells = radius_cells
-                    });
-                }
-            }
-
-            return components;
-        }
-
         // local wetness rebuild after terrain or water edits
-        // clamp the work to a region around the changed samples, then run outward from nearby water components with a priority queue
+        // clamp the work to a region around the changed samples, then run outward from nearby water with a priority queue
         // this is much cheaper than rebuilding the whole planet for a small edit
-        template <typename MarkDirty, typename CollectWaterComponent>
+        template <typename MarkDirty>
         void recompute_around(
             std::span<TerrainFieldSample> global_field,
             const uvec2                   global_field_size,
             const vec2                    terrain_cell_size,
             const std::span<const ivec2>  changed_coords,
             MarkDirty&&                   mark_dirty,
-            CollectWaterComponent&&       collect_water_component,
             const bool                    mark_affected_visuals_dirty = false)
         {
             if (changed_coords.empty() || global_field.empty()) return;
@@ -292,24 +208,6 @@ namespace game::terrain
                 return;
             }
 
-            const auto components = collect_wetness_components(
-                global_field,
-                global_field_size,
-                component_discovery_bounds,
-                min_cell_extent,
-                constants::max_wetness_radius_cells,
-                std::forward<CollectWaterComponent>(
-                    collect_water_component));
-
-            if (components.empty())
-            {
-                if (!has_wetness_in_discovery) return;
-
-                clear_affected_wetness();
-                if (mark_affected_visuals_dirty) mark_affected_wetness_visuals_dirty();
-                return;
-            }
-
             const ivec2 affected_size = affected_bounds.max - affected_bounds.min + 1;
             std::vector best_wetness(
                 static_cast<std::size_t>(affected_size.x) * static_cast<std::size_t>(affected_size.y), 0.0f);
@@ -336,50 +234,47 @@ namespace game::terrain
                 }
             };
 
-            for (const auto& component : components)
+            const auto  propagation_bounds = component_discovery_bounds;
+            const ivec2 propagation_size   = propagation_bounds.max - propagation_bounds.min + 1;
+            const float max_distance       = static_cast<float>(constants::max_wetness_radius_cells) * min_cell_extent;
+
+            std::vector best_distances(
+                static_cast<std::size_t>(propagation_size.x) *
+                static_cast<std::size_t>(propagation_size.y),
+                inf);
+
+            auto propagation_index = [propagation_bounds, propagation_width = propagation_size.x](const ivec2 coord)
             {
-                const auto component_influence_bounds = expand_sample_bounds(
-                    component.water_bounds,
-                    component.radius_cells,
-                    global_field_size);
+                const ivec2 local = coord - propagation_bounds.min;
+                return static_cast<std::size_t>(local.y) *
+                        static_cast<std::size_t>(propagation_width) +
+                        static_cast<std::size_t>(local.x);
+            };
 
-                if (!sample_bounds_intersect(component_influence_bounds, affected_bounds)) continue;
+            std::priority_queue<WetnessNode, std::vector<WetnessNode>, WetnessNodeCompare> frontier;
 
-                const auto  propagation_bounds = component_influence_bounds;
-                const ivec2 propagation_size   = propagation_bounds.max - propagation_bounds.min + 1;
+            auto try_push = [&](const ivec2 coord, const float distance)
+            {
+                if (!bounds_contains(propagation_bounds, coord) ||
+                    !is_valid_global_sample(coord))
+                    return;
 
-                std::vector best_distances(
-                    static_cast<std::size_t>(propagation_size.x) *
-                    static_cast<std::size_t>(propagation_size.y),
-                    inf);
+                if (!is_solid_sample(global_field[field_index(coord)])) return;
 
-                auto propagation_index = [propagation_bounds, propagation_width = propagation_size.x](const ivec2 coord)
+                auto& best_distance = best_distances[propagation_index(coord)];
+                if (distance + 1e-5f >= best_distance || distance > max_distance) return;
+
+                best_distance = distance;
+                frontier.push(WetnessNode{ coord, distance });
+            };
+
+            for (int y = component_discovery_bounds.min.y; y <= component_discovery_bounds.max.y; ++y)
+            {
+                for (int x = component_discovery_bounds.min.x; x <= component_discovery_bounds.max.x; ++x)
                 {
-                    const ivec2 local = coord - propagation_bounds.min;
-                    return static_cast<std::size_t>(local.y) *
-                            static_cast<std::size_t>(propagation_width) +
-                            static_cast<std::size_t>(local.x);
-                };
+                    const ivec2 water_coord{ x, y };
+                    if (!has_water_sample(global_field[field_index(water_coord)])) continue;
 
-                std::priority_queue<WetnessNode, std::vector<WetnessNode>, WetnessNodeCompare> frontier;
-
-                auto try_push = [&](const ivec2 coord, const float distance)
-                {
-                    if (!bounds_contains(propagation_bounds, coord) ||
-                        !is_valid_global_sample(coord))
-                        return;
-
-                    if (!is_solid_sample(global_field[field_index(coord)])) return;
-
-                    auto& best_distance = best_distances[propagation_index(coord)];
-                    if (distance + 1e-5f >= best_distance || distance > component.max_distance) return;
-
-                    best_distance = distance;
-                    frontier.push(WetnessNode{ coord, distance });
-                };
-
-                for (const auto water_coord : component.water_cells)
-                {
                     for (const auto& offset : wetness_neighbors)
                     {
                         try_push(
@@ -387,27 +282,27 @@ namespace game::terrain
                             neighbor_distance(offset));
                     }
                 }
+            }
 
-                while (!frontier.empty())
+            while (!frontier.empty())
+            {
+                const auto [coord, distance] = frontier.top();
+                frontier.pop();
+
+                if (distance > best_distances[propagation_index(coord)] + 1e-5f) continue;
+
+                if (bounds_contains(affected_bounds, coord))
                 {
-                    const auto [coord, distance] = frontier.top();
-                    frontier.pop();
+                    best_wetness[affected_index(coord)] =
+                            std::max(best_wetness[affected_index(coord)],
+                                     wetness_strength(distance, max_distance));
+                }
 
-                    if (distance > best_distances[propagation_index(coord)] + 1e-5f) continue;
-
-                    if (bounds_contains(affected_bounds, coord))
-                    {
-                        best_wetness[affected_index(coord)] =
-                                std::max(best_wetness[affected_index(coord)],
-                                         wetness_strength(distance, component.max_distance));
-                    }
-
-                    for (const auto& offset : wetness_neighbors)
-                    {
-                        try_push(
-                            coord + offset,
-                            distance + neighbor_distance(offset));
-                    }
+                for (const auto& offset : wetness_neighbors)
+                {
+                    try_push(
+                        coord + offset,
+                        distance + neighbor_distance(offset));
                 }
             }
 

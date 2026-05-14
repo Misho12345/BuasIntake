@@ -26,6 +26,7 @@ namespace game::terrain
             std::function<std::vector<bool>()>                          make_dirty_chunks{};
             std::function<void(const std::vector<ivec2>&, std::vector<bool>&)> recompute_wetness{};
             std::function<Result<void>(const std::vector<bool>&)>        rebuild_deferred_wetness{};
+            std::function<void(const std::vector<ivec2>&)>               refresh_surface_attachments{};
         };
 
         using ApplyEditCallback = std::function<EditResult(

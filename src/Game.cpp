@@ -457,10 +457,11 @@ namespace game
     {
         if (!b2World_IsValid(world_) || !world_state_.ready()) return;
         if (restoration_goal_.completed()) return;
-        physics_accumulator_ = std::min(physics_accumulator_ + dt, 0.025f);
-
         static constexpr float fixed_step    = 1.0f / 60.0f;
         static constexpr int   sub_steps     = 4;
+        static constexpr int   max_steps     = 8;
+        physics_accumulator_ = std::min(physics_accumulator_ + dt, fixed_step * static_cast<float>(max_steps));
+
         auto&                  player        = world_state_.player();
         const auto&            terrain       = world_state_.terrain();
         const vec2             planet_center = terrain.planet_center();
@@ -473,13 +474,15 @@ namespace game
 
         refresh_player_state();
 
-        while (physics_accumulator_ >= fixed_step)
+        int steps = 0;
+        while (physics_accumulator_ >= fixed_step && steps < max_steps)
         {
             const bool in_water = player.is_in_water();
             player.prepare_for_physics_step(fixed_step, planet_center, in_water);
             b2World_Step(world_, fixed_step, sub_steps);
             refresh_player_state();
             physics_accumulator_ -= fixed_step;
+            ++steps;
         }
 
         player.sync_from_physics(planet_center);
