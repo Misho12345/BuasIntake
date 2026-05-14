@@ -262,7 +262,7 @@ namespace game::vegetation
                 const PlantCandidate candidate{
                     .coord          = coord,
                     .anchor_dist_sq = anchor_delta.x * anchor_delta.x + anchor_delta.y * anchor_delta.y,
-                    .radial         = distance_between(*anchor, terrain.planet_center())
+                    .radial         = distance(*anchor, terrain.planet_center())
                 };
 
                 if (!best_candidate.has_value() ||

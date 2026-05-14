@@ -91,7 +91,7 @@ namespace game::player
             vec2  movement_direction,
             bool  in_water);
 
-        void try_jump(vec2 up_direction, bool jump_held, bool in_water);
+        void try_jump(float fixed_step, vec2 up_direction, bool jump_held, bool in_water);
         void apply_input(float fixed_step, vec2 planet_center, bool in_water);
         void apply_gravity(vec2 planet_center, bool in_water) const;
         void align_to_planet(vec2 planet_center) const;

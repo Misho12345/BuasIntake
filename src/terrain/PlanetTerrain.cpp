@@ -414,7 +414,7 @@ namespace game::terrain
     float PlanetTerrain::normalized_depth(const vec2 world_position) const
     {
         const float surface_radius = std::max(base_chunk_settings_.planet_radius, 1e-4f);
-        const float radius         = distance_between(world_position, base_chunk_settings_.world_center);
+        const float radius         = distance(world_position, base_chunk_settings_.world_center);
         return std::clamp(1.0f - radius / surface_radius, 0.0f, 1.0f);
     }
 
@@ -469,10 +469,11 @@ namespace game::terrain
     bool PlanetTerrain::is_dig_protected(const ivec2 coord) const
     {
         if (!is_valid_global_sample(coord)) return false;
-        const auto& sample = field_.sample(coord);
+        const auto& sample           = field_.sample(coord);
         const float protected_radius = base_chunk_settings_.planet_radius * constants::undiggable_core_radius_fraction;
-        return has_water_sample(sample) || has_protective_water_neighbor(coord) ||
-                distance_between(global_sample_world_position(coord), base_chunk_settings_.world_center) <= protected_radius;
+        return has_water_sample(sample) ||
+		        has_protective_water_neighbor(coord) ||
+		        distance(global_sample_world_position(coord), base_chunk_settings_.world_center) <= protected_radius;
     }
 
     TerrainGenerationFieldView PlanetTerrain::make_generation_field_view()
@@ -647,13 +648,15 @@ namespace game::terrain
             }
         }
 
-        log_validation_transition(current_state.resource_system_null,
-                                  previous_state.resource_system_null,
-                                  "PlanetTerrain validation failed: resource system is null");
+        log_validation_transition(
+	        current_state.resource_system_null,
+	        previous_state.resource_system_null,
+	        "PlanetTerrain validation failed: resource system is null");
 
-        log_validation_transition(current_state.vegetation_system_null,
-                                  previous_state.vegetation_system_null,
-                                  "PlanetTerrain validation failed: vegetation system is null");
+        log_validation_transition(
+	        current_state.vegetation_system_null,
+	        previous_state.vegetation_system_null,
+	        "PlanetTerrain validation failed: vegetation system is null");
 
         if (current_state.pending_dirty_chunk_size_mismatch != previous_state.pending_dirty_chunk_size_mismatch)
         {
@@ -727,9 +730,12 @@ namespace game::terrain
         const vec2 ray_origin{ terrain_world_center.x, chunk_grid_.display_max().y + base_chunk_settings_.chunk_size.y * 2.0f };
         const vec2 ray_end{ terrain_world_center.x, chunk_grid_.display_min().y - base_chunk_settings_.chunk_size.y * 2.0f };
         const b2QueryFilter filter = b2DefaultQueryFilter();
-        const auto ray_result =
-                b2World_CastRayClosest(world_id_, { ray_origin.x, ray_origin.y },
-                                       { ray_end.x - ray_origin.x, ray_end.y - ray_origin.y }, filter);
+
+        const auto ray_result = b2World_CastRayClosest(
+	        world_id_,
+	        { ray_origin.x, ray_origin.y },
+	        { ray_end.x - ray_origin.x, ray_end.y - ray_origin.y },
+	        filter);
 
         if (ray_result.hit)
         {
@@ -743,15 +749,16 @@ namespace game::terrain
 
     float PlanetTerrain::compute_planet_radius()
     {
-        const auto          total_chunk_count = chunk_count();
-        const ChunkSettings defaults{};
-        const auto          terrain_chunk_size = defaults.chunk_size;
-        const vec2          total_world_size{
-            terrain_chunk_size.x * static_cast<float>(total_chunk_count.x),
-            terrain_chunk_size.y * static_cast<float>(total_chunk_count.y)
-        };
+	    const auto          total_chunk_count = chunk_count();
+	    const ChunkSettings defaults{};
+	    const auto          terrain_chunk_size = defaults.chunk_size;
 
-        const auto min_half_extent = std::min(total_world_size.x, total_world_size.y) * 0.5f;
+	    const vec2 total_world_size{
+		    terrain_chunk_size.x * static_cast<float>(total_chunk_count.x),
+		    terrain_chunk_size.y * static_cast<float>(total_chunk_count.y)
+	    };
+
+	    const auto min_half_extent = std::min(total_world_size.x, total_world_size.y) * 0.5f;
         const auto edge_padding    = std::min(terrain_chunk_size.x, terrain_chunk_size.y) * 0.75f;
         return std::max(min_half_extent - edge_padding, 1.0f);
     }

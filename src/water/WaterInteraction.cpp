@@ -37,7 +37,7 @@ namespace game::water
             if (!is_valid_global_sample(grid, coord)) return false;
 
             // Water needs a bit of solid support toward the planet core or it will look like it is hanging outward.
-            const float sample_radial = distance_between(global_sample_world_position(grid, coord), grid.world_center);
+            const float sample_radial = distance(global_sample_world_position(grid, coord), grid.world_center);
             const float radial_tolerance = std::min(grid.cell_size.x, grid.cell_size.y) * 0.25f;
 
             for (int y = -1; y <= 1; ++y)
@@ -53,7 +53,7 @@ namespace game::water
                     const auto& neighbor_sample = grid.field_samples[global_field_index(grid, neighbor)];
                     if (neighbor_sample.terrain < 0.0f) continue;
 
-                    const float neighbor_radial = distance_between(
+                    const float neighbor_radial = distance(
                         global_sample_world_position(grid, neighbor),
                         grid.world_center);
 
@@ -128,7 +128,7 @@ namespace game::water
                 const float click_dist_sq = click_delta.x * click_delta.x + click_delta.y * click_delta.y;
 
                 const WaterCandidate candidate{
-                    coord, distance_between(sample_world, grid.world_center), click_dist_sq
+                    coord, distance(sample_world, grid.world_center), click_dist_sq
                 };
 
                 if (!best_candidate.has_value() ||
@@ -170,7 +170,7 @@ namespace game::water
 
             const WaterCandidate candidate{
                 .coord         = probe_coord,
-                .radial        = distance_between(probe_sample_world, grid.world_center),
+                .radial        = distance(probe_sample_world, grid.world_center),
                 .click_dist_sq = click_dist_sq
             };
 
@@ -317,7 +317,7 @@ namespace game::water
             if (sample.terrain >= 0.0f) return;
 
             const vec2  sample_world = global_sample_world_position(grid, coord);
-            const float radial       = distance_between(sample_world, grid.world_center);
+            const float radial       = distance(sample_world, grid.world_center);
             const float spill_level  = std::max(incoming_spill_level, radial);
             const auto  key          = sample_key(coord);
 
@@ -336,7 +336,7 @@ namespace game::water
             });
         };
 
-        push_neighbor(start_coord, distance_between(start_world, grid.world_center));
+        push_neighbor(start_coord, distance(start_world, grid.world_center));
 
         std::vector<FillCandidate> selected;
         selected.reserve(desired_wet_sample_count);

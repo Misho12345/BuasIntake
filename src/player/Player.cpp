@@ -418,14 +418,29 @@ namespace game::player
         b2Body_ApplyLinearImpulseToCenter(object_.body, to_b2(brake_impulse), true);
     }
 
-    void Player::try_jump(const vec2 up_direction, const bool jump_held, const bool in_water)
+    void Player::try_jump(
+        const float fixed_step,
+        const vec2  up_direction,
+        const bool  jump_held,
+        const bool  in_water)
     {
         if (!jump_held) return;
 
         if (in_water)
         {
-            const vec2 swim_force = up_direction * (b2Body_GetMass(object_.body) * config_.jump_speed * 1.9f);
-            b2Body_ApplyForceToCenter(object_.body, to_b2(swim_force), true);
+            const vec2  current_velocity = from_b2(b2Body_GetLinearVelocity(object_.body));
+            const float current_up_speed = current_velocity.dot(up_direction);
+            const float desired_up_speed = config_.move_speed * 0.95f;
+            const float max_speed_change = config_.move_acceleration * fixed_step * 0.85f;
+            const float speed_change     = std::clamp(
+                desired_up_speed - current_up_speed,
+                0.0f,
+                max_speed_change);
+
+            if (speed_change <= 1e-4f) return;
+
+            const vec2 swim_impulse = up_direction * (b2Body_GetMass(object_.body) * speed_change);
+            b2Body_ApplyLinearImpulseToCenter(object_.body, to_b2(swim_impulse), true);
             return;
         }
 
@@ -452,14 +467,14 @@ namespace game::player
                                     platform::InputSystem::is_pressed(Key::Space);
 
         apply_horizontal_movement(fixed_step, move_direction, in_water);
-        try_jump(up, jump_held, in_water);
+        try_jump(fixed_step, up, jump_held, in_water);
     }
 
     void Player::apply_gravity(const vec2 planet_center, const bool in_water) const
     {
         if (!valid()) return;
 
-        const float gravity_scale = in_water ? 0.22f : 1.0f;
+        const float gravity_scale = in_water ? 0.18f : 1.0f;
         const vec2  gravity_force = up_direction(planet_center) * (
             -b2Body_GetMass(object_.body) *
             config_.gravity_acceleration *

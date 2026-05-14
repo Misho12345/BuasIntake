@@ -70,13 +70,13 @@ namespace game::gfx
             GL_STATIC_DRAW);
     }
 
-    void Mesh::draw() const
+    void Mesh::draw(const GLenum primitive) const
     {
         if (empty()) return;
 
         // Mesh only knows how to draw indexed triangles, the active shader and textures are owned by the caller
         glBindVertexArray(vao_.id());
-        glDrawElements(GL_TRIANGLES, index_count_, GL_UNSIGNED_INT, nullptr);
+        glDrawElements(primitive, index_count_, GL_UNSIGNED_INT, nullptr);
         glBindVertexArray(0);
     }
 

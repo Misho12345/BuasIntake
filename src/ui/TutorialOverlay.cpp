@@ -120,7 +120,9 @@ namespace game::ui
                 while (words >> word)
                 {
                     const std::string candidate = line.empty() ? word : line + ' ' + word;
-                    sf::Text          text{ font, candidate, character_size };
+
+                    sf::Text text{ font, candidate, character_size };
+
                     if (!line.empty() && text.getLocalBounds().size.x > max_width)
                     {
                         lines.push_back(line);
@@ -253,15 +255,23 @@ namespace game::ui
             const int  slide_width  = static_cast<int>(texture_size.x / tutorial_image_slide_count);
             const int  slide_height = static_cast<int>(texture_size.y);
 
-            sf::Sprite image{ tutorial_texture_, sf::IntRect{
-                { static_cast<int>(slide_index) * slide_width, 0 },
-                { slide_width, slide_height }
-            } };
+            sf::Sprite image{
+	            tutorial_texture_,
+	            sf::IntRect{
+		            { static_cast<int>(slide_index) * slide_width, 0 },
+		            { slide_width, slide_height }
+	            }
+            };
 
             const auto image_bounds = image.getLocalBounds();
             image.setOrigin({ image_bounds.position.x, image_bounds.position.y });
             const vec2  image_max_size{ scaled(1030.0f), scaled(410.0f) };
-            const float image_scale = std::min(image_max_size.x / image_bounds.size.x, image_max_size.y / image_bounds.size.y);
+
+            const float image_scale = std::min(
+                image_max_size.x / image_bounds.size.x, 
+                image_max_size.y / image_bounds.size.y
+            );
+
             image.setScale({ image_scale, image_scale });
             image.setPosition({
                 layout.panel_position.x + scaled(60.0f) + (scaled(1060.0f) - image_bounds.size.x * image_scale) * 0.5f,
